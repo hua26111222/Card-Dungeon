@@ -120,66 +120,74 @@ html,body{background:var(--void);color:var(--text);font-family:var(--fm);font-si
 .hcrb.rr{color:var(--amber);border-color:var(--amber2)}
 .hcrb.rcu{color:var(--soul);border-color:var(--violet)}
 
-/* ═══ 战斗 STS布局：双方并排在上，手牌全宽横跨下方 ═══ */
-#bv{display:none;grid-template-areas:"player enemy""hand hand""buttons buttons""stats stats";grid-template-columns:2fr 3fr;grid-template-rows:250px minmax(180px,1fr) auto auto;min-height:calc(100vh - 62px)}
-.ez{grid-area:enemy;background:linear-gradient(160deg,#1c1218,#0f0c18);
-  border-bottom:1px solid var(--crack);padding:0;position:relative;
-  display:flex;flex-direction:column}
-.ez::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;z-index:3;
-  background:linear-gradient(90deg,var(--blood2),var(--gore),var(--blood2));pointer-events:none}
-.etag{font-size:10px;color:var(--ash);letter-spacing:2px;font-style:italic;padding:7px 10px 0;text-align:center;flex-shrink:0}
-.erow{display:flex;flex-direction:column;width:100%;flex:1;min-height:0}
-.ep{flex:1;width:100%;min-height:70px;
-  display:flex;align-items:center;justify-content:center;font-size:72px;
-  position:relative;overflow:hidden;border:none;box-shadow:none}
+/* ═══ 战斗 KOF格斗风格 ═══ */
+#bv{display:none;grid-template-areas:"scene""hand""buttons""stats";grid-template-columns:1fr;grid-template-rows:260px minmax(180px,1fr) auto auto;min-height:calc(100vh - 62px)}
+.bscene{grid-area:scene;position:relative;overflow:hidden;display:flex;align-items:stretch;
+  background:linear-gradient(180deg,#100c1a 0%,#080610 45%,#111018 100%);
+  border-bottom:2px solid var(--crack)}
+.bscene::before{content:'';position:absolute;inset:0;pointer-events:none;z-index:0;
+  background:
+    radial-gradient(ellipse at 18% 95%,rgba(58,90,138,.22) 0%,transparent 48%),
+    radial-gradient(ellipse at 82% 95%,rgba(139,26,26,.18) 0%,transparent 48%),
+    repeating-linear-gradient(180deg,transparent 0,transparent 3px,rgba(0,0,0,.07) 3px,rgba(0,0,0,.07) 4px)}
+.bscene::after{content:'';position:absolute;left:0;right:0;bottom:82px;height:1px;z-index:1;pointer-events:none;
+  background:linear-gradient(90deg,transparent 0%,rgba(200,169,110,.14) 25%,rgba(200,169,110,.06) 50%,rgba(200,169,110,.14) 75%,transparent 100%)}
+.etag{position:absolute;top:5px;left:50%;transform:translateX(-50%);z-index:5;
+  font-size:9px;color:rgba(200,169,110,.55);letter-spacing:2px;font-style:italic;
+  background:rgba(0,0,0,.45);padding:2px 10px;white-space:nowrap;pointer-events:none}
+.bchar-p{flex:0 0 43%;display:flex;flex-direction:column;align-items:center;position:relative;z-index:2;
+  border-right:1px solid rgba(255,255,255,.04);
+  background:linear-gradient(180deg,rgba(58,90,138,.07) 0%,transparent 65%)}
+.bchar-p::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;z-index:3;
+  background:linear-gradient(90deg,var(--ice),var(--frost),var(--ice))}
+.bchar-e{flex:1;display:flex;flex-direction:column;align-items:center;position:relative;z-index:2;
+  background:linear-gradient(180deg,rgba(139,26,26,.07) 0%,transparent 65%)}
+.bchar-e::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;z-index:3;
+  background:linear-gradient(90deg,var(--blood2),var(--gore),var(--blood2))}
+.pav{flex:1;width:100%;min-height:50px;display:flex;align-items:center;justify-content:center;font-size:52px;
+  position:relative;overflow:hidden;filter:drop-shadow(0 4px 10px rgba(0,0,0,.8))}
+.ep{flex:1;width:100%;min-height:60px;display:flex;align-items:center;justify-content:center;font-size:72px;
+  position:relative;overflow:hidden;filter:drop-shadow(0 4px 12px rgba(0,0,0,.9))}
 .ep::after{content:'';position:absolute;inset:0;
   background:repeating-linear-gradient(180deg,transparent 0,transparent 2px,rgba(0,0,0,.18) 2px,rgba(0,0,0,.18) 3px);pointer-events:none}
-.ep.fe{box-shadow:inset 0 0 50px rgba(200,136,26,.22)}
-.ep.fb{animation:bpulse 3s ease-in-out infinite;box-shadow:inset 0 0 50px rgba(106,58,154,.28)}
-@keyframes bpulse{0%,100%{box-shadow:inset 0 0 30px rgba(106,58,154,.2)}50%{box-shadow:inset 0 0 60px rgba(154,90,191,.5)}}
-.ed{width:100%;text-align:center;background:rgba(0,0,0,.82);border-top:1px solid var(--crack2);padding:8px 10px 7px;flex-shrink:0}
-.en{font-family:var(--fs);font-size:18px;font-weight:900;letter-spacing:1px;margin-bottom:3px;color:var(--text);text-shadow:1px 1px 0 #000}
+.ep.fe{filter:drop-shadow(0 4px 12px rgba(0,0,0,.9)) drop-shadow(0 0 18px rgba(200,136,26,.5))}
+.ep.fb{animation:bpulse 3s ease-in-out infinite;filter:drop-shadow(0 4px 12px rgba(0,0,0,.9)) drop-shadow(0 0 22px rgba(154,90,191,.6))}
+@keyframes bpulse{0%,100%{filter:drop-shadow(0 4px 12px rgba(0,0,0,.9)) drop-shadow(0 0 14px rgba(106,58,154,.4))}50%{filter:drop-shadow(0 4px 12px rgba(0,0,0,.9)) drop-shadow(0 0 28px rgba(154,90,191,.8))}}
+.binfo-p{width:100%;text-align:center;background:rgba(0,0,0,.84);border-top:1px solid rgba(122,170,191,.18);padding:6px 7px 7px;flex-shrink:0;z-index:3}
+.binfo-e{width:100%;text-align:center;background:rgba(0,0,0,.84);border-top:1px solid rgba(139,26,26,.28);padding:6px 7px 7px;flex-shrink:0;z-index:3}
+.en{font-family:var(--fs);font-size:14px;font-weight:900;letter-spacing:1px;margin-bottom:2px;color:var(--text);text-shadow:1px 1px 0 #000}
 .en.eli{color:var(--amber);text-shadow:0 0 14px rgba(212,136,26,.4),1px 1px 0 #000}
 .en.bos{color:var(--violet);text-shadow:0 0 18px rgba(154,90,191,.5),1px 1px 0 #000;animation:nflicker 5s ease-in-out infinite}
 @keyframes nflicker{0%,94%,100%{opacity:1}97%{opacity:.8}}
-.hlt{font-size:13px;color:var(--text);letter-spacing:1px;margin-bottom:4px;font-style:italic}
-.hbg{height:9px;background:var(--void);border:1px solid var(--crack);overflow:hidden;
-  max-width:130px;margin:3px auto 5px;
+.hlt{font-size:11px;color:var(--text);letter-spacing:1px;margin-bottom:2px;font-style:italic}
+.hbg{height:7px;background:var(--void);border:1px solid var(--crack);overflow:hidden;
+  max-width:110px;margin:2px auto 4px;
   box-shadow:inset 0 1px 4px rgba(0,0,0,.8);position:relative}
 .hbg::before{content:'';position:absolute;inset:0;
   background:repeating-linear-gradient(90deg,transparent 0,transparent 9px,rgba(0,0,0,.25) 9px,rgba(0,0,0,.25) 10px);z-index:2;pointer-events:none}
 .hf{height:100%;transition:width .4s cubic-bezier(.4,0,.2,1);position:relative}
-.hf::after{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:rgba(255,255,255,.15)}
+.hf::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:rgba(255,255,255,.15)}
 .hf.ef{background:linear-gradient(90deg,var(--blood2),var(--blood),var(--gore));box-shadow:0 0 8px rgba(139,26,26,.6)}
 .hf.pf{background:linear-gradient(90deg,var(--mold),#3a8a2a,var(--slime));box-shadow:0 0 6px rgba(45,90,39,.5)}
 .hf.lw{background:linear-gradient(90deg,var(--ash3),var(--amber2),var(--amber))}
 .hf.cr{background:linear-gradient(90deg,#4a0000,var(--blood),var(--gore2));animation:bpuls2 .6s ease-in-out infinite}
 @keyframes bpuls2{0%,100%{box-shadow:0 0 8px rgba(192,57,43,.6)}50%{box-shadow:0 0 22px rgba(224,80,64,.9)}}
 .etk{display:flex;flex-wrap:wrap;gap:2px;margin-bottom:0;justify-content:center}
-.ibox{display:inline-flex;align-items:center;gap:6px;background:var(--blood3);border:1px solid var(--blood2);
-  padding:4px 8px;font-size:13px;color:var(--gore2);letter-spacing:1px;font-style:italic;
-  box-shadow:0 0 10px rgba(139,26,26,.35)}
-.sr{display:flex;gap:4px;flex-wrap:wrap;margin-top:6px;justify-content:center}
-.sb{font-size:11px;padding:2px 7px;border:1px solid;letter-spacing:1px;font-style:italic;background:rgba(0,0,0,.4)}
+.ibox{display:inline-flex;align-items:center;gap:4px;background:var(--blood3);border:1px solid var(--blood2);
+  padding:3px 6px;font-size:10px;color:var(--gore2);letter-spacing:1px;font-style:italic;
+  box-shadow:0 0 8px rgba(139,26,26,.3)}
+.sr{display:flex;gap:3px;flex-wrap:wrap;margin-top:4px;justify-content:center}
+.sb{font-size:9px;padding:1px 5px;border:1px solid;letter-spacing:1px;font-style:italic;background:rgba(0,0,0,.4)}
 .ss{color:var(--gore2);border-color:var(--blood2)}.sbk{color:var(--frost);border-color:var(--ice)}
 .sp{color:var(--slime);border-color:var(--mold)}.sw{color:var(--violet);border-color:var(--soul)}
 .sv{color:var(--amber);border-color:var(--amber2)}
-.pz{grid-area:player;background:linear-gradient(160deg,#0d1018,#0a0c14);
-  border-bottom:1px solid var(--crack);border-right:1px solid var(--crack);
-  padding:0;display:flex;flex-direction:column;position:relative}
-.pz::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;z-index:3;
-  background:linear-gradient(90deg,var(--ice),var(--frost),var(--ice));pointer-events:none}
-.pav{flex:1;width:100%;min-height:60px;
-  display:flex;align-items:center;justify-content:center;font-size:52px;
-  position:relative;overflow:hidden;border:none;box-shadow:none}
-.pi{width:100%;text-align:center;background:rgba(0,0,0,.82);border-top:1px solid var(--crack2);padding:8px 10px 7px;flex-shrink:0}
-.pn{font-size:12px;color:var(--bone);letter-spacing:3px;margin-bottom:4px;font-style:italic;text-shadow:0 0 14px currentColor;transition:color .5s}
-.pap{display:flex;align-items:center;gap:5px;justify-content:center;margin-top:5px}
-.papt{font-size:10px;color:var(--text3);letter-spacing:2px;font-style:italic;padding:0 4px}
-.pst{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:3px;justify-content:center}
-.pht{font-size:15px;letter-spacing:1px;color:var(--gore2);font-style:italic;font-weight:700}
-.bb{display:inline-flex;align-items:center;gap:4px;background:rgba(58,90,138,.25);border:1px solid var(--ice);
-  padding:4px 8px;font-size:13px;color:var(--frost);box-shadow:0 0 10px rgba(58,90,138,.35);font-weight:700}
+.pn{font-size:11px;color:var(--bone);letter-spacing:2px;margin-bottom:2px;font-style:italic;text-shadow:0 0 14px currentColor;transition:color .5s}
+.pap{display:flex;align-items:center;gap:4px;justify-content:center;margin-top:3px}
+.papt{font-size:9px;color:var(--text3);letter-spacing:2px;font-style:italic;padding:0 3px}
+.pst{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:2px;justify-content:center}
+.pht{font-size:13px;letter-spacing:1px;color:var(--gore2);font-style:italic;font-weight:700}
+.bb{display:inline-flex;align-items:center;gap:3px;background:rgba(58,90,138,.25);border:1px solid var(--ice);
+  padding:2px 6px;font-size:11px;color:var(--frost);box-shadow:0 0 8px rgba(58,90,138,.3);font-weight:700}
 .hz{grid-area:hand;padding:10px 0 6px;background:linear-gradient(180deg,#090711,var(--s1));border-bottom:1px solid var(--crack);overflow:visible;display:flex;flex-direction:column}
 .hh{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;padding:0 14px}
 .hlb{font-size:12px;color:var(--text2);letter-spacing:3px;font-style:italic}
@@ -458,33 +466,33 @@ html,body{background:var(--void);color:var(--text);font-family:var(--fm);font-si
     </div>
   </div>
   <div id="bv">
-    <div class="ez">
+    <div class="bscene">
       <div class="etag" id="etag">战斗遭遇</div>
-      <div class="erow">
+      <div class="bchar-p">
+        <div class="pav" id="pav">🗡</div>
+        <div class="binfo-p">
+          <div class="pn" id="pn">无名旅者</div>
+          <div class="hbg" style="max-width:88px"><div class="hf pf" id="phb" style="width:100%"></div></div>
+          <div class="pst">
+            <span class="pht" id="pht">80/80</span>
+            <div class="bb" id="bbd" style="display:none">🛡<span id="bbv">0</span></div>
+          </div>
+          <div class="pap"><span id="app2"></span><span class="papt">AP</span><span id="apt" style="font-size:11px;color:var(--frost);font-weight:700">3/3</span></div>
+          <div class="sr" id="ps2"></div>
+        </div>
+        <div class="rz" id="rz" style="display:none"></div>
+      </div>
+      <div class="bchar-e">
         <div class="ep" id="ep">?</div>
-        <div class="ed">
+        <div class="binfo-e">
           <div class="en" id="en">—</div>
           <div class="hlt" id="eht">0/0</div>
-          <div class="hbg"><div class="hf ef" id="ehb" style="width:100%"></div></div>
+          <div class="hbg" style="max-width:108px"><div class="hf ef" id="ehb" style="width:100%"></div></div>
           <div class="etk" id="etk"></div>
           <div class="ibox" id="ib"><span>⚔</span><span id="ibt">意图未知</span></div>
           <div class="sr" id="es"></div>
         </div>
       </div>
-    </div>
-    <div class="pz">
-      <div class="pav" id="pav">🗡</div>
-      <div class="pi">
-        <div class="pn" id="pn">无名旅者</div>
-        <div class="hbg"><div class="hf pf" id="phb" style="width:100%"></div></div>
-        <div class="pst">
-          <span class="pht" id="pht">80/80</span>
-          <div class="bb" id="bbd" style="display:none">🛡<span id="bbv">0</span></div>
-        </div>
-        <div class="pap"><span id="app2"></span><span class="papt">行动</span><span id="apt" style="font-size:12px;color:var(--frost);font-weight:700">3/3</span></div>
-        <div class="sr" id="ps2"></div>
-      </div>
-      <div class="rz" id="rz" style="display:none"></div>
     </div>
     <div class="hz">
       <div class="hh">
@@ -596,6 +604,7 @@ function upgradeCard(c){
     else if(c.str){c.str++;}
   }
   c.upgraded=true;
+  c.upgradeCount=(c.upgradeCount||0)+1;
 }
 function buildStarterDeck(){
   const pick=(pool,n)=>Array(n).fill(0).map(()=>gc(pool[0|Math.random()*pool.length]));
@@ -1373,7 +1382,7 @@ function renderHand(){
     const rc2=c.rar==='common'?'rc':c.rar==='uncommon'?'ru':c.rar==='rare'?'rr':'rcu';
     const rarBadge=c.rar==='rare'?`<div class="hcrb rr">◆</div>`:c.rar==='uncommon'?`<div class="hcrb ru">◇</div>`:c.rar==='curse'?`<div class="hcrb rcu">☠</div>`:`<div class="hcrb rc">○</div>`;
     const val=cardValue(c);const valBadge=val>0?`<div class="hcv">${val}g</div>`:'';
-    const upgBadge=c.upgraded?`<div class="hcup">+</div>`:'';
+    const upgBadge=c.upgradeCount?`<div class="hcup">+${c.upgradeCount}</div>`:'';
     return`<div class="hc ${kc}${sel?' sel':''}${unplay?' unp':''}" onclick="selectCard(${i})"><div class="hcc ${cc}">${c.cost}</div><div class="hca">${c.art}</div><div class="hcb"><div class="hcn">${c.name}${upgBadge}</div><div class="hct">${kn}${c.dur?'·全场':''}</div><div class="hcd">${d}</div><div class="hcr ${rc2}"></div></div>${rarBadge}${valBadge}</div>`;
   }).join('');
   updatePlayButton();
@@ -1418,7 +1427,7 @@ function showCardPicker(act,cards,cancelFn){
     const d=(c.desc||'').replace('{atk}',c.atk||0).replace('{blk}',c.blk||0).replace('{heal}',c.heal||0).replace('{str}',c.str||0);
     const val=cardValue(c);
     const after=act==='upgrade'?` <span style="font-size:9px;color:var(--slime)">⬆ ${previewUpgrade(c)}</span>`:'';
-    h+=`<div class="rw" onclick="confirmPick('${act}',${i})"><div class="rwa">${c.art}</div><div class="rwi"><div class="rwn">${c.name} ${c.upgraded?'<span style="color:var(--slime);font-size:8px">+</span>':''} <span style="font-size:8px;color:var(--amber);opacity:.8">≈${val}g</span></div><div class="rwd"><span style="color:var(--text3)">${kn(c.kind)} ◆${c.cost}</span> · ${d}${after}</div></div>${rt(c.rar)}</div>`;
+    h+=`<div class="rw" onclick="confirmPick('${act}',${i})"><div class="rwa">${c.art}</div><div class="rwi"><div class="rwn">${c.name} ${c.upgradeCount?`<span style="color:var(--slime);font-size:9px;font-weight:700">+${c.upgradeCount}</span>`:''} <span style="font-size:8px;color:var(--amber);opacity:.8">≈${val}g</span></div><div class="rwd"><span style="color:var(--text3)">${kn(c.kind)} ◆${c.cost}</span> · ${d}${after}</div></div>${rt(c.rar)}</div>`;
   });
   h+=`<button class="ovbtn" onclick="window._pickCancel?window._pickCancel():backToMap()">取消</button>`;
   document.getElementById('ovtag').textContent=act==='upgrade'?'⚒  锻造':'🗑  移除';
@@ -1439,7 +1448,7 @@ function showDeck(){
   const sorted=[...battle.deck].sort((a,b)=>{const o={atk:0,def:1,skl:2,crs:3};return(o[a.kind]||0)-(o[b.kind]||0)||a.cost-b.cost;});
   const totalVal=sorted.reduce((s,c)=>s+cardValue(c),0);
   document.getElementById('dm-count').textContent=`${battle.deck.length} 张 · 总价值 ${totalVal}g`;
-  document.getElementById('dm-cards').innerHTML=sorted.map(c=>{const d=(c.desc||'').replace('{atk}',c.atk||0).replace('{blk}',c.blk||0).replace('{heal}',c.heal||0).replace('{str}',c.str||0);const val=cardValue(c);return`<div class="rw"><div class="rwa">${c.art}</div><div class="rwi"><div class="rwn">${c.name}${c.upgraded?'<span style="color:var(--slime);font-size:8px;margin-left:3px">+</span>':''} <span style="font-size:8px;color:var(--amber);opacity:.8">≈${val}g</span></div><div class="rwd"><span style="color:var(--text3)">${kn(c.kind)} ◆${c.cost}</span> · ${d}</div></div>${rt(c.rar)}</div>`;}).join('');
+  document.getElementById('dm-cards').innerHTML=sorted.map(c=>{const d=(c.desc||'').replace('{atk}',c.atk||0).replace('{blk}',c.blk||0).replace('{heal}',c.heal||0).replace('{str}',c.str||0);const val=cardValue(c);return`<div class="rw"><div class="rwa">${c.art}</div><div class="rwi"><div class="rwn">${c.name}${c.upgradeCount?`<span style="color:var(--slime);font-size:9px;font-weight:700;margin-left:3px">+${c.upgradeCount}</span>`:''} <span style="font-size:8px;color:var(--amber);opacity:.8">≈${val}g</span></div><div class="rwd"><span style="color:var(--text3)">${kn(c.kind)} ◆${c.cost}</span> · ${d}</div></div>${rt(c.rar)}</div>`;}).join('');
   document.getElementById('deckmodal').style.display='block';
 }
 function closeDeck(){document.getElementById('deckmodal').style.display='none';}
@@ -1489,6 +1498,56 @@ function playGamble(tier){
   document.getElementById('ovb').innerHTML=h;renderHud();renderTokens();
 }
 function pickGamble(i){const c=window._gamblePicks?.[i];if(c){battle.deck.push(JSON.parse(JSON.stringify(c)));toast(`获得：${c.name}`,'g');}setTimeout(startGamble,400);}
+// ── 祭坛 ──
+function startAltar(){
+  phase=PH.OV;
+  const validCards=battle.deck.filter(c=>c.rar!=='curse');
+  const kn=k=>k==='atk'?'攻击':k==='def'?'防御':k==='skl'?'技能':'诅咒';
+  const rt=r=>r==='rare'?'<span class="rwt ttr">稀有</span>':r==='uncommon'?'<span class="rwt ttu">罕见</span>':'<span class="rwt ttc">普通</span>';
+  let h=`<div class="ovd">古老祭坛散发着神秘气息。<b>焚烧卡牌换取馈赠</b>——高价值牌可能得到强力奖励，低价值牌可能遭受惩罚。</div>`;
+  validCards.forEach(c=>{
+    const val=cardValue(c);
+    const hint=val>=60?'🔥 高价值 → 可能获得强力奖励':val>=30?'✦ 中等 → 可能有小奖励':'💀 低价值 → 可能遭受惩罚';
+    const d=(c.desc||'').replace('{atk}',c.atk||0).replace('{blk}',c.blk||0).replace('{heal}',c.heal||0).replace('{str}',c.str||0);
+    h+=`<div class="rw" onclick="burnOnAltar(${battle.deck.indexOf(c)})"><div class="rwa">${c.art}</div><div class="rwi"><div class="rwn">${c.name} <span style="font-size:8px;color:var(--amber);opacity:.8">≈${val}g</span></div><div class="rwd"><span style="color:var(--text3)">${kn(c.kind)} ◆${c.cost}</span> · ${hint}</div></div>${rt(c.rar)}</div>`;
+  });
+  h+=`<button class="ovbtn" onclick="backToMap()">离开祭坛</button>`;
+  document.getElementById('ovtag').textContent='🔱  祭坛';
+  document.getElementById('ovtit').textContent='神秘的古老祭坛';
+  document.getElementById('ovb').innerHTML=h;
+  showView('ov');renderHud();renderTokens();
+}
+function burnOnAltar(deckIdx){
+  const c=battle.deck[deckIdx];if(!c)return;
+  const val=cardValue(c);const nm=c.name;
+  battle.deck.splice(deckIdx,1);
+  if(val>=60){
+    const rewardHp=Math.floor(val*.35);
+    const rarePool=shuf(DB.filter(c=>c.rar==='rare'));
+    const ucPool=shuf(DB.filter(c=>c.rar==='uncommon'));
+    let h=`<div class="ovd">🔥 <b>${nm}</b> 在火焰中化为灰烬，祭坛颤动……三个馈赠向你低语。</div>`;
+    h+=`<button class="ovbtn gd" onclick="altarReward('hp',${rewardHp})"><span>❤ 生命之礼</span><span class="sub">恢复 ${rewardHp} HP</span></button>`;
+    if(rarePool[0]){const rc=rarePool[0];const rd=(rc.desc||'').replace('{atk}',rc.atk||0).replace('{blk}',rc.blk||0).replace('{heal}',rc.heal||0).replace('{str}',rc.str||0);h+=`<button class="ovbtn" style="border-color:var(--amber2)" onclick="altarReward('card','${rc.id}')"><span>⚡ ${rc.name}</span><span class="sub">${rd}</span></button>`;}
+    if(ucPool[0]){const uc=ucPool[0];const ud=(uc.desc||'').replace('{atk}',uc.atk||0).replace('{blk}',uc.blk||0).replace('{heal}',uc.heal||0).replace('{str}',uc.str||0);h+=`<button class="ovbtn" onclick="altarReward('card','${uc.id}')"><span>✦ ${uc.name}</span><span class="sub">${ud}</span></button>`;}
+    document.getElementById('ovtag').textContent='🔱  祭坛馈赠';
+    document.getElementById('ovtit').textContent='火焰的选择';
+    document.getElementById('ovb').innerHTML=h;
+    renderHud();renderTokens();return;
+  }
+  if(val>=30){
+    if(Math.random()<.6){const hp=Math.floor(val*.2);player.hp=Math.min(player.maxHp,player.hp+hp);toast(`🔥 ${nm}化为灰烬 +${hp}HP`,'g');}
+    else{const pool=DB.filter(c=>c.rar==='common');const nc=pool[0|Math.random()*pool.length];if(nc){battle.deck.push(gc(nc.id));toast(`🔥 ${nm}化为灰烬，获得${nc.name}`,'g');}}
+    setTimeout(backToMap,700);return;
+  }
+  if(Math.random()<.55){const d=Math.floor(player.maxHp*.08);player.hp=Math.max(1,player.hp-d);toast(`🔥 ${nm}化为灰烬，祭坛不悦！-${d}HP`,'r');}
+  else{battle.deck.push(gc('regret'));toast(`🔥 ${nm}化为灰烬，祭坛降下诅咒！`,'r');}
+  setTimeout(backToMap,700);
+}
+function altarReward(type,val){
+  if(type==='hp'){player.hp=Math.min(player.maxHp,player.hp+val);toast(`+${val} HP`,'g');}
+  else{const c=gc(val);if(c){battle.deck.push(c);toast(`获得：${c.name}`,'g');}}
+  renderHud();renderTokens();setTimeout(backToMap,600);
+}
 // ── 铁匠铺 (锻造 + 融合 + 移除) ──
 function startBlacksmith(){
   phase=PH.OV;
@@ -1532,7 +1591,7 @@ function renderFusionUI(){
     const d=(c.desc||'').replace('{atk}',c.atk||0).replace('{blk}',c.blk||0).replace('{heal}',c.heal||0).replace('{str}',c.str||0);
     const val=cardValue(c);
     h+=`<div class="rw${isSel?' rw-sel':''}" onclick="toggleFusion(${ri})" style="${isSel?'border-color:var(--violet);background:rgba(106,58,154,.15)':''}">
-      <div class="rwa">${c.art}</div><div class="rwi"><div class="rwn">${c.name} ${c.upgraded?'<span style="color:var(--slime);font-size:8px">+</span>':''} <span style="color:var(--amber);font-size:8px">≈${val}g</span></div>
+      <div class="rwa">${c.art}</div><div class="rwi"><div class="rwn">${c.name} ${c.upgradeCount?`<span style="color:var(--slime);font-size:9px;font-weight:700">+${c.upgradeCount}</span>`:''} <span style="color:var(--amber);font-size:8px">≈${val}g</span></div>
       <div class="rwd"><span style="color:var(--text3)">${kn(c.kind)} ◆${c.cost}</span> · ${d}</div></div>
       ${isSel?'<span style="color:var(--violet);font-size:13px;flex-shrink:0">✓</span>':''}
     </div>`;
