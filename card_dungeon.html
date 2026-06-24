@@ -123,21 +123,17 @@ html,body{background:var(--void);color:var(--text);font-family:var(--fm);font-si
 /* ═══ 战斗 KOF格斗风格 ═══ */
 #bv{display:none;grid-template-areas:"scene""hand""buttons""stats";grid-template-columns:1fr;grid-template-rows:260px minmax(180px,1fr) auto auto;min-height:calc(100vh - 62px)}
 .bscene{grid-area:scene;position:relative;overflow:hidden;display:flex;align-items:stretch;
-  background:linear-gradient(180deg,#100c1a 0%,#080610 45%,#111018 100%);
-  border-bottom:2px solid var(--crack)}
-.bscene::before{content:'';position:absolute;inset:0;pointer-events:none;z-index:0;
-  background:
-    radial-gradient(ellipse at 18% 95%,rgba(58,90,138,.22) 0%,transparent 48%),
-    radial-gradient(ellipse at 82% 95%,rgba(139,26,26,.18) 0%,transparent 48%),
-    repeating-linear-gradient(180deg,transparent 0,transparent 3px,rgba(0,0,0,.07) 3px,rgba(0,0,0,.07) 4px)}
-.bscene::after{content:'';position:absolute;left:0;right:0;bottom:82px;height:1px;z-index:1;pointer-events:none;
-  background:linear-gradient(90deg,transparent 0%,rgba(200,169,110,.14) 25%,rgba(200,169,110,.06) 50%,rgba(200,169,110,.14) 75%,transparent 100%)}
+  background:#07050e}
+.bscene::before{content:'';position:absolute;left:0;right:0;bottom:82px;height:2px;z-index:1;pointer-events:none;
+  background:linear-gradient(90deg,transparent 0%,rgba(200,169,110,.22) 25%,rgba(200,169,110,.1) 50%,rgba(200,169,110,.22) 75%,transparent 100%);
+  box-shadow:0 0 18px rgba(200,169,110,.08)}
+.bscene::after{content:'';position:absolute;bottom:82px;left:6%;right:6%;height:12px;z-index:0;pointer-events:none;
+  background:radial-gradient(ellipse at 50% 100%,rgba(0,0,0,.75) 0%,transparent 70%)}
 .etag{position:absolute;top:5px;left:50%;transform:translateX(-50%);z-index:5;
   font-size:9px;color:rgba(200,169,110,.55);letter-spacing:2px;font-style:italic;
   background:rgba(0,0,0,.45);padding:2px 10px;white-space:nowrap;pointer-events:none}
 .bchar-p{flex:0 0 43%;display:flex;flex-direction:column;align-items:center;position:relative;z-index:2;
-  border-right:1px solid rgba(255,255,255,.04);
-  background:linear-gradient(180deg,rgba(58,90,138,.07) 0%,transparent 65%)}
+  background:linear-gradient(180deg,rgba(58,90,138,.06) 0%,transparent 60%)}
 .bchar-p::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;z-index:3;
   background:linear-gradient(90deg,var(--ice),var(--frost),var(--ice))}
 .bchar-e{flex:1;display:flex;flex-direction:column;align-items:center;position:relative;z-index:2;
@@ -414,6 +410,25 @@ html,body{background:var(--void);color:var(--text);font-family:var(--fm);font-si
   z-index:30}
 .tcard:active{transform:translateY(-6px) scale(1.02)!important}
 .tcard.tc-bought{opacity:.3;pointer-events:none}
+/* 事件/营地/铁匠/赌馆选择牌 */
+.ccard{
+  width:100px;min-height:120px;flex-shrink:0;border-radius:7px;
+  background:linear-gradient(160deg,#1c1828,#13101e);
+  border:1px solid rgba(200,169,110,.2);
+  box-shadow:1px 4px 14px rgba(0,0,0,.9),0 0 0 1px rgba(255,255,255,.03);
+  cursor:pointer;position:relative;overflow:hidden;display:flex;flex-direction:column;z-index:1;
+  padding:10px 8px;
+  transition:transform .18s cubic-bezier(.2,0,.2,1.2),box-shadow .18s}
+.ccard:hover{transform:translateY(-16px) scale(1.06)!important;
+  box-shadow:2px 20px 28px rgba(0,0,0,.95),0 0 18px rgba(200,169,110,.18);z-index:30}
+.ccard.cc-disabled{opacity:.3;pointer-events:none}
+.ccard-top{height:2px;background:linear-gradient(90deg,transparent,rgba(200,169,110,.4),transparent);
+  margin:-10px -8px 8px;flex-shrink:0}
+.ccard-icon{font-size:26px;text-align:center;padding:6px 0 4px;flex-shrink:0}
+.ccard-text{font-family:var(--fs);font-size:9.5px;font-weight:700;color:var(--bone);
+  line-height:1.5;margin-bottom:6px;text-align:center}
+.ccard-sub{font-size:7.5px;color:var(--text2);line-height:1.5;font-style:italic;
+  text-align:center;margin-top:auto}
 .tc-stripe{height:4px;width:100%;flex-shrink:0;border-radius:7px 7px 0 0}
 .tc-cost{
   position:absolute;top:6px;left:6px;
@@ -1276,9 +1291,18 @@ function pickRewardCard(i){battle.deck.push(gc(window._rw[i].id));toast(`获得�
 function skipReward(){backToMap();}
 function startEvent(){
   phase=PH.OV;const ev=EVTS[0|Math.random()*EVTS.length];window._ev=ev;
-  const btns=ev.choices.map((c,i)=>`<button class="ovbtn" onclick="resolveEvent(${i})"><span>${c.text}</span><span class="sub">${c.sub}</span></button>`).join('');
-  document.getElementById('ovtag').textContent=ev.tag;document.getElementById('ovtit').textContent=ev.title;
-  document.getElementById('ovb').innerHTML=`<div class="ovd">${ev.desc}</div>${btns}`;
+  const rots=ev.choices.length<=1?[0]:ev.choices.length===2?[-5,5]:[-7,0,7];
+  const cards=ev.choices.map((c,i)=>{
+    const rot=rots[Math.min(i,rots.length-1)]||0;const yOff=Math.abs(rot)*1.4;
+    return`<div class="ccard" style="transform:rotate(${rot}deg) translateY(${yOff}px)" onclick="resolveEvent(${i})">
+      <div class="ccard-top"></div>
+      <div class="ccard-text">${c.text}</div>
+      <div class="ccard-sub">${c.sub}</div>
+    </div>`;
+  }).join('');
+  document.getElementById('ovtag').textContent=ev.tag;
+  document.getElementById('ovtit').textContent=ev.title;
+  document.getElementById('ovb').innerHTML=`<div class="ovd">${ev.desc}</div><div class="tcards-table">${cards}</div>`;
   showView('ov');renderHud();renderTokens();
 }
 function resolveEvent(i){
@@ -1317,12 +1341,21 @@ function startCampfire(){
   const healAmt=Math.floor(player.maxHp*.35*em);
   document.getElementById('ovtag').textContent='🔥  篝火';
   document.getElementById('ovtit').textContent='静谧的营地';
-  let h=`<div class="ovd">火光跳跃，疲惫的旅行者终于可以喘口气。<b>二选一</b>：</div>`;
-  h+=`<button class="ovbtn gd" style="margin-bottom:14px" onclick="doRest('heal')">
-    <span>🛌 休息</span><span class="sub">恢复 ${healAmt} HP${em>1?' ×'+em:''}</span></button>`;
-  h+=`<div style="text-align:center;font-size:10px;color:var(--text3);letter-spacing:3px;margin-bottom:14px">— 或 —</div>`;
-  h+=`<button class="ovbtn" onclick="doRest('upgrade')">
-    <span>⬆ 领悟</span><span class="sub">强化一张牌 · 攻击+3 / 格挡+3 / 技能消耗-1</span></button>`;
+  const h=`<div class="ovd">火光跳跃，疲惫的旅行者终于可以喘口气。</div>
+  <div class="tcards-table">
+    <div class="ccard" style="transform:rotate(-5deg) translateY(7px)" onclick="doRest('heal')">
+      <div class="ccard-top" style="background:linear-gradient(90deg,transparent,rgba(45,140,45,.5),transparent)"></div>
+      <div class="ccard-icon">🛌</div>
+      <div class="ccard-text">休息</div>
+      <div class="ccard-sub">恢复 ${healAmt} HP${em>1?' ×'+em:''}</div>
+    </div>
+    <div class="ccard" style="transform:rotate(5deg) translateY(7px)" onclick="doRest('upgrade')">
+      <div class="ccard-top" style="background:linear-gradient(90deg,transparent,rgba(106,58,154,.5),transparent)"></div>
+      <div class="ccard-icon">⬆</div>
+      <div class="ccard-text">领悟</div>
+      <div class="ccard-sub">强化一张牌 · 攻击+3 / 格挡+3 / 技能-1费</div>
+    </div>
+  </div>`;
   document.getElementById('ovb').innerHTML=h;
   showView('ov');renderHud();renderTokens();
 }
@@ -1541,12 +1574,25 @@ function startGamble(){
   document.getElementById('ovtag').textContent='🎲  赌馆';
   document.getElementById('ovtit').textContent='命运之局';
   const c=window._gambleCost;const g=player.gold;
-  let h=`<div class="ovd">赌馆老板翻弄着牌摊，目光狡黠。赌一把？</div>`;
-  h+=`<button class="ovbtn${g<c.c?' unp':''}" onclick="playGamble('c')" ${g<c.c?'disabled':''}><span>小赌 ${c.c}●</span><span class="sub">随机3张普通牌，选1</span></button>`;
-  h+=`<button class="ovbtn${g<c.u?' unp':''}" onclick="playGamble('u')" ${g<c.u?'disabled':''}><span>豪赌 ${c.u}●</span><span class="sub">随机3张罕见牌，选1</span></button>`;
-  h+=`<button class="ovbtn${g<c.r?' unp':''}" onclick="playGamble('r')" ${g<c.r?'disabled':''}><span>神赌 ${c.r}●</span><span class="sub">随机3张稀有牌，选1</span></button>`;
-  h+=`<button class="ovbtn${g<c.x?' unp':''}" onclick="playGamble('x')" ${g<c.x?'disabled':''}><span>全或无 ${c.x}●</span><span class="sub">50%→得2张随机牌 / 50%→再失去${c.x}金</span></button>`;
-  h+=`<button class="ovbtn" onclick="backToMap()">离开赌馆</button>`;
+  const bets=[
+    {key:'c',icon:'🃏',label:'小赌',cost:c.c,sub:'普通牌×3 选1',rot:-9,col:'rgba(200,169,110,.4)'},
+    {key:'u',icon:'🎴',label:'豪赌',cost:c.u,sub:'罕见牌×3 选1',rot:-3,col:'rgba(45,140,200,.4)'},
+    {key:'r',icon:'👑',label:'神赌',cost:c.r,sub:'稀有牌×3 选1',rot:3,col:'rgba(154,90,191,.5)'},
+    {key:'x',icon:'⚡',label:'全或无',cost:c.x,sub:'50% 双牌 / 50% 再扣金',rot:9,col:'rgba(139,26,26,.5)'},
+  ];
+  const cards=bets.map(b=>{
+    const poor=g<b.cost;const yOff=Math.abs(b.rot)*1.4;
+    return`<div class="ccard${poor?' cc-disabled':''}" style="transform:rotate(${b.rot}deg) translateY(${yOff}px)" onclick="playGamble('${b.key}')">
+      <div class="ccard-top" style="background:linear-gradient(90deg,transparent,${b.col},transparent)"></div>
+      <div class="ccard-icon">${b.icon}</div>
+      <div class="ccard-text">${b.label}</div>
+      <div style="font-size:12px;color:var(--amber);font-weight:700;text-align:center;margin-bottom:4px">${b.cost}●</div>
+      <div class="ccard-sub">${b.sub}${poor?'<br><span style="color:var(--gore2)">金不足</span>':''}</div>
+    </div>`;
+  }).join('');
+  const h=`<div class="ovd">赌馆老板翻弄着牌摊，目光狡黠。赌一把？</div>
+  <div class="tcards-table">${cards}</div>
+  <button class="ovbtn" onclick="backToMap()">离开赌馆</button>`;
   document.getElementById('ovb').innerHTML=h;
   showView('ov');renderHud();renderTokens();
 }
@@ -1637,13 +1683,28 @@ function startBlacksmith(){
   renderBlacksmithMain();showView('ov');renderHud();renderTokens();
 }
 function renderBlacksmithMain(){
-  let h=`<div class="ovd">铁匠望向你："锻造还是熔合？"</div>`;
-  h+=`<div style="display:flex;gap:6px;margin-bottom:12px">
-    <button class="ovbtn" style="flex:1;margin:0;padding:8px 4px" onclick="doPickForBlacksmith('upgrade')"><span>⚒ 锻造</span><span class="sub">强化一张牌</span></button>
-    <button class="ovbtn" style="flex:1;margin:0;padding:8px 4px;border-color:var(--soul)" onclick="startFusion()"><span>🔮 熔合</span><span class="sub">2-5张牌合一</span></button>
-    <button class="ovbtn" style="flex:1;margin:0;padding:8px 4px;border-color:var(--blood2)" onclick="doPickForBlacksmith('remove')"><span>🗑 移除</span><span class="sub">永久弃置</span></button>
-  </div>`;
-  h+=`<button class="ovbtn" onclick="backToMap()">离开铁匠铺</button>`;
+  const h=`<div class="ovd">铁匠望向你："锻造还是熔合？"</div>
+  <div class="tcards-table">
+    <div class="ccard" style="transform:rotate(-7deg) translateY(10px)" onclick="doPickForBlacksmith('upgrade')">
+      <div class="ccard-top"></div>
+      <div class="ccard-icon">⚒</div>
+      <div class="ccard-text">锻造</div>
+      <div class="ccard-sub">强化一张牌</div>
+    </div>
+    <div class="ccard" style="transform:rotate(0deg) translateY(0px)" onclick="startFusion()">
+      <div class="ccard-top" style="background:linear-gradient(90deg,transparent,rgba(106,58,154,.5),transparent)"></div>
+      <div class="ccard-icon">🔮</div>
+      <div class="ccard-text">熔合</div>
+      <div class="ccard-sub">2-5张牌合一</div>
+    </div>
+    <div class="ccard" style="transform:rotate(7deg) translateY(10px)" onclick="doPickForBlacksmith('remove')">
+      <div class="ccard-top" style="background:linear-gradient(90deg,transparent,rgba(139,26,26,.5),transparent)"></div>
+      <div class="ccard-icon">🗑</div>
+      <div class="ccard-text">移除</div>
+      <div class="ccard-sub">永久弃置一张牌</div>
+    </div>
+  </div>
+  <button class="ovbtn" onclick="backToMap()">离开铁匠铺</button>`;
   document.getElementById('ovb').innerHTML=h;
 }
 function doPickForBlacksmith(act){showCardPicker(act,battle.deck.filter(c=>c.rar!=='curse'),renderBlacksmithMain);}
