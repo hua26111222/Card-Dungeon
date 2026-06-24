@@ -453,9 +453,8 @@ html,body{background:var(--void);color:var(--text);font-family:var(--fm);font-si
     <div class="mprompt" id="mprompt">选择前进的路：</div>
     <div id="mwrap"><div id="mchooser"></div></div>
     <div class="mhist" id="mhist"></div>
-    <div style="display:flex;gap:8px;padding:8px 10px 10px;justify-content:center">
-      <button class="ovbtn" style="flex:1;padding:7px 10px;font-size:11px;margin:0" onclick="showDeck()">📋 牌组</button>
-      <button class="ovbtn" style="flex:1;padding:7px 10px;font-size:11px;margin:0;border-color:var(--amber2);color:var(--amber)" onclick="showDeck()">📖 查看牌组</button>
+    <div style="padding:6px 10px 10px">
+      <button class="ovbtn" style="width:100%;padding:8px 10px;font-size:11px;margin:0;border-color:var(--crack2);color:var(--text2);letter-spacing:2px" onclick="showDeck()">📋 查看牌组</button>
     </div>
   </div>
   <div id="bv">
@@ -700,6 +699,21 @@ const EVTS=[
     {text:'取走龙骸精华',sub:'失去 30% HP，获得 2 张随机稀有卡',fn:(p,b)=>{const cost=Math.floor(p.maxHp*.30);if(p.hp>cost+5){p.hp-=cost;return'reward_rare2'}return'HP不足'}},
     {text:'收集龙鳞',sub:'获得 120 金币',fn:(p,b,ch)=>{const g=Math.floor(120*(1+ch.floor*.12));p.gold+=g;return`+${g}金币`}},
     {text:'祭拜遗骸',sub:'最大HP +30，但本场景结束后扣 20HP',fn:(p)=>{p.maxHp+=30;p.hp=Math.max(1,p.hp-20);return'最大HP+30 -20HP'}}]},
+  {title:'流浪盗贼',tag:'⚔ 危险遭遇',desc:'"把钱袋交出来！"一个蒙面盗贼挡住去路，刀尖对准你的喉咙。',choices:[
+    {text:'正面迎击',sub:'失去20%HP，击败后获得120金币',fn:(p,b,ch)=>{const d=Math.floor(p.maxHp*.20);p.hp=Math.max(1,p.hp-d);const g=Math.floor(120*(1+ch.floor*.1));p.gold+=g;return`战胜盗贼！-${d}HP +${g}金`}},
+    {text:'乖乖交钱',sub:'失去当前金币的30%',fn:(p)=>{const lost=Math.floor(p.gold*.30);p.gold=Math.max(0,p.gold-lost);return`交出 ${lost} 金币顺利通过`}},
+    {text:'拔腿就跑',sub:'50%成功/50%被打-15HP',fn:(p)=>{if(Math.random()<.5)return'成功逃脱！';const d=15;p.hp=Math.max(1,p.hp-d);return`逃跑失败！-${d}HP`}}]},
+  {title:'流浪法师',tag:'✨ 神秘相遇',desc:'一位白发法师在路边闭目冥想，睁眼时目光深邃。"旅者，我能助你一臂之力。"',choices:[
+    {text:'拜师学艺',sub:'获得1张稀有卡，失去15HP',fn:(p,b)=>{const pool=DB.filter(c=>c.rar==='rare');const c=pool[0|Math.random()*pool.length];b.deck.push(gc(c.id));p.hp=Math.max(1,p.hp-15);return`学得 ${c.name}！-15HP`}},
+    {text:'请他强化最弱的牌',sub:'自动强化费用最低的一张牌（免费）',fn:(p,b)=>{const up=b.deck.filter(c=>c.rar!=='curse');if(!up.length)return'没有可强化的牌';up.sort((a,z)=>a.cost-z.cost);upgradeCard(up[0]);return`强化了：${up[0].name}`}},
+    {text:'礼貌离开',sub:'继续前行',fn:()=>'pass'}]},
+  {title:'受伤旅者',tag:'❤ 善意相遇',desc:'一位旅行者倒在路边，身上有伤。他用虚弱的眼神望向你。',choices:[
+    {text:'出手救助（失去HP）',sub:'失去10%HP，获得1张罕见卡作为感谢',fn:(p,b)=>{const cost=Math.floor(p.maxHp*.10);if(p.hp<=cost+5)return'HP不足';p.hp-=cost;const pool=DB.filter(c=>c.rar==='uncommon');const c=pool[0|Math.random()*pool.length];b.deck.push(gc(c.id));return`救人！-${cost}HP 获得${c.name}`}},
+    {text:'花钱雇人救他',sub:'花费50金，他事后报答你80金',fn:(p)=>{if(p.gold<50)return'金币不足';p.gold+=30;return'好人有好报！净得30金币'}},
+    {text:'视而不见',sub:'继续前行',fn:()=>'pass'}]},
+  {title:'秘密房间',tag:'🔑 隐藏发现',desc:'墙壁上有一道细缝，仔细查看——竟是一扇暗门。里面漆黑一片……',choices:[
+    {text:'进入探索',sub:'随机：金币+100~200 / 稀有卡 / 最大HP+15',fn:(p,b,ch)=>{const r=Math.random();if(r<.35){const g=Math.floor(100+ch.floor*15);p.gold+=g;return`发现宝藏！+${g}金币`}if(r<.65)return'reward_rare';p.maxHp+=15;p.hp=Math.min(p.maxHp,p.hp+15);return'发现古老遗物！最大HP+15'}},
+    {text:'谨慎不进',sub:'未知风险，放弃可能的宝藏',fn:()=>'pass'}]},
 ];
 let phase=PH.INTRO;
 let player={hp:80,maxHp:80,gold:80,floor:1,kills:0,steps:0,drawCount:5,maxAp:3};
@@ -774,20 +788,23 @@ function genMapRow(step){
   return[0,1,2,3,4].map(c=>({...genCardInfo(step),rank,label:lbl,isHidden:blinds.has(c),revealed:false}));
 }
 function genCardInfo(step){
-  const r=Math.random();let type;
-  if(step<6)      type=r<.35?'fight':r<.50?'campfire':r<.63?'blacksmith':r<.75?'event':r<.88?'tavern':'gamble';
-  else if(step<12)type=r<.26?'fight':r<.44?'elite':r<.56?'campfire':r<.67?'blacksmith':r<.79?'event':r<.90?'tavern':'gamble';
-  else            type=r<.18?'fight':r<.38?'elite':r<.50?'campfire':r<.62?'blacksmith':r<.74?'event':r<.86?'tavern':'gamble';
-  const INFO={
-    fight:     {suit:'♠',col:'#8b2222',bg:'rgba(100,20,20,.35)'},
-    elite:     {suit:'♥',col:'#bb3300',bg:'rgba(140,40,0,.35)'},
-    event:     {suit:'♦',col:'#2255aa',bg:'rgba(30,60,150,.32)'},
-    tavern:    {suit:'♣',col:'#226622',bg:'rgba(25,90,25,.32)'},
-    campfire:  {suit:'🔥',col:'#c86010',bg:'rgba(140,70,10,.32)'},
-    blacksmith:{suit:'⚒',col:'#607080',bg:'rgba(50,65,80,.35)'},
-    gamble:    {suit:'🎲',col:'#8855cc',bg:'rgba(80,40,140,.35)'},
-  };
-  return{type,...(INFO[type]||INFO.fight)};
+  const r=Math.random();
+  const btlChance=step<6?0.42:step<12?0.52:0.62;
+  if(r<btlChance){
+    const er=Math.random();
+    const isElite=step<6?er<0.12:step<12?er<0.30:er<0.44;
+    const suits=['♠','♠','♣','♥'];
+    const suit=suits[0|Math.random()*suits.length];
+    const col=suit==='♥'?'#cc3333':suit==='♣'?'#337733':'#aa2222';
+    return{type:isElite?'elite':'fight',suit,col,bg:isElite?'rgba(140,40,0,.35)':'rgba(80,20,20,.30)'};
+  }
+  const nr=Math.random();let type;
+  if(step<6)      type=nr<.22?'tavern':nr<.40?'event':nr<.55?'campfire':nr<.70?'blacksmith':nr<.85?'gamble':'altar';
+  else if(step<12)type=nr<.20?'tavern':nr<.38?'event':nr<.52?'campfire':nr<.68?'blacksmith':nr<.84?'gamble':'altar';
+  else            type=nr<.18?'tavern':nr<.36?'event':nr<.50?'campfire':nr<.66?'blacksmith':nr<.83?'gamble':'altar';
+  const NCOL={tavern:'#228833',blacksmith:'#607080',gamble:'#7755aa',altar:'#885522',event:'#2255aa',campfire:'#bb6010'};
+  const NBG= {tavern:'rgba(25,90,25,.30)',blacksmith:'rgba(50,65,80,.32)',gamble:'rgba(70,35,130,.32)',altar:'rgba(100,50,10,.32)',event:'rgba(30,60,150,.30)',campfire:'rgba(140,70,10,.30)'};
+  return{type,suit:'♦',col:NCOL[type]||'#4466cc',bg:NBG[type]||'rgba(30,60,150,.28)'};
 }
 function renderMap(){
   const{rows,step,playerCol,history}=mapData;
@@ -797,8 +814,8 @@ function renderMap(){
   const dc=ps<20?'#5a7aaa':ps<40?'#4a7a3a':ps<65?'#aa7020':'#8b1a1a';
   const pb=document.getElementById('psb');pb.textContent=diff2;pb.style.color=dc;pb.style.borderColor=dc;
   document.getElementById('fpg').textContent=`第 ${step+1}/18 步`;
-  const TI={fight:{ic:'⚔',nm:'战斗'},elite:{ic:'💀',nm:'精英'},event:{ic:'✦',nm:'事件'},tavern:{ic:'🍺',nm:'酒馆'},campfire:{ic:'🔥',nm:'篝火'},blacksmith:{ic:'⚒',nm:'铁匠'},boss:{ic:'👁',nm:'首领'},gamble:{ic:'🎲',nm:'赌馆'}};
-  const SC={'♠':'#cc4444','♥':'#cc4444','♦':'#4466cc','♣':'#448844','🔥':'#c87030','⚒':'#7090a0','🃏':'#9944cc','🎲':'#9944cc'};
+  const TI={fight:{ic:'⚔',nm:'战斗'},elite:{ic:'💀',nm:'精英'},event:{ic:'✦',nm:'事件'},tavern:{ic:'🍺',nm:'商店'},campfire:{ic:'🔥',nm:'篝火'},blacksmith:{ic:'⚒',nm:'铁匠'},boss:{ic:'👁',nm:'首领'},gamble:{ic:'🎲',nm:'赌场'},altar:{ic:'🔱',nm:'祭坛'}};
+  const SC={'♠':'#cc3333','♥':'#ee4444','♦':'#4488cc','♣':'#336633','🃏':'#9944cc'};
   const isBossStep=step===18;
   const bossColCount=4;
   const rowColCount=isBossStep?bossColCount:5;
@@ -898,6 +915,7 @@ function pickMapCard(col){
     case 'campfire':  startCampfire();break;
     case 'blacksmith':startBlacksmith();break;
     case 'gamble':    startGamble();break;
+    case 'altar':     startAltar();break;
   }
   if(phase===PH.MAP)renderMap();
 }
@@ -936,44 +954,21 @@ function drawCards(n){
 function getPlayType(cards){
   if(!cards||!cards.length)return null;
   if(cards.length===1)return cards[0].unplayable?'invalid':'single';
-  if(cards.some(c=>c.unplayable||c.rar==='curse'))return 'invalid';
-  const names=new Set(cards.map(c=>c.name));
-  const kinds=new Set(cards.map(c=>c.kind));
-  if(names.size===1){
-    const k=cards[0].kind;
-    if(cards.length===2)return 'pair-'+k;
-    if(cards.length===3)return 'triple-'+k;
-    if(cards.length===4)return 'quad-'+k;
-  }
-  if(cards.length===3&&kinds.size===3&&kinds.has('atk')&&kinds.has('def')&&kinds.has('skl'))return 'combo';
   return 'invalid';
 }
 function updatePlayButton(){
   const sel=battle.selectedCards||[];const btn=document.getElementById('btu');
   if(!sel.length){btn.disabled=true;btn.textContent='出牌';return;}
-  const cards=sel.map(i=>battle.hand[i]).filter(Boolean);
-  const t=getPlayType(cards);
-  const cost=cards.reduce((s,c)=>s+c.cost,0);
-  const ok=t&&t!=='invalid'&&battle.apLeft>=cost;
-  btn.disabled=!ok;
-  const L={'single':'出牌','pair-atk':'双击 ×1.8','triple-atk':'三连 ×2.5 🩸','quad-atk':'四击 ×4 暴击！',
-    'pair-def':'双盾 ×1.8','triple-def':'铁壁 ×2.5','quad-def':'金钟罩 ×4',
-    'pair-skl':'共鸣 ×1.5','triple-skl':'技能爆发 ×2','quad-skl':'极限 ×3','combo':'连招！','invalid':'无效'};
-  btn.textContent=L[t]||'出牌';
+  const c=battle.hand[sel[0]];
+  if(!c||c.unplayable){btn.disabled=true;btn.textContent='出牌';return;}
+  btn.disabled=battle.apLeft<c.cost;
+  btn.textContent='出牌';
 }
 function selectCard(i){
   const c=battle.hand[i];if(!c)return;
   if(c.unplayable){toast('无法使用','r');return;}
   const sel=battle.selectedCards||[];
-  const idx=sel.indexOf(i);
-  if(idx>=0){battle.selectedCards=sel.filter(x=>x!==i);}
-  else{
-    const tryCards=[...sel,i].map(x=>battle.hand[x]).filter(Boolean);
-    if(tryCards.length>4){toast('最多同时出4张','r');return;}
-    const t=getPlayType(tryCards);
-    if(t==='invalid'){toast('无效组合','r');return;}
-    battle.selectedCards=[...sel,i];
-  }
+  battle.selectedCards=sel.includes(i)?[]:([i]);
   renderHand();updatePlayButton();
 }
 function applySingleCard(c,mult){
@@ -1024,25 +1019,14 @@ function applySingleCard(c,mult){
 }
 function playSelectedCards(){
   const sel=battle.selectedCards||[];if(!sel.length)return;
-  const cards=sel.map(i=>battle.hand[i]).filter(Boolean);
-  const t=getPlayType(cards);
-  if(!t||t==='invalid'){toast('无效出牌','r');return;}
-  const cost=cards.reduce((s,c)=>s+c.cost,0);
-  if(battle.apLeft<cost){toast('行动力不足','r');return;}
-  battle.apLeft-=cost;rs.cardsPlayed+=cards.length;battle.firstCard=false;
-  // Remove cards from hand descending
-  [...sel].sort((a,b)=>b-a).forEach(i=>{const c=battle.hand[i];battle.hand.splice(i,1);if(c.exhaust)battle.exhPile.push(c);else battle.discardPile.push(c);});
+  const idx=sel[0];const c=battle.hand[idx];
+  if(!c||c.unplayable){toast('无效出牌','r');return;}
+  if(battle.apLeft<c.cost){toast('行动力不足','r');return;}
+  battle.apLeft-=c.cost;rs.cardsPlayed++;battle.firstCard=false;
+  battle.hand.splice(idx,1);
+  if(c.exhaust)battle.exhPile.push(c);else battle.discardPile.push(c);
   battle.selectedCards=[];
-  // Multi-play bonus
-  const multMap={'pair-atk':1.8,'triple-atk':2.5,'quad-atk':4,'pair-def':1.8,'triple-def':2.5,'quad-def':4,'pair-skl':1.5,'triple-skl':2,'quad-skl':3,'combo':1,'single':1};
-  const mult=multMap[t]||1;
-  cards.forEach(c=>applySingleCard(c,mult));
-  // Extra multi-play effects
-  if(t==='triple-atk'){battle.enemyBleed=(battle.enemyBleed||0)+3;toast('🩸 流血！(3伤×3回合)','g');}
-  if(t==='triple-def'){battle.fortified=(battle.fortified||0)+3;toast('🛡 坚固 3回合','g');}
-  if(t==='quad-atk')toast('⚡ 暴击！×4 伤害！','g');
-  if(t==='quad-def')toast('🏰 铁壁不破！','g');
-  if(t==='combo'){drawCards(1);toast('连招！额外摸1张','g');}
+  applySingleCard(c,1);
   if(battle.enemyHp<=0){endBattle(true);return;}
   renderBattle();
 }
