@@ -1273,9 +1273,8 @@ function showReward(gold){
     shuf([...loot.cards]).forEach(id=>{if(!used.has(id)){const c=DB.find(x=>x.id===id);if(c){picked.push(c);used.add(id);}}});
   }
   window._rw=picked;window._rwSel=null;window._rwGold=gold;window._rwLabel=isBoss?`☠ 击败 ${enemy.name}`:isElite?`✦ 掠夺 ${enemy.name}`:forceRare?'✦ 事件奖励':'⚔ 战斗奖励';window._rwBoss=isBoss;window._rwElite=isElite;window._rwForce=forceRare;window._rwEnemy=enemy.name;
-  renderRewardUI();
-  if(isElite||isBoss){
   showView('ov');renderHud();renderTokens();
+  renderRewardUI();
 }
 function renderRewardUI(){
   const picked=window._rw||[];const sel=window._rwSel;const gold=window._rwGold;
