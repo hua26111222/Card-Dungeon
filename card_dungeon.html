@@ -933,7 +933,7 @@ const EVTS=[
 let phase=PH.INTRO;
 let player={hp:80,maxHp:80,gold:80,floor:1,kills:0,steps:0,drawCount:5,maxAp:3};
 let chapter={floor:1,theme:null,modifier:null,boss:null};
-let battle={enemy:null,enemyHp:0,enemyMaxHp:0,enemyBlk:0,enemyStr:0,enemyWeak:0,enemyVuln:0,enemyPoison:0,enemyBleed:0,enemyStun:0,enemyActions:[],enemyActionIdx:0,deck:[],drawPile:[],hand:[],discardPile:[],exhPile:[],apLeft:3,maxAp:3,blk:0,str:0,jugg:false,lifestealMode:false,fortified:0,playerPoison:0,playerWeak:0,playerStun:0,playerDisarm:0,turn:1,selectedCards:[],firstCard:true,nextFree:false};
+let battle={enemy:null,enemyHp:0,enemyMaxHp:0,enemyBlk:0,enemyStr:0,enemyWeak:0,enemyVuln:0,enemyPoison:0,enemyBleed:0,enemyStun:0,enemyActions:[],enemyActionIdx:0,nextEnemyAction:null,deck:[],drawPile:[],hand:[],discardPile:[],exhPile:[],apLeft:3,maxAp:3,blk:0,str:0,jugg:false,lifestealMode:false,fortified:0,playerPoison:0,playerWeak:0,playerStun:0,playerDisarm:0,turn:1,selectedCards:[],firstCard:true,nextFree:false};
 let mapData={rows:[],step:0,playerCol:2,history:[]};
 let rs={dmgDealt:0,dmgTaken:0,cardsPlayed:0,turns:0,chaptersCleared:0};
 
@@ -1351,7 +1351,7 @@ function startBattle(isElite,isBoss){
   // Boss curse variant: add curse card after battle
   if(isBoss&&window._bossVariant==='curse'){window._pendingCurse=true;}
   else{window._pendingCurse=false;}
-  battle.enemy=en;battle.enemyHp=en.hp;battle.enemyMaxHp=en.hp;battle.enemyBlk=0;battle.enemyStr=0;battle.enemyWeak=0;battle.enemyVuln=0;battle.enemyPoison=en.poison||0;battle.enemyActions=en.actions||[];battle.enemyActionIdx=0;
+  battle.enemy=en;battle.enemyHp=en.hp;battle.enemyMaxHp=en.hp;battle.enemyBlk=0;battle.enemyStr=0;battle.enemyWeak=0;battle.enemyVuln=0;battle.enemyPoison=en.poison||0;battle.enemyActions=en.actions||[];battle.enemyActionIdx=0;battle.nextEnemyAction=_enemyPickAction();
   battle.deck=[...battle.deck];
   const innateCards=battle.deck.filter(c=>c.innate);
   const normalCards=battle.deck.filter(c=>!c.innate);
@@ -1437,7 +1437,7 @@ function applySingleCard(c,mult){
   if(c.special==='poisonburst'){const pd=(battle.enemyPoison||0)*4;if(pd>0){battle.enemyHp=Math.max(0,battle.enemyHp-pd);rs.dmgDealt+=pd;floatDmg(pd,'#2d7a27');}else toast('敌人未中毒','r');}
   if(c.special==='bloodrush'){const md=Math.max(0,player.maxHp-player.hp);if(md>0){battle.enemyHp=Math.max(0,battle.enemyHp-md);rs.dmgDealt+=md;floatDmg(md,'#c0392b');}else toast('HP已满','r');}
   if(c.special==='execute'){const pct=battle.enemyHp/(battle.enemyMaxHp||1);const xd=pct<=0.30?battle.enemyHp:(c.execDmg||18);battle.enemyHp=Math.max(0,battle.enemyHp-xd);rs.dmgDealt+=xd;floatDmg(xd,'#c0392b');}
-  if(c.special==='counter'){const acts=battle.enemyActions||[];const na=acts.length?acts[(battle.enemyActionIdx||0)%acts.length]:null;const g2=na?.t==='a'?(na.v+(battle.enemyStr||0)):(battle.enemy.atk||8);battle.blk+=g2;toast(`+${g2} 格挡（反击）`);}
+  if(c.special==='counter'){const na=battle.nextEnemyAction;const g2=na?.t==='a'?(na.v+(battle.enemyStr||0)):(battle.enemy.atk||8);battle.blk+=g2;toast(`+${g2} 格挡（反击）`);}
   if(c.special==='discard'){if(battle.hand.length>0){const mx=Math.max(...battle.hand.map(h=>h.cost));const di=battle.hand.findIndex(h=>h.cost===mx);if(di>=0)battle.discardPile.push(battle.hand.splice(di,1)[0]);}drawCards(2);}
   if(c.apscale)battle.apLeft=0;
   // ── 奇异牌特殊逻辑 ──
@@ -1474,6 +1474,17 @@ function playSelectedCards(){
   renderBattle();
   if(c.kind==='atk'&&battle.enemyHp<prevEHp){setTimeout(()=>triggerEAnim('a-hit'),180);}
 }
+function _enemyPickAction(){
+  const acts=battle.enemyActions||[];if(!acts.length)return null;
+  const ai=battle.enemy?.aiType||'power';
+  const w=acts.map(a=>{
+    if(ai==='power')return a.t==='a'?(a.v||8)*1.3:a.t==='d'?0.8:1.0;
+    else return(a.t==='p'||a.t==='z'||a.t==='x'||a.t==='w')?2.5:(a.t==='h'||a.t==='s')?1.6:0.8;
+  });
+  const tot=w.reduce((s,x)=>s+x,0);let r=Math.random()*tot;
+  for(let i=0;i<acts.length;i++){r-=w[i];if(r<=0)return acts[i];}
+  return acts[acts.length-1];
+}
 function endTurn(){
   battle.hand.forEach(c=>{if(c.curseTick)player.hp=Math.max(1,player.hp-c.curseTick);});
   battle.discardPile.push(...battle.hand);battle.hand=[];
@@ -1488,8 +1499,7 @@ function endTurn(){
   const enemyStunned=(battle.enemyStun||0)>0;
   if(enemyStunned){battle.enemyStun--;toast(`${battle.enemy.name} 眩晕中，跳过行动！`,'g');}
   else if(acts.length>0){
-    const idx=battle.enemyActionIdx%acts.length;battle.enemyActionIdx++;
-    const act=acts[idx];
+    const act=battle.nextEnemyAction||acts[0];battle.nextEnemyAction=_enemyPickAction();
     if(act.t==='a'){
       _eDidAtk=true;
       let eatk=act.v+(battle.enemyStr||0);if(battle.enemyWeak>0)eatk=Math.floor(eatk*.75);
@@ -1908,13 +1918,15 @@ function renderBattle(){
   const eb=document.getElementById('ehb');eb.style.width=ep+'%';eb.className='hf ef'+(ep<30?' cr':ep<50?' lw':'');
   document.getElementById('etk').innerHTML='';
   const acts=b.enemyActions||[];let intent='?';
-  if(acts.length>0){const na=acts[b.enemyActionIdx%acts.length];const es2=b.enemyStr||0;
+  if(acts.length>0){const na=b.nextEnemyAction||acts[0];const es2=b.enemyStr||0;
     if(na.t==='a')intent=`⚔ ${na.v+es2}（${na.n}）`;
     else if(na.t==='d')intent=`🛡 +${na.v}（${na.n}）`;
     else if(na.t==='s')intent=`💪 +${na.v}力量（${na.n}）`;
     else if(na.t==='h')intent=`💚 +${na.v}（${na.n}）`;
     else if(na.t==='p')intent=`☠ 毒${na.v}层（${na.n}）`;
     else if(na.t==='w')intent=`💀 虚弱${na.v}（${na.n}）`;
+    else if(na.t==='z')intent=`🌀 眩晕${na.v}回合（${na.n}）`;
+    else if(na.t==='x')intent=`⛓ 缴械${na.v}回合（${na.n}）`;
     if(b.enemyBlk>0)intent+=`  🛡${b.enemyBlk}`;
   }else{let av=(e.atk||0)+(b.enemyStr||0);intent=`⚔ ${av}`;if(b.enemyBlk>0)intent+=`  🛡${b.enemyBlk}`;}
   document.getElementById('ibt').textContent=intent;
@@ -2652,7 +2664,7 @@ function initGame(){
   chapter={floor:1,theme:null,modifier:null,boss:null};
   const startDeck=buildStarterDeck();
   clearLegacy();
-  battle={enemy:null,enemyHp:0,enemyMaxHp:0,enemyBlk:0,enemyStr:0,enemyWeak:0,enemyVuln:0,enemyPoison:0,enemyBleed:0,enemyStun:0,enemyActions:[],enemyActionIdx:0,deck:startDeck,drawPile:[],hand:[],discardPile:[],exhPile:[],apLeft:3,maxAp:3,blk:0,str:0,jugg:false,lifestealMode:false,playerPoison:0,playerWeak:0,playerStun:0,playerDisarm:0,fortified:0,turn:1,selectedCards:[],firstCard:true,nextFree:false};
+  battle={enemy:null,enemyHp:0,enemyMaxHp:0,enemyBlk:0,enemyStr:0,enemyWeak:0,enemyVuln:0,enemyPoison:0,enemyBleed:0,enemyStun:0,enemyActions:[],enemyActionIdx:0,nextEnemyAction:null,deck:startDeck,drawPile:[],hand:[],discardPile:[],exhPile:[],apLeft:3,maxAp:3,blk:0,str:0,jugg:false,lifestealMode:false,playerPoison:0,playerWeak:0,playerStun:0,playerDisarm:0,fortified:0,turn:1,selectedCards:[],firstCard:true,nextFree:false};
   rs={dmgDealt:0,dmgTaken:0,cardsPlayed:0,turns:0,chaptersCleared:0};
   window._mapRank=7;
   document.getElementById('mb').style.display='none';
