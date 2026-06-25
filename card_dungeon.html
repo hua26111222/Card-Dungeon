@@ -630,6 +630,22 @@ html,body{background:var(--void);color:var(--text);font-family:var(--fm);font-si
   <div><div class="mn" id="mbn"></div><div class="md" id="mbd"></div></div>
 </div>
 <div id="main">
+  <div id="hv">
+    <div id="hv-main">
+      <div class="hvtit">✦ 卡牌地牢 ✦</div>
+      <div class="hvsub">深渊的低语，召唤着勇者</div>
+      <div class="hvdiv"></div>
+      <div class="hv-btns">
+        <button class="hvbtn hvbtn-c" id="hv-cont" onclick="onContAdventure()">继续冒险</button>
+        <button class="hvbtn hvbtn-n" onclick="onNewGame()">全新开始</button>
+      </div>
+    </div>
+    <div id="hv-saves">
+      <div style="font-size:10px;color:var(--text3);letter-spacing:3px;margin-bottom:16px">✦ 选择存档 ✦</div>
+      <div class="sv-wrap" id="sv-wrap"></div>
+      <button class="hv-back" onclick="showHome()">← 返回</button>
+    </div>
+  </div>
   <div id="ci">
     <div class="cid" id="cid">✦ ✦ ✦</div>
     <div class="cif" id="cif">第 I 章</div>
@@ -987,25 +1003,31 @@ function navPop(){
 }
 function navClear(){_nav.length=0;}
 
-// ── 存档管理器 ──
+// ── 存档管理器 (v4 · 3存档槽) ──
 const SM={
-  V:3,K:'cd_save',
-  save(){
+  V:4,_slot:0,
+  K(s){return`cd_save_${s!==undefined?s:this._slot}`;},
+  save(slot){
+    const s=slot!==undefined?slot:this._slot;
     try{
-      localStorage.setItem(this.K,JSON.stringify({
+      const tit=getPlayerTitle(battle.deck);
+      localStorage.setItem(this.K(s),JSON.stringify({
         v:this.V,ts:Date.now(),
         player:{...player},
+        title:tit.title,titleIcon:tit.icon,
         deck:battle.deck.map(c=>({...c})),
         map:JSON.parse(JSON.stringify(mapData)),
         chapter:{...chapter,usedEnemies:[...(chapter.usedEnemies||[])]},
         rs:{...rs}
-      }));return true;
+      }));this._slot=s;return true;
     }catch(e){return false;}
   },
-  load(){
+  load(slot){
+    const s=slot!==undefined?slot:this._slot;
     try{
-      const sv=JSON.parse(localStorage.getItem(this.K));
+      const sv=JSON.parse(localStorage.getItem(this.K(s)));
       if(!sv||sv.v!==this.V)return false;
+      this._slot=s;
       player={...sv.player};
       chapter={...sv.chapter,usedEnemies:new Set(sv.chapter.usedEnemies||[])};
       rs={...sv.rs};
@@ -1017,8 +1039,25 @@ const SM={
       return true;
     }catch(e){return false;}
   },
-  exists(){return!!localStorage.getItem(this.K);},
-  clear(){try{localStorage.removeItem(this.K);}catch(e){}},
+  exists(slot){
+    if(slot!==undefined)return!!localStorage.getItem(this.K(slot));
+    return[0,1,2].some(s=>!!localStorage.getItem(this.K(s)));
+  },
+  clear(slot){
+    const s=slot!==undefined?slot:this._slot;
+    try{localStorage.removeItem(this.K(s));}catch(e){}
+  },
+  listAll(){
+    return[0,1,2].map(s=>{
+      const raw=localStorage.getItem(this.K(s));
+      if(!raw)return{slot:s,empty:true};
+      try{
+        const sv=JSON.parse(raw);
+        if(sv.v!==this.V)return{slot:s,empty:true};
+        return{slot:s,empty:false,...sv};
+      }catch(e){return{slot:s,empty:true};}
+    });
+  },
   auto(){if(phase!==PH.BATTLE&&phase!==PH.DEAD)this.save();}
 };
 
@@ -1934,23 +1973,76 @@ function showGameOver(){
   showView('gov');
   renderLegacyPicker();
 }
-function getPlayerTitle(){
-  const deck=battle.deck;if(!deck||!deck.length)return{title:'无名旅者',icon:'🗡',color:'var(--text)'};
+function getPlayerTitle(dk){
+  const deck=dk||battle.deck;
+  if(!deck||!deck.length)return{title:'无名旅者',icon:'🗡',color:'var(--text)'};
   const n=deck.length;const cnt={atk:0,def:0,skl:0,pwr:0,crs:0};
   deck.forEach(c=>{cnt[c.kind]=(cnt[c.kind]||0)+1;});
   const pct=k=>cnt[k]/n;
   const poisonCnt=deck.filter(c=>(c.poison||0)>0||c.special==='poisonburst').length;
-  if(pct('crs')>=0.25)return{title:'堕落的施法者',icon:'☠',color:'var(--ash)'};
-  if(poisonCnt>=2&&pct('skl')>=0.2)return{title:'毒刃行者',icon:'☣',color:'var(--slime)'};
-  if(deck.some(c=>c.special==='vampire_oath'))return{title:'吸血贵族',icon:'🧛',color:'var(--blood)'};
-  if(deck.some(c=>c.special==='jugg')&&pct('def')>=0.3)return{title:'铁血战神',icon:'🔥',color:'var(--gore2)'};
-  if(pct('atk')>0.6&&pct('def')<0.1)return{title:'狂野的斗士',icon:'⚔',color:'var(--gore2)'};
-  if(pct('def')>0.45&&pct('skl')>=0.2)return{title:'谨慎的守卫',icon:'🛡',color:'var(--ice)'};
-  if(pct('pwr')>=0.3)return{title:'神秘宗师',icon:'✨',color:'var(--soul)'};
-  if(pct('atk')>0.5)return{title:'勇猛战士',icon:'⚔',color:'var(--bone)'};
-  if(pct('def')>0.4)return{title:'铁壁守卫',icon:'🛡',color:'var(--frost)'};
-  if(pct('skl')>=0.25)return{title:'狡猾策略家',icon:'🔍',color:'var(--amber)'};
-  return{title:'无名旅者',icon:'🗡',color:'var(--text)'};
+  const fl=chapter?.floor||player?.floor||1;
+  const kills=rs?.kills||0;
+  // 用牌组组成生成确定性"随机"索引，避免每次调用结果不同
+  const _h=(a)=>a[(n*7+cnt.atk*3+cnt.def*5+fl*11+kills)%a.length];
+  // 特殊构筑称号
+  if(pct('crs')>=0.25)return _h([
+    {title:'堕落的诅咒编织者',icon:'☠',color:'var(--ash)'},
+    {title:'腐朽的黑暗术士',icon:'☠',color:'var(--ash)'},
+    {title:'邪恶的诅咒行者',icon:'💀',color:'var(--ash)'}]);
+  if(deck.some(c=>c.special==='vampire_oath')&&poisonCnt>=2)
+    return{title:'腐蚀的鲜血猎手',icon:'🦷',color:'var(--blood)'};
+  if(deck.some(c=>c.special==='vampire_oath'))return _h([
+    {title:'渴血的黑暗贵族',icon:'🧛',color:'var(--blood)'},
+    {title:'嗜血的永夜君主',icon:'🦇',color:'var(--blood)'},
+    {title:'冷酷的鲜血赌徒',icon:'🧛',color:'var(--blood)'}]);
+  if(deck.some(c=>c.special==='jugg')&&pct('def')>=0.3)return _h([
+    {title:'铁壁的不屈战神',icon:'🔥',color:'var(--gore2)'},
+    {title:'坚不可摧的铁血战士',icon:'⚔',color:'var(--gore2)'}]);
+  if(poisonCnt>=3&&pct('skl')>=0.2)
+    return{title:'冷酷的疫病散播者',icon:'☣',color:'var(--slime)'};
+  if(poisonCnt>=2)return _h([
+    {title:'狡猾的毒刃行者',icon:'☣',color:'var(--slime)'},
+    {title:'阴险的毒液赌徒',icon:'☣',color:'var(--slime)'},
+    {title:'腐朽的毒疫行者',icon:'☠',color:'var(--slime)'}]);
+  // 纯攻击
+  if(pct('atk')>0.6&&pct('def')<0.1)return _h([
+    {title:'嗜血的残忍斗士',icon:'⚔',color:'var(--gore2)'},
+    {title:'狂暴的杀戮行者',icon:'⚔',color:'var(--gore2)'},
+    {title:'饥渴的鲜血猎手',icon:'⚔',color:'var(--gore2)'},
+    {title:'风骚的残忍赌徒',icon:'🗡',color:'var(--amber)'},
+    {title:'凶残的战场屠夫',icon:'⚔',color:'var(--gore2)'}]);
+  // 重防御
+  if(pct('def')>0.5)return _h([
+    {title:'坚不可摧的铁壁守护',icon:'🛡',color:'var(--frost)'},
+    {title:'沉默的永恒坚壁',icon:'🛡',color:'var(--frost)'},
+    {title:'冷酷的堡垒守将',icon:'🛡',color:'var(--ice)'},
+    {title:'虔诚的不屈护盾',icon:'🛡',color:'var(--ice)'}]);
+  // 重技能
+  if(pct('skl')>0.45)return _h([
+    {title:'诡计多端的暗影行者',icon:'🎭',color:'var(--violet)'},
+    {title:'风骚的赌徒奇兵',icon:'🎲',color:'var(--violet)'},
+    {title:'狡猾的命运捕手',icon:'🔮',color:'var(--soul)'},
+    {title:'放荡的机巧行者',icon:'🎭',color:'var(--amber)'}]);
+  // 力量流
+  if(pct('pwr')>=0.3)return _h([
+    {title:'冷血的神秘宗师',icon:'✨',color:'var(--soul)'},
+    {title:'狂暴的力量猎手',icon:'💪',color:'var(--soul)'}]);
+  // 攻守均衡
+  if(pct('atk')>0.35&&pct('def')>0.25)return _h([
+    {title:'凶悍的血与火斗士',icon:'🗡',color:'var(--amber)'},
+    {title:'无情的双面猎手',icon:'🗡',color:'var(--amber)'},
+    {title:'残忍的赌命战士',icon:'⚔',color:'var(--bone)'} ]);
+  // 基于击杀数
+  if(kills>=15)return{title:'冷血的大量屠夫',icon:'💀',color:'var(--bone2)'};
+  // 按层数fallback
+  const fb=fl>=3?[
+    {title:'腐朽的深渊行者',icon:'💀',color:'var(--ash)'},
+    {title:'永恒的黑暗旅者',icon:'☠',color:'var(--bone2)'}]:
+  fl>=2?[
+    {title:'黑暗的迷途剑客',icon:'🗡',color:'var(--ash)'},
+    {title:'凶险的深渊猎手',icon:'🗡',color:'var(--text2)'}]:
+  [{title:'无名旅者',icon:'🗡',color:'var(--text)'},{title:'年轻的深渊冒险者',icon:'🗡',color:'var(--text)'}];
+  return _h(fb);
 }
 function renderBattle(){
   const b=battle,p=player,e=b.enemy;
@@ -2028,8 +2120,9 @@ function renderTokens(){
 }
 function showView(name){
   document.body.style.overflow=name==='bv'?'hidden':'';
-  const map={ci:'#ci',mv:'#mv',bv:'#bv',ov:'#ov',gov:'#gov',winv:'#winv'};
-  Object.entries(map).forEach(([k,sel])=>{const el=document.querySelector(sel);if(!el)return;const show=k===name;el.style.display=show?(k==='bv'?'grid':k==='gov'?'flex':k==='ci'?'flex':'block'):'none';if(show)el.classList.add('vi');});
+  const map={hv:'#hv',ci:'#ci',mv:'#mv',bv:'#bv',ov:'#ov',gov:'#gov',winv:'#winv'};
+  const flex=new Set(['hv','ci','gov','winv']);
+  Object.entries(map).forEach(([k,sel])=>{const el=document.querySelector(sel);if(!el)return;const show=k===name;el.style.display=show?(k==='bv'?'grid':flex.has(k)?'flex':'block'):'none';if(show)el.classList.add('vi');});
 }
 function backToMap(){phase=PH.MAP;showView('mv');renderMap();renderHud();renderTokens();saveGame();startBGM('map');}
 function toast(msg,type=''){const el=document.getElementById('toast');el.textContent=msg;el.className='toast on'+(type?' '+type:'');clearTimeout(window._tt);window._tt=setTimeout(()=>el.className='toast',2200);}
@@ -2709,37 +2802,64 @@ function initGame(){
   rs={dmgDealt:0,dmgTaken:0,cardsPlayed:0,turns:0,chaptersCleared:0};
   window._mapRank=7;
   document.getElementById('mb').style.display='none';
-  SM.clear();showCutscene('intro',showChapterIntro);
+  showCutscene('intro',showChapterIntro);
 }
-// 开始时检查存档
-function checkSave(){
-  if(SM.exists()){
-    document.getElementById('cid').textContent='✦ 卡牌地牢 ✦';
-    document.getElementById('cif').textContent='卡牌地牢';
-    document.getElementById('cin').textContent='检测到存档';
-    document.getElementById('cit').textContent='是否继续上次冒险？';
-    const bw=document.getElementById('ci-bless-wrap');
-    bw.innerHTML=`<div class="tcards-table">
-      <div class="ccard" onclick="tryLoadGame()" style="transform:rotate(-5deg) translateY(7px)">
-        <div class="ccard-top" style="background:linear-gradient(90deg,transparent,rgba(45,140,45,.5),transparent)"></div>
-        <div class="ccard-icon">📖</div><div class="ccard-text">继续冒险</div>
-        <div class="ccard-sub">读取上次存档</div>
-      </div>
-      <div class="ccard" onclick="newRun()" style="transform:rotate(5deg) translateY(7px)">
-        <div class="ccard-top" style="background:linear-gradient(90deg,transparent,rgba(139,26,26,.5),transparent)"></div>
-        <div class="ccard-icon">🗡</div><div class="ccard-text">全新开始</div>
-        <div class="ccard-sub">放弃现有存档</div>
-      </div>
-    </div>`;
-    document.getElementById('ci-skip-bless').style.display='none';
-    showView('ci');
-  }else{
-    initGame();
-  }
+// ── 主菜单系统 ──
+function showHome(){
+  const hasSave=SM.exists();
+  const btn=document.getElementById('hv-cont');
+  if(btn)btn.disabled=!hasSave;
+  document.getElementById('hv-main').style.display='flex';
+  document.getElementById('hv-saves').style.display='none';
+  showView('hv');
 }
-function tryLoadGame(){const ok=SM.load();if(ok){toast('存档已加载','g');}else{toast('存档版本不兼容，开始新游戏','r');SM.clear();initGame();}}
-function newRun(){SM.clear();initGame();}
-checkSave();
+function onContAdventure(){
+  const saves=SM.listAll().filter(s=>!s.empty);
+  if(!saves.length)return;
+  if(saves.length===1){loadSlot(saves[0].slot);}
+  else{showSaveSelect();}
+}
+function onNewGame(){
+  const all=SM.listAll();
+  const empty=all.find(s=>s.empty);
+  const slot=empty?empty.slot:all.reduce((a,b)=>((!a.ts||b.ts<a.ts)?b:a)).slot;
+  SM._slot=slot;SM.clear(slot);initGame();
+}
+function showSaveSelect(){
+  const saves=SM.listAll();
+  const now=Date.now();
+  const ago=(ts)=>{
+    if(!ts)return'';
+    const m=Math.floor((now-ts)/60000);
+    if(m<1)return'刚刚';if(m<60)return`${m}分前`;
+    const h=Math.floor(m/60);if(h<24)return`${h}时前`;
+    return`${Math.floor(h/24)}天前`;
+  };
+  const wrap=document.getElementById('sv-wrap');
+  wrap.innerHTML=saves.map(sv=>sv.empty
+    ?`<div class="sv-card sv-empty"><div class="sv-floor">空 档</div><div class="sv-icon">⬜</div><div class="sv-title">暂无存档</div></div>`
+    :`<div class="sv-card" onclick="loadSlot(${sv.slot})">
+        <div class="sv-floor">第 ${toR(sv.player?.floor||1)} 层</div>
+        <div class="sv-icon">${sv.titleIcon||'🗡'}</div>
+        <div class="sv-title">${sv.title||'无名旅者'}</div>
+        <div class="sv-time">${ago(sv.ts)}</div>
+        <button class="sv-del" onclick="event.stopPropagation();deleteSaveSlot(${sv.slot})" title="删除">✕</button>
+      </div>`
+  ).join('');
+  document.getElementById('hv-main').style.display='none';
+  document.getElementById('hv-saves').style.display='flex';
+}
+function loadSlot(n){
+  const ok=SM.load(n);
+  if(ok){toast('存档已加载','g');}
+  else{toast('存档已损坏，已清除','r');SM.clear(n);showSaveSelect();}
+}
+function deleteSaveSlot(n){
+  SM.clear(n);
+  if(SM.listAll().every(s=>s.empty)){showHome();}
+  else{showSaveSelect();}
+}
+showHome();
 </script>
 </body>
 </html>
