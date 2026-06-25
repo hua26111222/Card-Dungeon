@@ -748,7 +748,7 @@ html,body{background:var(--void);color:var(--text);font-family:var(--fm);font-si
 </div>
 </div>
 <div class="toast" id="toast"></div>
-<div id="cutscene">
+<div id="cutscene" onclick="handleCsClick()" style="cursor:pointer">
   <div class="cs-body">
     <div class="cs-art" id="cs-art">
       <div class="cs-art-icon" id="cs-icon">⚔</div>
@@ -762,8 +762,8 @@ html,body{background:var(--void);color:var(--text);font-family:var(--fm);font-si
     </div>
   </div>
   <div class="cs-footer">
-    <button class="cs-skip" onclick="skipCutscene()">跳过 ▶▶</button>
-    <button class="cs-cont" id="cs-cont" onclick="finishCutscene()">继续 ▶</button>
+    <div style="font-size:10px;color:var(--text3);letter-spacing:3px;font-style:italic">点击任意位置跳过</div>
+    <button class="cs-cont" id="cs-cont" onclick="event.stopPropagation();finishCutscene()">继续 ▶</button>
   </div>
 </div>
 <div id="deckmodal" style="display:none;position:fixed;inset:0;z-index:9000;background:rgba(7,5,10,.96);overflow-y:auto;padding:16px 12px">
@@ -889,62 +889,73 @@ const THEMES=[
   {name:'深海遗迹',sub:'黑暗压力与失落文明'},{name:'星界裂缝',sub:'维度撕裂，虚空涌入'},
 ];
 const ET=[
-  /* ── 普通战斗 Tier 1-4 ── */
-  {name:'哥布林斥候',art:'👺',tier:'fight',power:1,aiType:'power',hpMult:.7,
-   actions:[{t:'a',v:7,n:'刺击'},{t:'a',v:7,n:'刺击'},{t:'d',v:5,n:'闪躲'},{t:'a',v:9,n:'突袭'}],
+  /* ── 弱鸡·阴险 ── 低伤害但控制恶心 */
+  {name:'哥布林扒手',art:'👺',tier:'fight',powerLevel:'弱鸡',deckType:'阴险',style:'强盗',aiType:'skill',hpMult:.55,
+   actions:[{t:'steal',v:1,n:'扒窃'},{t:'a',v:4,n:'匕首刺'},{t:'steal',v:1,n:'再次扒窃'},{t:'x',v:1,n:'缴械搜身'},{t:'a',v:5,n:'踢打'}],
+   loot:{cards:['double','inspect','adrenaline','whirl']}},
+  {name:'迷途幽灵',  art:'👻',tier:'fight',powerLevel:'弱鸡',deckType:'阴险',style:'游荡者',aiType:'skill',hpMult:.5,
+   actions:[{t:'z',v:1,n:'恐惧凝视'},{t:'a',v:3,n:'虚空触碰'},{t:'steal',v:1,n:'记忆侵蚀'},{t:'z',v:1,n:'幻象迷惑'}],
+   loot:{cards:['inspect','meditate','weaken','defend']}},
+  {name:'被诅咒骷髅',art:'💀',tier:'fight',powerLevel:'弱鸡',deckType:'阴险',style:'游荡者',aiType:'skill',hpMult:.6,
+   actions:[{t:'x',v:1,n:'骨爪缴械'},{t:'a',v:4,n:'咬击'},{t:'a',v:4,n:'咬击'},{t:'x',v:1,n:'再次缴械'},{t:'a',v:6,n:'绝望撕咬'}],
+   loot:{cards:['defend','inspect','strike','weaken']}},
+  /* ── 普通·各类型 ── */
+  {name:'食腐蝙蝠',  art:'🦇',tier:'fight',powerLevel:'普通',deckType:'阴险',style:'流浪者',aiType:'skill',hpMult:.6,
+   actions:[{t:'a',v:5,n:'啃咬'},{t:'h',v:4,n:'吸血'},{t:'p',v:1,n:'疾病'},{t:'a',v:7,n:'俯冲'},{t:'steal',v:1,n:'掠夺'}],
+   loot:{cards:['meditate','poison_flask','inspect','weaken']}},
+  {name:'哥布林斥候',art:'👺',tier:'fight',powerLevel:'普通',deckType:'凶恶',style:'战士',aiType:'power',hpMult:.7,
+   actions:[{t:'a',v:7,n:'刺击'},{t:'a',v:7,n:'刺击'},{t:'d',v:5,n:'闪躲'},{t:'a',v:10,n:'突袭'}],
    loot:{cards:['strike','double','inspect','defend']}},
-  {name:'食腐蝙蝠',  art:'🦇',tier:'fight',power:1,aiType:'skill',hpMult:.6,
-   actions:[{t:'a',v:5,n:'啃咬'},{t:'h',v:4,n:'吸血'},{t:'a',v:7,n:'俯冲'},{t:'p',v:1,n:'疾病'},{t:'a',v:5,n:'啃咬'}],
-   loot:{cards:['slam','meditate','poison_flask','inspect']}},
-  {name:'腐化剑士',  art:'⚔', tier:'fight',power:2,aiType:'power',hpMult:.9,
-   actions:[{t:'a',v:7,n:'斩击'},{t:'s',v:1,n:'磨砺'},{t:'a',v:7,n:'斩击'},{t:'a',v:11,n:'猛击'}],
-   loot:{cards:['strike','slam','strength','fortify']}},
-  {name:'骷髅弓手',  art:'💀',tier:'fight',power:2,aiType:'skill',hpMult:.75,
-   actions:[{t:'a',v:6,n:'箭矢'},{t:'a',v:6,n:'连射'},{t:'p',v:2,n:'毒箭'},{t:'z',v:1,n:'穿心箭·眩晕'},{t:'a',v:8,n:'精准射击'}],
+  {name:'骷髅弓手',  art:'💀',tier:'fight',powerLevel:'普通',deckType:'阴险',style:'狙击手',aiType:'skill',hpMult:.75,
+   actions:[{t:'a',v:6,n:'箭矢'},{t:'p',v:2,n:'毒箭'},{t:'z',v:1,n:'穿心箭·眩晕'},{t:'a',v:8,n:'连射'},{t:'a',v:8,n:'精准射击'}],
    loot:{cards:['double','inspect','poison_flask','weaken']}},
-  {name:'石之傀儡',  art:'🗿',tier:'fight',power:3,aiType:'power',hpMult:1.1,
-   actions:[{t:'d',v:7,n:'岩石护甲'},{t:'a',v:9,n:'岩拳'},{t:'d',v:5,n:'岩石护甲'},{t:'a',v:12,n:'重压'}],
+  /* ── 危险·各类型 ── */
+  {name:'腐化剑士',  art:'⚔', tier:'fight',powerLevel:'危险',deckType:'凶恶',style:'战士',aiType:'power',hpMult:.9,
+   actions:[{t:'a',v:7,n:'斩击'},{t:'s',v:1,n:'磨砺'},{t:'a',v:9,n:'斩击'},{t:'a',v:12,n:'猛击'}],
+   loot:{cards:['strike','slam','strength','fortify']}},
+  {name:'石之傀儡',  art:'🗿',tier:'fight',powerLevel:'危险',deckType:'厚皮',style:'守护者',aiType:'power',hpMult:1.1,
+   actions:[{t:'d',v:8,n:'岩石护甲'},{t:'a',v:9,n:'岩拳'},{t:'d',v:6,n:'岩石护甲'},{t:'a',v:12,n:'重压'}],
    loot:{cards:['defend','fortify','barrier','guard_quick']}},
-  {name:'影子刺客',  art:'🥷',tier:'fight',power:3,aiType:'skill',hpMult:.7,
-   actions:[{t:'a',v:7,n:'暗袭'},{t:'x',v:1,n:'缴械'},{t:'a',v:7,n:'连刺'},{t:'a',v:6,n:'连刺'},{t:'a',v:12,n:'致命一击'}],
+  {name:'影子刺客',  art:'🥷',tier:'fight',powerLevel:'危险',deckType:'阴险',style:'刺客',aiType:'skill',hpMult:.7,
+   actions:[{t:'steal',v:1,n:'暗夜扒窃'},{t:'a',v:8,n:'暗袭'},{t:'x',v:1,n:'缴械'},{t:'a',v:9,n:'连刺'},{t:'a',v:13,n:'致命一击'}],
    loot:{cards:['double','whirl','adrenaline','inspect']}},
-  {name:'暴怒骷髅战士',art:'💀',tier:'fight',power:4,aiType:'power',hpMult:.85,
-   actions:[{t:'a',v:6,n:'骨爪'},{t:'s',v:1,n:'激怒'},{t:'a',v:8,n:'骨爪'},{t:'a',v:12,n:'暴怒重击'},{t:'a',v:8,n:'骨爪'}],
-   loot:{cards:['strength','warcry','slam','berserker']}},
-  {name:'毒疫蜘蛛巢母',art:'🕷',tier:'fight',power:4,aiType:'skill',hpMult:.8,
-   actions:[{t:'p',v:2,n:'毒液喷涌'},{t:'a',v:5,n:'毒爪缠绕'},{t:'p',v:2,n:'毒液喷涌'},{t:'a',v:7,n:'巢母撕咬'},{t:'z',v:1,n:'黏丝束缚·眩晕'}],
+  {name:'疯狂炼金师',art:'🧪',tier:'fight',powerLevel:'危险',deckType:'阴险',style:'疯狂科学家',aiType:'skill',hpMult:.7,
+   actions:[{t:'p',v:3,n:'剧毒喷射'},{t:'z',v:1,n:'麻醉弹·眩晕'},{t:'p',v:2,n:'毒雾'},{t:'a',v:7,n:'玻璃瓶投掷'},{t:'w',v:2,n:'虚弱毒素'}],
    loot:{cards:['poison_flask','corruption','venom_blade','weaken']}},
-  /* ── 精英 Tier 5-7 ── */
-  {name:'石像鬼领主',art:'🗿',tier:'elite',power:5,aiType:'power',hpMult:1.6,
-   actions:[{t:'d',v:8,n:'石甲'},{t:'a',v:10,n:'利爪'},{t:'a',v:10,n:'利爪'},{t:'s',v:1,n:'狂暴'},{t:'a',v:14,n:'击碎'}],
+  {name:'暴怒骷髅',  art:'💀',tier:'fight',powerLevel:'危险',deckType:'凶恶',style:'狂战士',aiType:'power',hpMult:.85,
+   actions:[{t:'a',v:7,n:'骨爪'},{t:'s',v:1,n:'激怒'},{t:'a',v:9,n:'骨爪'},{t:'a',v:13,n:'暴怒重击'},{t:'a',v:9,n:'骨爪'}],
+   loot:{cards:['strength','warcry','slam','berserker']}},
+  /* ── 精英 ── */
+  {name:'石像鬼领主',art:'🗿',tier:'elite',powerLevel:'精英',deckType:'厚皮',style:'守护者',aiType:'power',hpMult:1.6,
+   actions:[{t:'d',v:9,n:'石甲'},{t:'a',v:10,n:'利爪'},{t:'a',v:10,n:'利爪'},{t:'s',v:1,n:'狂暴'},{t:'a',v:15,n:'击碎'}],
    loot:{cards:['fortify','barrier','counter','jugg']}},
-  {name:'亡命法师',  art:'🧟',tier:'elite',power:6,aiType:'skill',hpMult:1.5,
-   actions:[{t:'a',v:9,n:'暗影爆'},{t:'p',v:2,n:'瘟疫'},{t:'z',v:1,n:'黑暗诅咒·眩晕'},{t:'a',v:9,n:'暗影爆'},{t:'s',v:1,n:'邪能涌现'},{t:'a',v:12,n:'灵魂爆破'}],
+  {name:'亡命法师',  art:'🧟',tier:'elite',powerLevel:'精英',deckType:'阴险',style:'施法者',aiType:'skill',hpMult:1.5,
+   actions:[{t:'p',v:2,n:'瘟疫'},{t:'z',v:1,n:'黑暗诅咒·眩晕'},{t:'a',v:10,n:'暗影爆'},{t:'s',v:1,n:'邪能涌现'},{t:'steal',v:1,n:'魂魄汲取'},{t:'a',v:13,n:'灵魂爆破'}],
    loot:{cards:['poison_flask','weaken','corruption','warcry']}},
-  {name:'幽灵骑士',  art:'👾',tier:'elite',power:6,aiType:'power',hpMult:1.8,
-   actions:[{t:'a',v:10,n:'魂枪'},{t:'a',v:10,n:'魂枪'},{t:'h',v:7,n:'幽魂复原'},{t:'a',v:14,n:'死亡冲锋'}],
+  {name:'幽灵骑士',  art:'👾',tier:'elite',powerLevel:'精英',deckType:'凶恶',style:'杀手',aiType:'power',hpMult:1.8,
+   actions:[{t:'a',v:11,n:'魂枪'},{t:'a',v:11,n:'魂枪'},{t:'h',v:8,n:'幽魂复原'},{t:'a',v:15,n:'死亡冲锋'}],
    loot:{cards:['slam','strength','warcry','adrenaline']}},
-  {name:'冰霜女巫',  art:'🧊',tier:'elite',power:5,aiType:'skill',hpMult:1.4,
-   actions:[{t:'a',v:8,n:'冰刃'},{t:'w',v:2,n:'寒冬诅咒'},{t:'x',v:2,n:'寒冰束缚·缴械'},{t:'a',v:8,n:'冰刃'},{t:'a',v:11,n:'冰风暴'},{t:'d',v:6,n:'冰盾'}],
+  {name:'冰霜女巫',  art:'🧊',tier:'elite',powerLevel:'精英',deckType:'阴险',style:'施法者',aiType:'skill',hpMult:1.4,
+   actions:[{t:'w',v:2,n:'寒冬诅咒'},{t:'x',v:2,n:'寒冰束缚·缴械'},{t:'a',v:9,n:'冰刃'},{t:'steal',v:1,n:'封冻记忆'},{t:'a',v:12,n:'冰风暴'},{t:'d',v:7,n:'冰盾'}],
    loot:{cards:['barrier','counter','weaken','meditate']}},
-  {name:'嗜血吸血鬼伯爵',art:'🦇',tier:'elite',power:7,aiType:'power',hpMult:1.55,
-   actions:[{t:'a',v:9,n:'鲜血汲取'},{t:'h',v:8,n:'血液复苏'},{t:'a',v:11,n:'鲜血汲取'},{t:'s',v:1,n:'嗜血增幅'},{t:'a',v:14,n:'死亡之咬'}],
+  {name:'嗜血伯爵',  art:'🦇',tier:'elite',powerLevel:'精英',deckType:'阴险',style:'吸血鬼',aiType:'power',hpMult:1.55,
+   actions:[{t:'a',v:10,n:'鲜血汲取'},{t:'h',v:9,n:'血液复苏'},{t:'steal',v:1,n:'记忆吸食'},{t:'s',v:1,n:'嗜血增幅'},{t:'a',v:15,n:'死亡之咬'}],
    loot:{cards:['vampire_oath','regen','bloodrush','blood_pact']}},
-  /* ── Boss Tier 8-10 ── */
-  {name:'深渊魔龙',  art:'🐲',tier:'boss',power:9,aiType:'power',hpMult:3.0,epithet:'炎焰霸主',epithetSub:'龙鳞·烈焰·不灭',
+  /* ── Boss (恐怖) ── */
+  {name:'深渊魔龙',  art:'🐲',tier:'boss',powerLevel:'恐怖',deckType:'凶恶',style:'暴君',aiType:'power',hpMult:3.0,epithet:'炎焰霸主',epithetSub:'龙鳞·烈焰·不灭',
    actions:[{t:'a',v:10,n:'龙焰吐息'},{t:'a',v:8,n:'爪击'},{t:'a',v:8,n:'爪击'},{t:'s',v:1,n:'龙之怒'},{t:'a',v:14,n:'龙尾横扫'},{t:'d',v:8,n:'鳞甲'}],
    loot:{cards:['sacrifice','multishot','strength','bloodrush','slam']}},
-  {name:'混沌之主',  art:'👁', tier:'boss',power:8,aiType:'skill',hpMult:2.5,epithet:'虚空凝视者',epithetSub:'混沌·腐化·无解',
-   actions:[{t:'a',v:9,n:'混沌光束'},{t:'p',v:2,n:'腐化之瘟'},{t:'z',v:1,n:'精神侵蚀·眩晕'},{t:'a',v:9,n:'混沌光束'},{t:'s',v:1,n:'混沌涌现'},{t:'a',v:13,n:'毁灭凝视'},{t:'p',v:2,n:'腐化之瘟'}],
+  {name:'混沌之主',  art:'👁', tier:'boss',powerLevel:'恐怖',deckType:'阴险',style:'施法者',aiType:'skill',hpMult:2.5,epithet:'虚空凝视者',epithetSub:'混沌·腐化·无解',
+   actions:[{t:'a',v:9,n:'混沌光束'},{t:'p',v:2,n:'腐化之瘟'},{t:'z',v:1,n:'精神侵蚀·眩晕'},{t:'steal',v:1,n:'意志吞噬'},{t:'s',v:1,n:'混沌涌现'},{t:'a',v:13,n:'毁灭凝视'},{t:'p',v:2,n:'腐化之瘟'}],
    loot:{cards:['poison_flask','corruption','warcry','weaken','vampire_oath']}},
-  {name:'腐化巨人',  art:'👹',tier:'boss',power:10,aiType:'power',hpMult:3.2,epithet:'不死骸骨王',epithetSub:'腐朽·再生·重压',
+  {name:'腐化巨人',  art:'👹',tier:'boss',powerLevel:'恐怖',deckType:'厚皮',style:'暴君',aiType:'power',hpMult:3.2,epithet:'不死骸骨王',epithetSub:'腐朽·再生·重压',
    actions:[{t:'d',v:9,n:'腐骨护甲'},{t:'a',v:11,n:'猛击'},{t:'h',v:8,n:'腐化再生'},{t:'a',v:11,n:'猛击'},{t:'d',v:6,n:'腐骨护甲'},{t:'a',v:15,n:'巨力重压'}],
    loot:{cards:['fortify','slam','meditate','jugg','barrier']}},
-  {name:'时间骗子',  art:'⏳',tier:'boss',power:8,aiType:'skill',hpMult:2.8,epithet:'流逝编织者',epithetSub:'迅捷·侵蚀·无常',
-   actions:[{t:'a',v:10,n:'时间刀刃'},{t:'w',v:2,n:'时间侵蚀'},{t:'x',v:2,n:'时间停滞·缴械'},{t:'a',v:10,n:'时间刀刃'},{t:'a',v:13,n:'迅捷突进'},{t:'s',v:1,n:'时间加速'}],
+  {name:'时间骗子',  art:'⏳',tier:'boss',powerLevel:'恐怖',deckType:'阴险',style:'强盗',aiType:'skill',hpMult:2.8,epithet:'流逝编织者',epithetSub:'迅捷·侵蚀·无常',
+   actions:[{t:'a',v:10,n:'时间刀刃'},{t:'w',v:2,n:'时间侵蚀'},{t:'x',v:2,n:'时间停滞·缴械'},{t:'steal',v:1,n:'时光掠夺'},{t:'a',v:13,n:'迅捷突进'},{t:'s',v:1,n:'时间加速'}],
    loot:{cards:['whirl','double','adrenaline','execute','focus_stone']}},
-  {name:'深海怪物',  art:'🐙',tier:'boss',power:9,aiType:'skill',hpMult:3.0,epithet:'深渊触手神',epithetSub:'毒素·吞噬·复原',
-   actions:[{t:'a',v:8,n:'触手拍击'},{t:'p',v:2,n:'深海毒素'},{t:'z',v:1,n:'触手缠绕·眩晕'},{t:'a',v:12,n:'吞噬'},{t:'h',v:6,n:'深海复原'},{t:'a',v:10,n:'恐怖触手'}],
+  {name:'深海怪物',  art:'🐙',tier:'boss',powerLevel:'恐怖',deckType:'阴险',style:'吸血鬼',aiType:'skill',hpMult:3.0,epithet:'深渊触手神',epithetSub:'毒素·吞噬·复原',
+   actions:[{t:'p',v:2,n:'深海毒素'},{t:'z',v:1,n:'触手缠绕·眩晕'},{t:'steal',v:1,n:'触手攫取'},{t:'a',v:12,n:'吞噬'},{t:'h',v:6,n:'深海复原'},{t:'a',v:10,n:'恐怖触手'}],
    loot:{cards:['corruption','barrier','sacrifice','poison_flask','vampire_oath']}},
 ];
 const EVTS=[
@@ -961,7 +972,7 @@ const EVTS=[
     {text:'财富之路',sub:'获得 100 金币',fn:(p,b,ch)=>{const g=Math.floor(100*(1+ch.floor*.1));p.gold+=g;return`+${g}金币`}},
     {text:'力量之路',sub:'+20 最大HP 并恢复至满',fn:(p)=>{p.maxHp+=20;p.hp=p.maxHp;return'最大HP+20 已满血'}}]},
   {title:'诅咒商人',tag:'☠ 危险遭遇',desc:'"出售力量，只需要一点代价……"黑袍下的手指向你的心脏。',choices:[
-    {text:'诅咒换力量',sub:'牌组加诅咒牌，最大HP+20，行动点上限+1',fn:(p,b)=>{b.deck.push(gc('regret'));p.maxHp+=20;p.hp=Math.min(p.maxHp,p.hp+20);p.maxAp=Math.min(5,p.maxAp+1);return`+诅咒 +20maxHP +1行动点`}},
+    {text:'诅咒换力量',sub:'牌组加诅咒牌，最大HP+30，获得120金币',fn:(p,b)=>{b.deck.push(gc('regret'));p.maxHp+=30;p.hp=Math.min(p.maxHp,p.hp+30);p.gold+=120;return`+诅咒 +30maxHP +120金币`}},
     {text:'诅咒换金币',sub:'牌组加2张诅咒，获得 150 金币',fn:(p,b,ch)=>{const g=Math.floor(150*(1+ch.floor*.15));p.gold+=g;b.deck.push(gc('regret'));b.deck.push(gc('regret'));return`+${g}金币 +2诅咒`}},
     {text:'果断拒绝',sub:'逃离但失去 8 HP（踢伤了）',fn:(p)=>{p.hp=Math.max(1,p.hp-8);return'-8 HP 跑路成功'}}]},
   {title:'虚空裂缝',tag:'✦ 维度异常',desc:'现实在你眼前撕裂。裂缝另一端……是未知的馈赠，还是诅咒？',choices:[
@@ -1202,7 +1213,14 @@ function genCardInfo(step){
     const suits=['♠','♠','♣','♥'];
     const suit=suits[0|Math.random()*suits.length];
     const col=suit==='♥'?'#cc3333':suit==='♣'?'#337733':'#aa2222';
-    return{type:isElite?'elite':'fight',suit,col,bg:isElite?'rgba(140,40,0,.35)':'rgba(80,20,20,.30)'};
+    const tier=isElite?'elite':'fight';
+    const pool=ET.filter(e=>e.tier===tier);
+    const en=pool[0|Math.random()*pool.length];
+    const plCol=en?.powerLevel==='弱鸡'?'#5a8a5a':en?.powerLevel==='普通'?'#8a8a5a':en?.powerLevel==='危险'?'#cc7020':'#aa3010';
+    return{type:tier,suit,col,bg:isElite?'rgba(140,40,0,.35)':'rgba(80,20,20,.30)',
+      enemyArt:en?.art,enemyName:en?.name,
+      powerLevel:en?.powerLevel,powerLevelCol:plCol,
+      deckType:en?.deckType,style:en?.style,_etIdx:en?ET.indexOf(en):-1};
   }
   const nr=Math.random();let type;
   if(step<6)      type=nr<.22?'tavern':nr<.40?'event':nr<.55?'campfire':nr<.70?'blacksmith':nr<.85?'gamble':'altar';
@@ -1274,6 +1292,16 @@ function renderMap(){
         <div class="mcicon" style="font-size:22px;text-shadow:0 0 14px ${card.col};margin-top:4px">${bIcon}</div>
         <div style="font-size:6.5px;color:${card.col};font-weight:700;letter-spacing:.5px;text-align:center;padding:0 2px;line-height:1.3">${card.epithet}</div>
         ${isActive&&isReach?`<div class="mchint" style="color:${card.col};font-size:5.5px">${card.epithetSub||''}</div>`:''}
+      </div>`;
+    }
+    if((card.type==='fight'||card.type==='elite')&&card.enemyArt){
+      const dtCol=card.deckType==='阴险'?'var(--violet)':card.deckType==='厚皮'?'var(--frost)':'var(--gore2)';
+      return`<div class="mcard${reachCls}${dimCls}${selCls}" ${click} style="border-color:${card.col};background:${card.bg}">
+        <div style="position:absolute;top:2px;left:2px;font-size:5.5px;color:${card.powerLevelCol||card.col};font-weight:700;letter-spacing:.3px">${card.powerLevel||''}</div>
+        ${card.type==='elite'?`<div style="position:absolute;top:2px;right:2px;font-size:5px;color:var(--amber)">精英</div>`:''}
+        <div class="mcicon" style="font-size:20px;text-shadow:0 0 10px ${card.col};margin-top:10px">${card.enemyArt}</div>
+        <div class="mctype" style="color:${card.col};font-size:6px">${card.enemyName}</div>
+        ${isActive&&isReach?`<div class="mchint" style="color:${dtCol}">${card.deckType}·${card.style}</div>`:''}
       </div>`;
     }
     return`<div class="mcard${reachCls}${bossCls}${dimCls}${selCls}" ${click} style="border-color:${card.col};background:${card.bg}">
@@ -1351,6 +1379,8 @@ function pickMapCard(col){
   mapData.step=step+1;
   player.steps=(player.steps||0)+1;
 
+  // 预分配敌人：存入全局供 startBattle 使用
+  window._preEnemy=(card._etIdx>=0&&ET[card._etIdx])?ET[card._etIdx]:null;
   switch(card.type){
     case 'fight':     showPreBattle(false,false);break;
     case 'elite':     showPreBattle(true,false);break;
@@ -1396,11 +1426,24 @@ function showPreBattle(isElite,isBoss){
   document.getElementById('ovtag').textContent=isBoss?`☠  ${bossTag||'首领降临'}`:isElite?'✦  精英遭遇':'⚔  战斗预警';
   document.getElementById('ovtit').textContent='即将进入战斗';
   const powerNote=isBoss&&pm!==1?`<div style="font-size:10px;color:${pm>1?'var(--gore2)':'var(--slime)'};margin-top:4px;letter-spacing:1px">${pm>1?`⚠ 强化 ×${pm} 倍`:`✓ 减弱 ×${pm} 倍`}</div>`:'';
-  const h=`<div style="text-align:center;margin-bottom:14px;padding:10px">
-    <div style="display:inline-block;padding:6px 24px;border:2px solid ${rat.color};color:${rat.color};font-size:18px;font-family:var(--fs);letter-spacing:4px;background:rgba(0,0,0,.5);text-shadow:0 0 12px ${rat.color}">
+  const pe=!isBoss&&window._preEnemy;
+  const dtCol=pe?.deckType==='阴险'?'var(--violet)':pe?.deckType==='厚皮'?'var(--frost)':'var(--gore2)';
+  const enemyPreview=pe?`<div style="display:flex;align-items:center;gap:10px;background:rgba(0,0,0,.35);border:1px solid var(--crack2);border-radius:4px;padding:8px 12px;margin-bottom:12px">
+    <div style="font-size:28px">${pe.art}</div>
+    <div>
+      <div style="font-family:var(--fs);font-size:14px;color:var(--bone);letter-spacing:2px">${pe.name}</div>
+      <div style="font-size:10px;margin-top:3px"><span style="color:${dtCol}">${pe.deckType}·${pe.style}</span></div>
+    </div>
+    <div style="margin-left:auto;text-align:right">
+      <div style="font-size:9px;color:var(--text3);margin-bottom:2px">威力评级</div>
+      <div style="font-size:12px;color:${pe.powerLevel==='弱鸡'?'var(--slime)':pe.powerLevel==='普通'?'var(--text)':pe.powerLevel==='危险'?'var(--gore2)':'var(--blood)'};font-weight:700">${pe.powerLevel}</div>
+    </div>
+  </div>`:'';
+  const h=`${enemyPreview}<div style="text-align:center;margin-bottom:14px;padding:8px">
+    <div style="display:inline-block;padding:5px 20px;border:2px solid ${rat.color};color:${rat.color};font-size:16px;font-family:var(--fs);letter-spacing:4px;background:rgba(0,0,0,.5);text-shadow:0 0 12px ${rat.color}">
       ${rat.icon} ${rat.label}
     </div>
-    <div style="font-size:11px;color:var(--text2);margin-top:8px;font-style:italic">${rat.desc}</div>
+    <div style="font-size:11px;color:var(--text2);margin-top:6px;font-style:italic">${rat.desc}</div>
     ${powerNote}
   </div>
   <div style="background:rgba(0,0,0,.3);border:1px solid var(--crack2);padding:12px 10px;margin-bottom:14px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;text-align:center">
@@ -1423,7 +1466,8 @@ function startBattle(isElite,isBoss){
     const fresh=pool.filter(e=>!chapter.usedEnemies.has(e.name));
     if(fresh.length)pool=fresh; else chapter.usedEnemies.clear();
   }
-  const tmpl=isBoss?bossRef:pool[0|Math.random()*pool.length];
+  const tmpl=isBoss?bossRef:(window._preEnemy&&!isBoss?window._preEnemy:pool[0|Math.random()*pool.length]);
+  window._preEnemy=null;
   if(tmpl)chapter.usedEnemies.add(tmpl.name);
   const en=buildEnemy(tmpl,isElite,isBoss);
   // Apply boss power multiplier
@@ -1594,7 +1638,16 @@ function endTurn(){
     }else if(act.t==='z'){// 眩晕玩家
       battle.playerStun=Math.min(3,(battle.playerStun||0)+act.v);toast(`${act.n}！你被眩晕 ${act.v} 回合！`,'r');sfx(130,.2,'square',.1,-30);
     }else if(act.t==='x'){// 缴械玩家
-      battle.playerDisarm=Math.min(3,(battle.playerDisarm||0)+act.v);toast(`${act.n}！你被缴械 ${act.v} 回合！`,'r');sfx(160,.15,'square',.1,-20);}
+      battle.playerDisarm=Math.min(3,(battle.playerDisarm||0)+act.v);toast(`${act.n}！你被缴械 ${act.v} 回合！`,'r');sfx(160,.15,'square',.1,-20);
+    }else if(act.t==='steal'){// 偷牌
+      const pool=battle.hand.length?battle.hand:battle.drawPile;
+      if(pool.length>0){
+        const si=0|Math.random()*pool.length;const stolen=pool.splice(si,1)[0];
+        battle.discardPile.push(stolen);
+        toast(`🤚 ${act.n}！「${stolen.name}」被偷走了！`,'r');
+        if(battle.hand===pool)updatePlayButton();
+      }else toast(`🤚 ${act.n}！你没有可偷的牌`,'r');
+    }
   }else{
     _eDidAtk=true;
     let eatk=(battle.enemy.atk||8)+(battle.enemyStr||0);if(battle.enemyWeak>0)eatk=Math.floor(eatk*.75);
@@ -1679,7 +1732,7 @@ function showChapterIntro(){
     {art:'❤',name:'强健体魄',desc:'+20 最大HP，并立即回复20点生命',apply:()=>{player.maxHp+=20;player.hp=Math.min(player.maxHp,player.hp+20);}},
     {art:'⚡',name:'武道传承',desc:'获得一张随机稀有卡牌加入牌组',apply:()=>{const rare=DB.filter(c=>c.rar==='rare'&&c.rar!=='curse');const c=rare[Math.floor(Math.random()*rare.length)];if(c)battle.deck.push({...c});toast('获得 '+( c?c.name:'稀有卡'),'g');}},
     {art:'💰',name:'富商馈赠',desc:'立即获得 80 金币',apply:()=>{player.gold+=80;}},
-    {art:'🎁',name:'神秘赐福',desc:'最大生命+10，最大行动点+1，抽牌数+1',apply:()=>{player.maxHp+=10;player.hp=Math.min(player.maxHp,player.hp+10);player.maxAp=Math.min(5,player.maxAp+1);player.drawCount=Math.min(7,player.drawCount+1);toast('属性全面提升！','g');}},
+    {art:'🎁',name:'神秘赐福',desc:'最大生命+15，立即回血15，获得50金币',apply:()=>{player.maxHp+=15;player.hp=Math.min(player.maxHp,player.hp+15);player.gold+=50;toast('生命与财富得到强化！','g');}},
     {art:'🃏',name:'命运之手',desc:'抽取3张随机卡牌加入牌组',apply:()=>{const pool=DB.filter(c=>c.rar!=='curse');const ps=calcPS();const rc=Math.min(.45,ps/150);const picks=[];const used=new Set(battle.deck.map(c=>c.id));for(let i=0;i<3;i++){const av=pool.filter(c=>!used.has(c.id));if(!av.length)break;const w=av.map(c=>c.rar==='rare'?rc*4:c.rar==='uncommon'?2:1);const tot=w.reduce((s,x)=>s+x,0);let r=Math.random()*tot;for(let j=0;j<av.length;j++){r-=w[j];if(r<=0){used.add(av[j].id);picks.push({...av[j]});break;}}}picks.forEach(c=>battle.deck.push(c));toast(`获得：${picks.map(c=>c.art+c.name).join(' / ')}`,'g');}},
   ];
   const shuffled=shuf([...ALL_BLESS]).slice(0,3);
@@ -2052,16 +2105,22 @@ function renderBattle(){
   document.getElementById('etk').innerHTML='';
   const acts=b.enemyActions||[];let intent='?';
   if(acts.length>0){const na=b.nextEnemyAction||acts[0];const es2=b.enemyStr||0;
-    if(na.t==='a')intent=`⚔ ${na.v+es2}（${na.n}）`;
-    else if(na.t==='d')intent=`🛡 +${na.v}（${na.n}）`;
-    else if(na.t==='s')intent=`💪 +${na.v}力量（${na.n}）`;
-    else if(na.t==='h')intent=`💚 +${na.v}（${na.n}）`;
-    else if(na.t==='p')intent=`☠ 毒${na.v}层（${na.n}）`;
-    else if(na.t==='w')intent=`💀 虚弱${na.v}（${na.n}）`;
-    else if(na.t==='z')intent=`🌀 眩晕${na.v}回合（${na.n}）`;
-    else if(na.t==='x')intent=`⛓ 缴械${na.v}回合（${na.n}）`;
+    if(na.t==='a'){
+      let d=na.v+es2;let mod='';
+      if(b.enemyWeak>0){d=Math.floor(d*.75);mod=' 💚↓';}
+      if(b.enemyStr>0)mod+=' ⬆';
+      intent=`⚔ ${d}${mod}（${na.n}）`;
+    }
+    else if(na.t==='d')intent=`🛡 +${na.v}格挡（${na.n}）`;
+    else if(na.t==='s'){const next=es2+na.v;intent=`💪 力量${es2>0?`${es2}→`:''}+${next}（${na.n}）`;}
+    else if(na.t==='h')intent=`💚 自愈+${na.v}（${na.n}）`;
+    else if(na.t==='p'){const cur=b.enemyPoison||0;intent=`☠ 施毒+${na.v}层（${na.n}）${cur>0?` · 你已中毒${cur}`:''}（每回合递增）`;}
+    else if(na.t==='w')intent=`💀 虚弱${na.v}回合（${na.n}）`;
+    else if(na.t==='z')intent=`🌀 眩晕你${na.v}回合（${na.n}）`;
+    else if(na.t==='x')intent=`⛓ 缴械你${na.v}回合（${na.n}）`;
+    else if(na.t==='steal')intent=`🤚 偷你手牌（${na.n}）`;
     if(b.enemyBlk>0)intent+=`  🛡${b.enemyBlk}`;
-  }else{let av=(e.atk||0)+(b.enemyStr||0);intent=`⚔ ${av}`;if(b.enemyBlk>0)intent+=`  🛡${b.enemyBlk}`;}
+  }else{let av=(e.atk||0)+(b.enemyStr||0);if(b.enemyWeak>0)av=Math.floor(av*.75);intent=`⚔ ${av}`;if(b.enemyBlk>0)intent+=`  🛡${b.enemyBlk}`;}
   document.getElementById('ibt').textContent=intent;
   let es='';if(b.enemyWeak>0)es+=`<div class="sb sw">虚弱 ${b.enemyWeak}</div>`;if(b.enemyVuln>0)es+=`<div class="sb sv">易伤 ${b.enemyVuln}</div>`;if(b.enemyStr>0)es+=`<div class="sb ss">力量 +${b.enemyStr}</div>`;if(b.enemyPoison>0)es+=`<div class="sb sp">中毒↑ ${b.enemyPoison}</div>`;if(b.enemyBleed>0)es+=`<div class="sb" style="color:var(--blood);border-color:var(--blood2)">流血 ${b.enemyBleed}</div>`;if(b.enemyStun>0)es+=`<div class="sb" style="color:var(--amber);border-color:var(--bone2)">眩晕 ${b.enemyStun}</div>`;
   document.getElementById('es').innerHTML=es;
@@ -2727,10 +2786,11 @@ const CUTSCENES={
     ]
   },
 };
-let _csOnComplete=null;let _csLines=[];let _csLI=0;let _csCI=0;let _csTimer=null;
+let _csOnComplete=null;let _csLines=[];let _csLI=0;let _csCI=0;let _csTimer=null;let _csDone=false;
+function handleCsClick(){if(_csDone)finishCutscene();else skipCutscene();}
 function showCutscene(key,onComplete){
   const sc=CUTSCENES[key];if(!sc){onComplete?.();return;}
-  _csOnComplete=onComplete;_csLines=sc.lines;_csLI=0;_csCI=0;
+  _csOnComplete=onComplete;_csLines=sc.lines;_csLI=0;_csCI=0;_csDone=false;
   clearTimeout(_csTimer);
   const el=document.getElementById('cutscene');
   const artEl=document.getElementById('cs-art');
@@ -2777,6 +2837,7 @@ function csTypeHtml(el,html,done){
   step();
 }
 function csFinishAll(){
+  _csDone=true;
   const linesEl=document.getElementById('cs-lines');
   linesEl.querySelectorAll('.cs-line').forEach(el=>el.classList.add('vis'));
   document.getElementById('cs-cont').style.display='inline-block';
