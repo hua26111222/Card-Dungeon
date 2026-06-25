@@ -909,6 +909,7 @@ function buildMap(){
   const rows=[];
   for(let s=0;s<19;s++)rows.push(genMapRow(s));
   mapData={rows,step:0,playerCol:2,history:[]};  // 5-col center = col 2
+  window._mapPending=null;
 }
 function genMapRow(step){
   const rank=Math.max(1,Math.ceil((step+1)*13/18));
@@ -991,9 +992,10 @@ function renderMap(){
     const reachCls=isReach?' reach':'';
     const blindCls=isBlind?' mcard-blind':'';
     const bossCls=card.type==='boss'&&isReach?' mcard-boss':'';
-    const click=isReach?`onclick="pickMapCard(${ci})"`:'';
+    const selCls=isReach&&window._mapPending===ci?' mc-sel':'';
+    const click=isReach?`onclick="selectMapCard(${ci})"`:'';
     if(isBlind){
-      return`<div class="mcard${reachCls}${blindCls}${dimCls}" ${click} style="border-color:#5a3a7a">
+      return`<div class="mcard${reachCls}${blindCls}${dimCls}${selCls}" ${click} style="border-color:#5a3a7a">
         <div class="mcsuit" style="color:#6a4a8a">?</div>
         <div class="mcicon" style="color:#3a2a4a;font-size:26px">🂠</div>
         <div class="mctype" style="color:#6a4a8a">暗牌</div>
@@ -1001,7 +1003,7 @@ function renderMap(){
       </div>`;
     }
     const rankHint=card.rank<=4?'初级':card.rank<=8?'中级':card.rank<=12?'高级':'精锐';
-    return`<div class="mcard${reachCls}${bossCls}${dimCls}" ${click} style="border-color:${card.col};background:${card.bg}">
+    return`<div class="mcard${reachCls}${bossCls}${dimCls}${selCls}" ${click} style="border-color:${card.col};background:${card.bg}">
       <div class="mcsuit" style="color:${sc}">${card.suit}</div>
       <div class="mclabel" style="color:${card.col}">${card.label||''}</div>
       <div class="mcicon" style="text-shadow:0 0 14px ${card.col}">${ti.ic}</div>
@@ -1022,12 +1024,28 @@ function renderMap(){
   document.getElementById('mchooser').style.flexDirection='column';
   document.getElementById('mchooser').innerHTML=gridHtml;
 
+  // 确认条
+  const pending=window._mapPending;
+  const confEl=document.getElementById('mwrap');
+  let confBar=document.getElementById('mconfirm-bar');
+  if(!confBar){confBar=document.createElement('div');confBar.id='mconfirm-bar';confEl.appendChild(confBar);}
+  if(pending!==null&&pending!==undefined){
+    const pcard=rows[step]?.[pending];const pti=TI[pcard?.type]||{ic:'?',nm:'?'};
+    confBar.style.cssText='display:flex;align-items:center;gap:8px;padding:6px 12px;border-top:1px solid var(--crack2);background:rgba(0,0,0,.5)';
+    confBar.innerHTML=`<span style="font-size:16px">${pti.ic}</span>
+      <span style="flex:1;font-size:11px;color:var(--bone);letter-spacing:1px">进入 <b>${pti.nm}</b>？</span>
+      <button onclick="pickMapCard(${pending})" style="padding:5px 16px;border:1px solid var(--bone2);background:rgba(200,169,110,.12);color:var(--bone);font-family:var(--fm);font-size:11px;cursor:pointer;letter-spacing:1px">确认 ▶</button>
+      <button onclick="window._mapPending=null;renderMap()" style="padding:5px 12px;border:1px solid var(--crack2);background:transparent;color:var(--text2);font-family:var(--fm);font-size:11px;cursor:pointer">✕</button>`;
+  }else{confBar.style.display='none';confBar.innerHTML='';}
+
   const hist=document.getElementById('mhist');
   hist.innerHTML=(history||[]).slice(-16).map(c=>{const ti=TI[c.type];return`<span class="mhistitem" title="${c.suit||''}${c.label||''} ${ti?.nm||''}" style="opacity:.5">${c.isHidden?'🎴':ti?.ic||'?'}</span>`;}).join('');
   renderHud();renderTokens();
 }
 function toR(n){return['I','II','III','IV','V','VI','VII','VIII','IX','X'][n-1]||n;}
+function selectMapCard(ci){window._mapPending=ci;renderMap();}
 function pickMapCard(col){
+  window._mapPending=null;
   const{rows,step,playerCol}=mapData;
   let reach;
   if(step===18){const bmap=[[0,1],[0,1,2],[0,1,2,3],[1,2,3],[2,3]];reach=new Set(bmap[playerCol]||[0,1,2,3]);}
@@ -1172,9 +1190,11 @@ function playSelectedCards(){
   battle.hand.splice(idx,1);
   if(c.exhaust)battle.exhPile.push(c);else battle.discardPile.push(c);
   battle.selectedCards=[];
+  const prevEHp=battle.enemyHp;
   applySingleCard(c,1);
   if(battle.enemyHp<=0){endBattle(true);return;}
   renderBattle();
+  if(c.kind==='atk'&&battle.enemyHp<prevEHp){setTimeout(()=>triggerEAnim('a-hit'),180);}
 }
 function endTurn(){
   battle.hand.forEach(c=>{if(c.curseTick)player.hp=Math.max(1,player.hp-c.curseTick);});
@@ -1780,18 +1800,35 @@ function playGamble(tier){
   const used=new Set(battle.deck.map(c=>c.id));
   const avail=shuf(pool.filter(c=>!used.has(c.id)));
   const picks=(avail.length>=3?avail:shuf(pool)).slice(0,3);
-  window._gamblePicks=picks;
-  const kn=k=>k==='atk'?'攻击':k==='def'?'防御':k==='skl'?'技能':'诅咒';
-  const rt=r=>r==='rare'?'<span class="rwt ttr">稀有</span>':r==='uncommon'?'<span class="rwt ttu">罕见</span>':'<span class="rwt ttc">普通</span>';
-  let h=`<div class="ovd">已花费 <b>${cost}</b> 金币。选1张：</div>`;
-  h+=`<div class="tcards-table">${picks.map((c,j)=>renderPokerCard(c,`pickGamble(${j})`,{idx:j,total:picks.length})).join('')}</div>`;
-  h+=`<button class="ovbtn" onclick="startGamble()">再来一局</button>`;
-  h+=`<button class="ovbtn" onclick="backToMap()">离开</button>`;
+  window._gamblePicks=picks;window._gambleSel=null;window._gambleTier=tier;window._gambleCost2=cost;
   document.getElementById('ovtag').textContent='🎲  赌馆结算';
   document.getElementById('ovtit').textContent={c:'小赌',u:'豪赌',r:'神赌'}[tier];
+  renderGambleResult();
+}
+function renderGambleResult(){
+  const picks=window._gamblePicks||[];const sel=window._gambleSel;const cost=window._gambleCost2||0;
+  let h=`<div class="ovd">已花费 <b>${cost}</b> 金币。选1张：</div>`;
+  h+=`<div class="tcards-table">${picks.map((c,j)=>renderPokerCard(c,`selectGamble(${j})`,{idx:j,total:picks.length,sel:sel===j})).join('')}</div>`;
+  if(sel!==null&&sel!==undefined&&picks[sel]){
+    const c=picks[sel];
+    h+=`<div style="display:flex;gap:8px;margin-bottom:6px">
+      <button class="ovbtn gd" style="flex:1;margin:0" onclick="confirmGamble()">✓ 获取 ${c.name}</button>
+      <button class="ovbtn" style="flex:1;margin:0" onclick="window._gambleSel=null;renderGambleResult()">✗ 重选</button>
+    </div>`;
+  }
+  h+=`<button class="ovbtn" onclick="startGamble()">再来一局</button>`;
+  h+=`<button class="ovbtn" onclick="backToMap()">离开</button>`;
   document.getElementById('ovb').innerHTML=h;renderHud();renderTokens();
 }
-function pickGamble(i){const c=window._gamblePicks?.[i];if(c){battle.deck.push(JSON.parse(JSON.stringify(c)));toast(`获得：${c.name}`,'g');}setTimeout(startGamble,400);}
+function selectGamble(i){window._gambleSel=i;renderGambleResult();}
+function confirmGamble(){
+  const i=window._gambleSel;const c=window._gamblePicks?.[i];
+  if(!c)return;
+  battle.deck.push(JSON.parse(JSON.stringify(c)));
+  toast(`获得：${c.name}`,'g');
+  window._gambleSel=null;
+  setTimeout(startGamble,400);
+}
 // ── 祭坛 ──
 function startAltar(){
   phase=PH.OV;window._altarSel=null;
