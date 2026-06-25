@@ -43,6 +43,7 @@ html,body{background:var(--void);color:var(--text);font-family:var(--fm);font-si
 .s-hp .hi,.s-hp .hv{color:var(--gore2);text-shadow:0 0 12px var(--blood),1px 1px 0 #000}
 .s-ap .hi,.s-ap .hv{color:var(--frost);text-shadow:0 0 10px var(--ice),1px 1px 0 #000}
 .s-g  .hi,.s-g  .hv{color:var(--amber);text-shadow:0 0 10px var(--bone3),1px 1px 0 #000}
+.s-dr .hi,.s-dr .hv{color:var(--violet);text-shadow:0 0 10px var(--soul),1px 1px 0 #000}
 
 /* 筹码栏 */
 #tbar{display:none}
@@ -345,9 +346,10 @@ html,body{background:var(--void);color:var(--text);font-family:var(--fm);font-si
 .cibtn:active{transform:translate(2px,2px);box-shadow:none}
 
 /* ═══ 游戏结束 ═══ */
-#gov{display:none;flex-direction:column;align-items:center;justify-content:center;
-  min-height:calc(100vh - 88px);text-align:center;padding:24px;
+#gov{display:none;flex-direction:column;align-items:center;justify-content:flex-start;
+  min-height:calc(100vh - 88px);text-align:center;padding:28px 20px;
   background:radial-gradient(ellipse at 50% 30%,rgba(139,26,26,.2),transparent 60%),var(--void)}
+.ci-dcard.legacy{box-shadow:0 0 8px rgba(212,136,26,.4)}
 .goico{font-size:64px;margin-bottom:14px;filter:drop-shadow(0 0 28px rgba(192,57,43,.6))}
 .gotit{font-family:var(--fs);font-size:26px;font-weight:900;letter-spacing:5px;text-shadow:2px 2px 0 #000;margin-bottom:8px}
 .gosub{font-size:10px;color:var(--text3);letter-spacing:2px;margin-bottom:20px;line-height:2;font-style:italic}
@@ -547,6 +549,7 @@ html,body{background:var(--void);color:var(--text);font-family:var(--fm);font-si
     <div class="hss s-hp"><div class="hi">♥</div><div class="hv" id="h-hp">0</div><div class="hl2">生命</div></div>
     <div class="hss s-ap"><div class="hi">◆</div><div class="hv" id="h-ap">0</div><div class="hl2">行动</div></div>
     <div class="hss s-g" ><div class="hi">●</div><div class="hv" id="h-gd">0</div><div class="hl2">金币</div></div>
+    <div class="hss s-dr"><div class="hi">🃏</div><div class="hv" id="h-dr">5</div><div class="hl2">抽牌</div></div>
   </div>
 </div>
 <div id="tbar">
