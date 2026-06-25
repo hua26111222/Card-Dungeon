@@ -1357,7 +1357,7 @@ function startBattle(isElite,isBoss){
   const normalCards=battle.deck.filter(c=>!c.innate);
   battle.drawPile=shuf([...normalCards]);battle.hand=innateCards.slice(0,2);battle.discardPile=[];battle.exhPile=[];
   const startAp=player.maxAp||3;
-  battle.blk=0;battle.str=0;battle.jugg=false;battle.lifestealMode=false;battle.playerPoison=0;battle.playerWeak=0;battle.enemyBleed=0;battle.fortified=0;battle.apLeft=startAp;battle.maxAp=startAp;battle.turn=1;battle.selectedCards=[];battle.firstCard=true;battle.nextFree=false;
+  battle.blk=0;battle.str=0;battle.jugg=false;battle.lifestealMode=false;battle.playerPoison=0;battle.playerWeak=0;battle.playerStun=0;battle.playerDisarm=0;battle.enemyBleed=0;battle.enemyStun=0;battle.fortified=0;battle.apLeft=startAp;battle.maxAp=startAp;battle.turn=1;battle.selectedCards=[];battle.firstCard=true;battle.nextFree=false;
   if(chapter.modifier?.onBattleStart)chapter.modifier.onBattleStart(battle,player);
   applyRelicHooks('onBattleStart',battle,player);
   const ep=document.getElementById('ep');
@@ -1653,8 +1653,12 @@ function showReward(gold){
     shuf(rarePool).slice(0,forceRare).forEach(c=>{picked.push(c);used.add(c.id);});
     while(picked.length<3){const c=randCard(used);if(!c)break;picked.push(c);used.add(c.id);}
   }else{
-    // Only enemy's own cards — no random fill
+    // Enemy's own cards + one generated card
     shuf([...loot.cards]).forEach(id=>{if(!used.has(id)){const c=DB.find(x=>x.id===id);if(c){picked.push(c);used.add(id);}}});
+    const genCard=CardGen.one(ps);
+    if(picked.length<3)picked.push(genCard);
+    else picked[picked.length-1]=genCard;
+    while(picked.length<3){const c=randCard(used);if(!c)break;picked.push(c);used.add(c.id);}
   }
   window._rw=picked;window._rwSel=null;window._rwGold=gold;window._rwLabel=isBoss?`☠ 击败 ${enemy.name}`:isElite?`✦ 掠夺 ${enemy.name}`:forceRare?'✦ 事件奖励':'⚔ 战斗奖励';window._rwBoss=isBoss;window._rwElite=isElite;window._rwForce=forceRare;window._rwEnemy=enemy.name;
   showView('ov');renderHud();renderTokens();
@@ -1914,13 +1918,15 @@ function renderBattle(){
     if(b.enemyBlk>0)intent+=`  🛡${b.enemyBlk}`;
   }else{let av=(e.atk||0)+(b.enemyStr||0);intent=`⚔ ${av}`;if(b.enemyBlk>0)intent+=`  🛡${b.enemyBlk}`;}
   document.getElementById('ibt').textContent=intent;
-  let es='';if(b.enemyWeak>0)es+=`<div class="sb sw">虚弱 ${b.enemyWeak}</div>`;if(b.enemyVuln>0)es+=`<div class="sb sv">易伤 ${b.enemyVuln}</div>`;if(b.enemyStr>0)es+=`<div class="sb ss">力量 +${b.enemyStr}</div>`;if(b.enemyPoison>0)es+=`<div class="sb sp">中毒 ${b.enemyPoison}</div>`;if(b.enemyBleed>0)es+=`<div class="sb" style="color:var(--blood);border-color:var(--blood2)">流血 ${b.enemyBleed}</div>`;
+  let es='';if(b.enemyWeak>0)es+=`<div class="sb sw">虚弱 ${b.enemyWeak}</div>`;if(b.enemyVuln>0)es+=`<div class="sb sv">易伤 ${b.enemyVuln}</div>`;if(b.enemyStr>0)es+=`<div class="sb ss">力量 +${b.enemyStr}</div>`;if(b.enemyPoison>0)es+=`<div class="sb sp">中毒↑ ${b.enemyPoison}</div>`;if(b.enemyBleed>0)es+=`<div class="sb" style="color:var(--blood);border-color:var(--blood2)">流血 ${b.enemyBleed}</div>`;if(b.enemyStun>0)es+=`<div class="sb" style="color:var(--amber);border-color:var(--bone2)">眩晕 ${b.enemyStun}</div>`;
   document.getElementById('es').innerHTML=es;
+  // intent覆盖：敌方眩晕时
+  if(b.enemyStun>0){document.getElementById('ibt').textContent=`🌀 眩晕中…（${b.enemyStun}回合）`;}
   const pp=Math.round(p.hp/p.maxHp*100);
   document.getElementById('pht').textContent=`${p.hp}/${p.maxHp}`;
   const pb=document.getElementById('phb');pb.style.width=pp+'%';pb.className='hf pf'+(pp<30?' cr':pp<50?' lw':'');
   const bd=document.getElementById('bbd');if(b.blk>0){bd.style.display='flex';document.getElementById('bbv').textContent=b.blk;}else bd.style.display='none';
-  let ps2='';if(b.str>0)ps2+=`<div class="sb ss">力量 +${b.str}</div>`;if(b.jugg)ps2+=`<div class="sb sbk">势不可挡</div>`;if(b.lifestealMode)ps2+=`<div class="sb" style="color:var(--blood);border-color:var(--blood2)">吸血</div>`;if(b.fortified>0)ps2+=`<div class="sb" style="color:var(--slime);border-color:var(--mold)">坚固 ${b.fortified}</div>`;if(b.playerWeak>0)ps2+=`<div class="sb sw">虚弱 ${b.playerWeak}</div>`;if(b.playerPoison>0)ps2+=`<div class="sb sp">中毒 ${b.playerPoison}</div>`;
+  let ps2='';if(b.str>0)ps2+=`<div class="sb ss">力量 +${b.str}</div>`;if(b.jugg)ps2+=`<div class="sb sbk">势不可挡</div>`;if(b.lifestealMode)ps2+=`<div class="sb" style="color:var(--blood);border-color:var(--blood2)">吸血</div>`;if(b.fortified>0)ps2+=`<div class="sb" style="color:var(--slime);border-color:var(--mold)">坚固 ${b.fortified}</div>`;if(b.playerWeak>0)ps2+=`<div class="sb sw">虚弱 ${b.playerWeak}</div>`;if(b.playerPoison>0)ps2+=`<div class="sb sp">中毒↑ ${b.playerPoison}</div>`;if(b.playerStun>0)ps2+=`<div class="sb" style="color:var(--amber);border-color:var(--bone2)">眩晕 ${b.playerStun}</div>`;if(b.playerDisarm>0)ps2+=`<div class="sb" style="color:var(--ash);border-color:var(--ash2)">缴械 ${b.playerDisarm}</div>`;
   document.getElementById('ps2').innerHTML=ps2;
   const ptit=getPlayerTitle();document.getElementById('pav').textContent=ptit.icon;const pnEl=document.getElementById('pn');pnEl.textContent=ptit.title;pnEl.style.color=ptit.color||'var(--text)';
   const pips=Array(b.maxAp).fill(0).map((_,i)=>`<span class="app${i<b.apLeft?' on':''}"></span>`).join('');
@@ -2408,18 +2414,12 @@ function buildFusionCard(sources,val){
 function showBossReward(isFinalFloor){
   phase=PH.OV;
   const ps=calcPS();
-  // 3张卡牌选项（偏稀有）
-  const pool=DB.filter(c=>c.rar!=='curse');
+  // 3张卡牌：混合 DB稀有牌 + CardGen动态生成牌
+  const dbPool=DB.filter(c=>c.rar!=='curse'&&(c.rar==='rare'||c.rar==='uncommon'));
   const used=new Set(battle.deck.map(c=>c.id));
-  const rc=Math.min(.55,ps/100);const uc=Math.min(.7,.3+ps/100);
-  const cardPicks=[];const usedPick=new Set(used);
-  for(let i=0;i<3;i++){
-    const av=shuf(pool.filter(c=>!usedPick.has(c.id)));
-    if(!av.length)break;
-    const w=av.map(c=>c.rar==='rare'?rc*5:c.rar==='uncommon'?uc*2.5:1);
-    const tot=w.reduce((s,x)=>s+x,0);let r=Math.random()*tot;
-    for(let j=0;j<av.length;j++){r-=w[j];if(r<=0){usedPick.add(av[j].id);cardPicks.push(av[j]);break;}}
-  }
+  const dbPicks=shuf(dbPool.filter(c=>!used.has(c.id))).slice(0,2);
+  const genPick=CardGen.one(ps+10); // 动态生成1张偏强卡
+  const cardPicks=[...dbPicks,genPick].slice(0,3);
   // 2个能力选项（随机选3取2展示）
   const floor=chapter.floor;
   const ALL_ABILITIES=[
