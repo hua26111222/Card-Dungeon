@@ -1346,18 +1346,43 @@ function startShop(){
     {art:'⚡',name:'命运卡包',desc:'获得1张稀有卡',price:Math.round(90*disc),fn:(p,b)=>{const pool=DB.filter(c=>c.rar==='rare');const c=pool[0|Math.random()*pool.length];b.deck.push(gc(c.id));return`+${c.name}`}},
     {art:'💡',name:'顿悟药剂',desc:'立即摸 2 张牌',price:Math.round(30*disc),fn:(p,b)=>{drawCards(2);return'+2 摸牌'}},
   ];
-  window._shop=items;window._bought=new Set();
+  window._shop=items;window._bought=new Set();window._shopSel=null;
   document.getElementById('ovtag').textContent=`☽  商店${disc<1?` (${Math.round(disc*100)}折)`:''}`;
   document.getElementById('ovtit').textContent='黑市商人';
   renderShop();showView('ov');renderHud();renderTokens();
 }
 function renderShop(){
+  const sel=window._shopSel;
   let h=`<div class="ovd">金币：<b>${player.gold}</b>　PS ${calcPS()}</div>`;
-  window._shop.forEach((it,i)=>{const b=window._bought.has(i);h+=`<div class="si"><div class="sia">${it.art}</div><div class="sii"><div class="sin">${it.name}</div><div class="sid">${it.desc}</div></div><div class="sip${b?' dn':''}" onclick="${b?'':`buyItem(${i})`}">${b?'已购':`${it.price}●`}</div></div>`;});
-  h+=`<button class="ovbtn" onclick="backToMap()">离开</button>`;
+  window._shop.forEach((it,i)=>{
+    const b=window._bought.has(i);const isSel=sel===i&&!b;
+    h+=`<div class="si" style="${isSel?'border-color:rgba(200,169,110,.5);background:rgba(200,169,110,.05)':''}">
+      <div class="sia">${it.art}</div>
+      <div class="sii"><div class="sin">${it.name}</div><div class="sid">${it.desc}</div></div>
+      <div class="sip${b?' dn':''}" onclick="${b?'':`selectShopItem(${i})`}">${b?'已购':`${it.price}●`}</div>
+    </div>`;
+  });
+  if(sel!==null&&sel!==undefined&&!window._bought.has(sel)){
+    const it=window._shop[sel];
+    h+=`<div style="margin:8px 0;padding:8px 10px;border:1px solid rgba(200,169,110,.3);font-size:11px;color:var(--bone);text-align:center;background:rgba(200,169,110,.04)">
+      购买 <b>${it.name}</b> — 消耗 <b style="color:var(--amber)">${it.price} ●</b>？
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:8px">
+      <button class="ovbtn gd" style="flex:1;margin:0" onclick="confirmShopBuy()">✓ 确认购买</button>
+      <button class="ovbtn" style="flex:1;margin:0" onclick="window._shopSel=null;renderShop()">✗ 取消</button>
+    </div>`;
+  }
+  h+=`<button class="ovbtn" onclick="backToMap()">离开商店</button>`;
   document.getElementById('ovb').innerHTML=h;
 }
-function buyItem(i){const it=window._shop[i];if(player.gold<it.price){toast('金币不足','r');return;}player.gold-=it.price;const r=it.fn(player,battle);window._bought.add(i);toast(r,'g');renderShop();renderHud();renderTokens();}
+function selectShopItem(i){window._shopSel=i;renderShop();}
+function confirmShopBuy(){
+  const i=window._shopSel;if(i===null||i===undefined)return;
+  const it=window._shop[i];
+  if(player.gold<it.price){toast('金币不足','r');window._shopSel=null;renderShop();return;}
+  player.gold-=it.price;const r=it.fn(player,battle);window._bought.add(i);
+  window._shopSel=null;toast(r,'g');renderShop();renderHud();renderTokens();
+}
 function startRest(){startTavern();}
 function startCampfire(){
   phase=PH.OV;
@@ -1397,7 +1422,7 @@ function genTavernCards(){
 }
 function startTavern(){
   phase=PH.OV;
-  window._tavCards=genTavernCards();window._tavBought=new Set();window._tavRefreshCost=10;
+  window._tavCards=genTavernCards();window._tavBought=new Set();window._tavRefreshCost=10;window._tavSel=null;
   document.getElementById('ovtag').textContent='🍺  酒馆';
   document.getElementById('ovtit').textContent='热闹的驿站';
   let h=`<div class="ovd">嘈杂的酒馆里，商贩在角落摆着各色卡牌。</div>`;
@@ -1412,7 +1437,7 @@ function tavernRefresh(){
   if(player.gold<cost){toast('金币不足','r');return;}
   player.gold-=cost;
   window._tavRefreshCost=cost+10;
-  window._tavCards=genTavernCards();window._tavBought=new Set();
+  window._tavCards=genTavernCards();window._tavBought=new Set();window._tavSel=null;
   const btn=document.getElementById('tav-refresh-btn');if(btn)btn.textContent=`🔄 刷新 ${window._tavRefreshCost}●`;
   const gEl=document.getElementById('tav-gold');if(gEl)gEl.textContent=player.gold;
   renderTavernShop();renderHud();toast('商品已刷新');
@@ -1420,19 +1445,38 @@ function tavernRefresh(){
 function renderTavernShop(){
   const el=document.getElementById('tav-shop');if(!el)return;
   const total=(window._tavCards||[]).length;
+  const sel=window._tavSel;
   const cards=(window._tavCards||[]).map(({card:c,price},i)=>{
     const bought=(window._tavBought||new Set()).has(i);
-    return renderPokerCard(c,`buyTavCard(${i})`,{price,bought,idx:i,total});
+    return renderPokerCard(c,`selectTavCard(${i})`,{price,bought,idx:i,total,sel:sel===i&&!bought});
   }).join('');
-  el.innerHTML=`<div class="tcards-table">${cards}</div>`;
+  let confirmHtml='';
+  if(sel!==null&&sel!==undefined&&!(window._tavBought||new Set()).has(sel)){
+    const it=(window._tavCards||[])[sel];
+    if(it){
+      confirmHtml=`<div style="margin:4px 0 6px;padding:8px 10px;border:1px solid rgba(200,169,110,.3);font-size:11px;color:var(--bone);text-align:center;background:rgba(200,169,110,.04)">
+        购买 <b>${it.card.name}</b> — 消耗 <b style="color:var(--amber)">${it.price} ●</b>？
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:6px">
+        <button class="ovbtn gd" style="flex:1;margin:0" onclick="confirmTavBuy()">✓ 确认购买</button>
+        <button class="ovbtn" style="flex:1;margin:0" onclick="window._tavSel=null;renderTavernShop()">✗ 取消</button>
+      </div>`;
+    }
+  }
+  el.innerHTML=`<div class="tcards-table">${cards}</div>${confirmHtml}`;
   const goldEl=document.getElementById('tav-gold');if(goldEl)goldEl.textContent=player.gold;
 }
-function buyTavCard(i){
-  const it=window._tavCards[i];if(!it)return;
-  if(player.gold<it.price){toast('金币不足','r');return;}
+function selectTavCard(i){
+  if((window._tavBought||new Set()).has(i))return;
+  window._tavSel=i;renderTavernShop();
+}
+function confirmTavBuy(){
+  const i=window._tavSel;if(i===null||i===undefined)return;
+  const it=(window._tavCards||[])[i];if(!it)return;
+  if(player.gold<it.price){toast('金币不足','r');window._tavSel=null;renderTavernShop();return;}
   player.gold-=it.price;battle.deck.push(gc(it.card.id));
-  window._tavBought.add(i);toast(`获得：${it.card.name}`,'g');
-  renderTavernShop();renderHud();renderTokens();
+  window._tavBought.add(i);window._tavSel=null;
+  toast(`获得：${it.card.name}`,'g');renderTavernShop();renderHud();renderTokens();
 }
 function doRest(act){
   const em=window._mapEffectMult||1;
