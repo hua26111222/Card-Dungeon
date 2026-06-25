@@ -1017,7 +1017,7 @@ function pickMapCard(col){
   if(phase===PH.MAP)renderMap();
 }
 function startBattle(isElite,isBoss){
-  phase=PH.BATTLE;
+  phase=PH.BATTLE;saveGame();startBGM('battle');
   if(!chapter.usedEnemies)chapter.usedEnemies=new Set();
   let pool=ET.filter(e=>isBoss?e===chapter.boss:isElite?e.tier==='elite':e.tier==='fight');
   if(!isBoss){
@@ -1085,13 +1085,13 @@ function applySingleCard(c,mult){
       totalDmg+=dmg;rs.dmgDealt+=dmg;
     }
     if(totalDmg>0){
-      floatDmg(totalDmg,'#c0392b');
+      floatDmg(totalDmg,'#c0392b');sfx(180+totalDmg*1.2,.15,'sawtooth',.1,-60);
       if(battle.lifestealMode){const hl=Math.max(1,Math.round(totalDmg*.15));player.hp=Math.min(player.maxHp,player.hp+hl);}
     }
   }
   const g=Math.round((c.blk||0)*mult);
   if(g>0){
-    battle.blk+=g;
+    battle.blk+=g;sfx(380,.08,'square',.08,40);
     if(battle.jugg){const pen=Math.max(0,g-(battle.enemyBlk||0));battle.enemyBlk=Math.max(0,(battle.enemyBlk||0)-g);battle.enemyHp=Math.max(0,battle.enemyHp-pen);if(pen>0){rs.dmgDealt+=pen;floatDmg(pen,'#3a5a8a');}}
     toast(`+${g} 格挡`+(mult>1?` ×${mult.toFixed(1)}`:''));
   }
@@ -1120,6 +1120,7 @@ function playSelectedCards(){
   if(!c||c.unplayable){toast('无效出牌','r');return;}
   if(battle.apLeft<c.cost){toast('行动力不足','r');return;}
   battle.apLeft-=c.cost;rs.cardsPlayed++;battle.firstCard=false;
+  sfx(c.kind==='atk'?220:c.kind==='def'?350:280,.06,'square',.07,c.kind==='atk'?-80:30);
   battle.hand.splice(idx,1);
   if(c.exhaust)battle.exhPile.push(c);else battle.discardPile.push(c);
   battle.selectedCards=[];
@@ -1144,7 +1145,7 @@ function endTurn(){
       let eatk=act.v+(battle.enemyStr||0);if(battle.enemyWeak>0)eatk=Math.floor(eatk*.75);
       if(battle.fortified>0){eatk=Math.floor(eatk*.5);battle.fortified--;toast('🛡 坚固减伤');}
       const dmg=Math.max(0,eatk-battle.blk);player.hp=Math.max(0,player.hp-dmg);battle.blk=Math.max(0,battle.blk-eatk);rs.dmgTaken+=dmg;
-      if(dmg>0)floatDmg(dmg,'#8b1a1a',true);
+      if(dmg>0){floatDmg(dmg,'#8b1a1a',true);sfx(100+dmg,.2,'sawtooth',.12,-40);}
     }else if(act.t==='d'){battle.enemyBlk=(battle.enemyBlk||0)+act.v;toast(`${battle.enemy.name} 获得 ${act.v} 格挡`);
     }else if(act.t==='s'){battle.enemyStr=Math.min((battle.enemyStr||0)+act.v,3);toast(`${battle.enemy.name} 力量 +${act.v}`);
     }else if(act.t==='h'){const healed=Math.min(act.v,battle.enemyMaxHp-battle.enemyHp);battle.enemyHp=Math.min(battle.enemyMaxHp,battle.enemyHp+act.v);if(healed>0)toast(`${battle.enemy.name} 回复 ${healed} HP`);
@@ -1154,7 +1155,7 @@ function endTurn(){
     let eatk=(battle.enemy.atk||8)+(battle.enemyStr||0);if(battle.enemyWeak>0)eatk=Math.floor(eatk*.75);
     if(battle.fortified>0){eatk=Math.floor(eatk*.5);battle.fortified--;}
     const dmg=Math.max(0,eatk-battle.blk);player.hp=Math.max(0,player.hp-dmg);battle.blk=Math.max(0,battle.blk-eatk);rs.dmgTaken+=dmg;
-    if(dmg>0)floatDmg(dmg,'#8b1a1a',true);
+    if(dmg>0){floatDmg(dmg,'#8b1a1a',true);sfx(100+dmg,.2,'sawtooth',.12,-40);}
   }
   battle.blk=0;
   if(chapter.modifier?.onTurnStart)chapter.modifier.onTurnStart(battle,player);
@@ -1168,7 +1169,9 @@ function endTurn(){
   renderBattle();document.getElementById('dtn').textContent=battle.turn;
 }
 function endBattle(won){
+  stopBGM();
   if(won){
+    sfx(440,.1,'square',.1,220);setTimeout(()=>sfx(660,.2,'square',.1,110),120);
     player.kills++;
     const em=window._mapEffectMult||1;
     const gm=(chapter.modifier?.goldMult||1)*em;
@@ -1176,7 +1179,7 @@ function endBattle(won){
     player.gold+=g;
     if(battle.enemy.tier==='boss'){rs.chaptersCleared++;const bGold=Math.floor(50*chapter.floor*(window._bossDoubled?2:1));player.gold+=bGold;toast(`章节通关！+${bGold}金币`,'g');window._bossDoubled=false;if(chapter.floor>=3)setTimeout(showVictory,900);else setTimeout(()=>{chapter.floor++;showChapterIntro();},900);}
     else showReward(g);
-  }else showGameOver();
+  }else{sfx(80,.4,'sawtooth',.15,-30);showGameOver();clearSave();}
 }
 function showChapterIntro(){
   const info=generateChapter();const mod=info.mod;
@@ -1218,7 +1221,7 @@ function pickBlessing(idx){
   enterChapter();
 }
 function getDiff(ps){return ps<20?'🟢 平静':ps<40?'🟡 凶险':ps<65?'🟠 危机':ps<90?'🔴 绝境':'☠ 地狱';}
-function enterChapter(){buildMap();showView('mv');renderMap();renderHud();renderTokens();}
+function enterChapter(){buildMap();showView('mv');renderMap();renderHud();renderTokens();startBGM('map');}
 function renderPokerCard(c,onclick,opts={}){
   const{price,bought=false,idx=0,total=1,sel=false}=opts;
   const d=(c.desc||'').replace('{atk}',c.atk||0).replace('{blk}',c.blk||0).replace('{heal}',c.heal||0).replace('{str}',c.str||0);
@@ -1538,7 +1541,7 @@ function showView(name){
   const map={ci:'#ci',mv:'#mv',bv:'#bv',ov:'#ov',gov:'#gov',winv:'#winv'};
   Object.entries(map).forEach(([k,sel])=>{const el=document.querySelector(sel);if(!el)return;const show=k===name;el.style.display=show?(k==='bv'?'grid':k==='gov'?'flex':k==='ci'?'flex':'block'):'none';if(show)el.classList.add('vi');});
 }
-function backToMap(){phase=PH.MAP;showView('mv');renderMap();renderHud();renderTokens();}
+function backToMap(){phase=PH.MAP;showView('mv');renderMap();renderHud();renderTokens();saveGame();startBGM('map');}
 function toast(msg,type=''){const el=document.getElementById('toast');el.textContent=msg;el.className='toast on'+(type?' '+type:'');clearTimeout(window._tt);window._tt=setTimeout(()=>el.className='toast',2200);}
 function floatDmg(n,color,isPlayer=false){const el=document.createElement('div');el.className='df';el.style.color=color;el.textContent='-'+n;const b=document.getElementById('app').getBoundingClientRect();el.style.left=(b.left+b.width*.5)+'px';el.style.top=(isPlayer?b.top+b.height*.6:b.top+b.height*.22)+'px';document.body.appendChild(el);setTimeout(()=>el.remove(),950);}
 function previewUpgrade(c){
@@ -1864,7 +1867,65 @@ function showVictory(){
   document.getElementById('winst').innerHTML=`<div class="gor"><span class="gol">通关章节</span><span class="gov2">${rs.chaptersCleared}</span></div><div class="gor"><span class="gol">最终 PS</span><span class="gov2">${ps}</span></div><div class="gor"><span class="gol">击杀数</span><span class="gov2">${player.kills}</span></div><div class="gor"><span class="gol">造成伤害</span><span class="gov2">${rs.dmgDealt}</span></div><div class="gor"><span class="gol">承受伤害</span><span class="gov2">${rs.dmgTaken}</span></div><div class="gor"><span class="gol">使用卡牌</span><span class="gov2">${rs.cardsPlayed}</span></div><div class="gor"><span class="gol">经历回合</span><span class="gov2">${rs.turns}</span></div>`;
   showView('winv');
 }
+// ── 存档系统 ──
+function saveGame(){
+  try{
+    const sv={player:{...player},deck:[...battle.deck],
+      mapData:JSON.parse(JSON.stringify(mapData)),
+      chapter:{...chapter,usedEnemies:[...(chapter.usedEnemies||[])]},
+      rs:{...rs},v:2};
+    localStorage.setItem('cd_save',JSON.stringify(sv));
+  }catch(e){}
+}
+function loadGame(){
+  try{
+    const sv=JSON.parse(localStorage.getItem('cd_save'));
+    if(!sv||sv.v!==2)return false;
+    player={...sv.player};
+    chapter={...sv.chapter,usedEnemies:new Set(sv.chapter.usedEnemies||[])};
+    rs={...sv.rs};
+    mapData=JSON.parse(JSON.stringify(sv.mapData));
+    const sd=buildStarterDeck();
+    battle={enemy:null,enemyHp:0,enemyMaxHp:0,enemyBlk:0,enemyStr:0,enemyWeak:0,enemyVuln:0,enemyPoison:0,enemyActions:[],enemyActionIdx:0,deck:[...sv.deck],drawPile:[],hand:[],discardPile:[],exhPile:[],apLeft:3,maxAp:3,blk:0,str:0,jugg:false,lifestealMode:false,playerPoison:0,playerWeak:0,enemyBleed:0,fortified:0,turn:1,selectedCards:[],firstCard:true};
+    window._mapRank=7;
+    document.getElementById('mb').style.display='none';
+    showView('mv');renderMap();renderHud();renderTokens();
+    toast('存档已加载','g');return true;
+  }catch(e){return false;}
+}
+function clearSave(){try{localStorage.removeItem('cd_save');}catch(e){}}
+// ── 音效系统 ──
+let _ac=null;
+function ac(){if(!_ac){try{_ac=new(window.AudioContext||window.webkitAudioContext)();}catch(e){}}return _ac;}
+function sfx(freq,dur,type='square',vol=0.12,sweep=0){
+  try{
+    const ctx=ac();if(!ctx)return;
+    const o=ctx.createOscillator();const g=ctx.createGain();
+    o.connect(g);g.connect(ctx.destination);
+    o.type=type;o.frequency.setValueAtTime(freq,ctx.currentTime);
+    if(sweep)o.frequency.linearRampToValueAtTime(freq+sweep,ctx.currentTime+dur*.7);
+    g.gain.setValueAtTime(vol,ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+dur);
+    o.start(ctx.currentTime);o.stop(ctx.currentTime+dur+.05);
+  }catch(e){}
+}
+// BGM chiptune loop
+let _bgmTimer=null;let _bgmBeat=0;
+const BGM_MAP=[110,0,139,0,165,0,139,0,110,0,98,0,110,0,0,0];
+const BGM_BATTLE=[220,0,277,0,330,261,220,0,196,0,165,0,196,220,0,0];
+function startBGM(mode){
+  stopBGM();
+  const notes=mode==='battle'?BGM_BATTLE:BGM_MAP;
+  _bgmBeat=0;
+  _bgmTimer=setInterval(()=>{
+    const f=notes[_bgmBeat%notes.length];
+    if(f)sfx(f,.22,'square',.04);
+    _bgmBeat++;
+  },190);
+}
+function stopBGM(){if(_bgmTimer){clearInterval(_bgmTimer);_bgmTimer=null;}}
 function initGame(){
+  stopBGM();
   player={hp:80,maxHp:80,gold:80,floor:1,kills:0,steps:0,drawCount:5,maxAp:3};
   chapter={floor:1,theme:null,modifier:null,boss:null};
   const startDeck=buildStarterDeck();
@@ -1872,9 +1933,37 @@ function initGame(){
   rs={dmgDealt:0,dmgTaken:0,cardsPlayed:0,turns:0,chaptersCleared:0};
   window._mapRank=7;
   document.getElementById('mb').style.display='none';
-  showChapterIntro();
+  clearSave();showChapterIntro();
 }
-initGame();
+// 开始时检查存档
+function checkSave(){
+  if(localStorage.getItem('cd_save')){
+    // Show continue option in chapter intro area
+    document.getElementById('cif').textContent='卡牌地牢';
+    document.getElementById('cin').textContent='检测到存档';
+    document.getElementById('cit').textContent='是否继续上次冒险？';
+    const bw=document.getElementById('ci-bless-wrap');
+    bw.innerHTML=`<div class="tcards-table">
+      <div class="ccard" onclick="loadGame()" style="transform:rotate(-5deg) translateY(7px)">
+        <div class="ccard-top" style="background:linear-gradient(90deg,transparent,rgba(45,140,45,.5),transparent)"></div>
+        <div class="ccard-icon">📖</div><div class="ccard-text">继续冒险</div>
+        <div class="ccard-sub">读取上次存档</div>
+      </div>
+      <div class="ccard" onclick="newRun()" style="transform:rotate(5deg) translateY(7px)">
+        <div class="ccard-top" style="background:linear-gradient(90deg,transparent,rgba(139,26,26,.5),transparent)"></div>
+        <div class="ccard-icon">🗡</div><div class="ccard-text">全新开始</div>
+        <div class="ccard-sub">放弃现有存档</div>
+      </div>
+    </div>`;
+    document.getElementById('ci-skip-bless').style.display='none';
+    document.getElementById('cid').textContent='✦ 卡牌地牢 ✦';
+    showView('ci');
+  }else{
+    initGame();
+  }
+}
+function newRun(){clearSave();initGame();}
+checkSave();
 </script>
 </body>
 </html>
