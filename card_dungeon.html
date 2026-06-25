@@ -759,13 +759,11 @@ function upgradeCard(c){
 }
 function buildStarterDeck(){
   const pick=(pool,n)=>Array(n).fill(0).map(()=>gc(pool[0|Math.random()*pool.length]));
-  const base=[
-    ...pick(['strike','slam','double','multishot'],3),
-    ...pick(['defend','fortify','barrier','guard_quick'],3),
-    ...pick(['inspect','discard','poison_flask','weaken','meditate'],2),
-    gc('strength'),
-    gc('focus_stone'),
-  ];
+  const atkPicks=pick(['strike','slam','double','multishot'],3);
+  const defPicks=pick(['defend','fortify','barrier','guard_quick'],3);
+  const sklPicks=pick(['inspect','discard','poison_flask','weaken','meditate'],2);
+  window._starterRandom={atk:atkPicks,def:defPicks,skl:sklPicks};
+  const base=[...atkPicks,...defPicks,...sklPicks,gc('strength'),gc('focus_stone')];
   const legacyIds=loadLegacy();
   legacyIds.forEach(id=>{const c=gc(id);if(c){c.isLegacy=true;base.push(c);}});
   return base;
@@ -1309,7 +1307,20 @@ function showChapterIntro(){
   const kTextColor={atk:'var(--gore2)',def:'var(--slime)',skl:'var(--frost)',pwr:'var(--violet)',crs:'var(--ash)'};
   const ptit=getPlayerTitle();
   const deckEl=document.getElementById('ci-deck');
-  deckEl.innerHTML=`<div class="ci-dtag">${ptit.icon} ${ptit.title} · 牌组 ${battle.deck.length} 张</div>`+
+  let deckHeaderHtml='';
+  if(chapter.floor===1&&window._starterRandom){
+    const sr=window._starterRandom;
+    const allRand=[...sr.atk,...sr.def,...sr.skl];
+    const legacy=battle.deck.filter(c=>c.isLegacy);
+    deckHeaderHtml=`<div style="width:100%;background:rgba(0,0,0,.35);border:1px solid var(--crack2);padding:8px 10px;margin-bottom:8px">
+      <div style="font-size:9px;color:var(--bone2);letter-spacing:3px;margin-bottom:6px;text-align:center">✦ 开局随机获得的卡牌</div>
+      <div style="display:flex;flex-wrap:wrap;gap:4px;justify-content:center">
+        ${allRand.map(c=>`<div style="display:flex;align-items:center;gap:4px;background:rgba(0,0,0,.3);border:1px solid ${kBorderColor[c.kind]||'var(--crack)'};padding:3px 7px;font-size:11px"><span>${c.art}</span><span style="color:${kTextColor[c.kind]||'var(--text3)'}">${c.name}</span></div>`).join('')}
+      </div>
+      ${legacy.length?`<div style="font-size:9px;color:var(--amber);margin-top:6px;text-align:center">⬡ 传承卡牌：${legacy.map(c=>c.name).join('、')}</div>`:''}
+    </div>`;
+  }
+  deckEl.innerHTML=deckHeaderHtml+`<div class="ci-dtag">${ptit.icon} ${ptit.title} · 牌组 ${battle.deck.length} 张</div>`+
     battle.deck.map(c=>`<div class="ci-dcard${c.isLegacy?' legacy':''}" style="border-color:${c.isLegacy?'var(--amber)':kBorderColor[c.kind]||'var(--crack)'}"><span>${c.art}</span><span class="ci-dtitle" style="color:${kTextColor[c.kind]||'var(--text3)'}">${c.name}</span>${c.isLegacy?'<span style="position:absolute;top:1px;right:2px;font-size:7px;color:var(--amber);z-index:3">⬡</span>':''}</div>`).join('');
   if(mod.onChapterStart)mod.onChapterStart(player);
   // Generate 3 blessings
@@ -1318,7 +1329,7 @@ function showChapterIntro(){
     {art:'⚡',name:'武道传承',desc:'获得一张随机稀有卡牌加入牌组',apply:()=>{const rare=DB.filter(c=>c.rar==='rare'&&c.rar!=='curse');const c=rare[Math.floor(Math.random()*rare.length)];if(c)battle.deck.push({...c});toast('获得 '+( c?c.name:'稀有卡'),'g');}},
     {art:'💰',name:'富商馈赠',desc:'立即获得 80 金币',apply:()=>{player.gold+=80;}},
     {art:'🎁',name:'神秘赐福',desc:'最大生命+10，最大行动点+1，抽牌数+1',apply:()=>{player.maxHp+=10;player.hp=Math.min(player.maxHp,player.hp+10);player.maxAp=Math.min(5,player.maxAp+1);player.drawCount=Math.min(7,player.drawCount+1);toast('属性全面提升！','g');}},
-    {art:'🃏',name:'命运之手',desc:'抽取3张随机卡牌加入牌组',apply:()=>{const pool=DB.filter(c=>c.rar!=='curse');const ps=calcPS();const rc=Math.min(.45,ps/150);const picks=[];const used=new Set(battle.deck.map(c=>c.id));for(let i=0;i<3;i++){const av=pool.filter(c=>!used.has(c.id));if(!av.length)break;const w=av.map(c=>c.rar==='rare'?rc*4:c.rar==='uncommon'?2:1);const tot=w.reduce((s,x)=>s+x,0);let r=Math.random()*tot;for(let j=0;j<av.length;j++){r-=w[j];if(r<=0){used.add(av[j].id);picks.push({...av[j]});break;}}}picks.forEach(c=>battle.deck.push(c));toast(`获得 ${picks.length} 张新卡`,'g');}},
+    {art:'🃏',name:'命运之手',desc:'抽取3张随机卡牌加入牌组',apply:()=>{const pool=DB.filter(c=>c.rar!=='curse');const ps=calcPS();const rc=Math.min(.45,ps/150);const picks=[];const used=new Set(battle.deck.map(c=>c.id));for(let i=0;i<3;i++){const av=pool.filter(c=>!used.has(c.id));if(!av.length)break;const w=av.map(c=>c.rar==='rare'?rc*4:c.rar==='uncommon'?2:1);const tot=w.reduce((s,x)=>s+x,0);let r=Math.random()*tot;for(let j=0;j<av.length;j++){r-=w[j];if(r<=0){used.add(av[j].id);picks.push({...av[j]});break;}}}picks.forEach(c=>battle.deck.push(c));toast(`获得：${picks.map(c=>c.art+c.name).join(' / ')}`,'g');}},
   ];
   const shuffled=shuf([...ALL_BLESS]).slice(0,3);
   window._blessings=shuffled;
@@ -1715,6 +1726,67 @@ function previewUpgrade(c){
   if(copy.poison!==c.poison)diff.push(`中毒 ${c.poison}→<b style="color:var(--slime)">${copy.poison}</b>`);
   const vOld=cardValue(c),vNew=cardValue(copy);
   return`${diff.join('，')} <span style="color:var(--amber);font-size:8px">(${vOld}→${vNew}g)</span>`;
+}
+// ── 像素人形立绘 ──
+function _pxSprite(rows,px,hi,mid,lo){
+  let r='';
+  rows.forEach((row,y)=>{
+    [...row].forEach((ch,x)=>{
+      if(ch==='X'){
+        const n=rows.length;
+        const col=y<n*.35?hi:y<n*.7?mid:lo;
+        r+=`<rect x="${x*px}" y="${y*px}" width="${px}" height="${px}" fill="${col}"/>`;
+      }
+    });
+  });
+  return`<svg width="${(rows[0]||'').length*px}" height="${rows.length*px}" xmlns="http://www.w3.org/2000/svg" style="image-rendering:pixelated;display:block">${r}</svg>`;
+}
+const _SP={
+  warrior:[
+    '..XXX...',
+    '.XXXXX..',
+    '.X.X.X..',
+    '.XXXXX..',
+    '.XXXXXX.',
+    'XXXXXXXX',
+    '.XXXXXX.',
+    '..X..X..',
+    '..X..X..',
+    '..X..X..',
+    '.XX..XX.',
+  ],
+  mob:[
+    '..XXX...',
+    '.XXXXXX.',
+    '.X.X.X..',
+    '.XXXXXX.',
+    '.XXXXXXX',
+    'XXXXXXXX',
+    '.XXXXXXX',
+    '...X.X..',
+    '...X.X..',
+    '...X.X..',
+    '..XX.XX.',
+  ],
+  boss:[
+    '.XXXXXXX',
+    'XXXXXXXX',
+    'XX.X.XXX',
+    'XXXXXXXX',
+    'XXXXXXXX',
+    'XXXXXXXX',
+    '.XXXXXX.',
+    '.X....X.',
+    '.X....X.',
+    'XX....XX',
+    'XX....XX',
+  ],
+};
+function getPlayerSprite(){return _pxSprite(_SP.warrior,6,'#c0d8e8','#7aaabf','#3a5a8a');}
+function getEnemySprite(tier){
+  if(tier==='boss')return _pxSprite(_SP.boss,9,'#c090e0','#9a5abf','#6a3a9a');
+  if(tier==='elite')return _pxSprite(_SP.mob,8,'#f0c060','#d4881a','#a06010');
+  return _pxSprite(_SP.mob,6,'#e05040','#c0392b','#8b1a1a');
 }
 function triggerPAnim(cls){
   const el=document.getElementById('pav');if(!el)return;
