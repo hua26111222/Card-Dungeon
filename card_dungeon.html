@@ -832,62 +832,62 @@ const THEMES=[
   {name:'深海遗迹',sub:'黑暗压力与失落文明'},{name:'星界裂缝',sub:'维度撕裂，虚空涌入'},
 ];
 const ET=[
-  /* ── 普通战斗 ── */
-  {name:'哥布林斥候',art:'👺',tier:'fight',hpMult:.7,
+  /* ── 普通战斗 Tier 1-4 ── */
+  {name:'哥布林斥候',art:'👺',tier:'fight',power:1,aiType:'power',hpMult:.7,
    actions:[{t:'a',v:7,n:'刺击'},{t:'a',v:7,n:'刺击'},{t:'d',v:5,n:'闪躲'},{t:'a',v:9,n:'突袭'}],
    loot:{cards:['strike','double','inspect','defend']}},
-  {name:'食腐蝙蝠',  art:'🦇',tier:'fight',hpMult:.6,
-   actions:[{t:'a',v:5,n:'啃咬'},{t:'h',v:4,n:'吸血'},{t:'a',v:7,n:'俯冲'},{t:'a',v:5,n:'啃咬'}],
+  {name:'食腐蝙蝠',  art:'🦇',tier:'fight',power:1,aiType:'skill',hpMult:.6,
+   actions:[{t:'a',v:5,n:'啃咬'},{t:'h',v:4,n:'吸血'},{t:'a',v:7,n:'俯冲'},{t:'p',v:1,n:'疾病'},{t:'a',v:5,n:'啃咬'}],
    loot:{cards:['slam','meditate','poison_flask','inspect']}},
-  {name:'腐化剑士',  art:'⚔', tier:'fight',hpMult:.9,
+  {name:'腐化剑士',  art:'⚔', tier:'fight',power:2,aiType:'power',hpMult:.9,
    actions:[{t:'a',v:7,n:'斩击'},{t:'s',v:1,n:'磨砺'},{t:'a',v:7,n:'斩击'},{t:'a',v:11,n:'猛击'}],
    loot:{cards:['strike','slam','strength','fortify']}},
-  {name:'骷髅弓手',  art:'💀',tier:'fight',hpMult:.75,
-   actions:[{t:'a',v:6,n:'箭矢'},{t:'a',v:6,n:'连射'},{t:'p',v:2,n:'毒箭'},{t:'a',v:8,n:'精准射击'}],
+  {name:'骷髅弓手',  art:'💀',tier:'fight',power:2,aiType:'skill',hpMult:.75,
+   actions:[{t:'a',v:6,n:'箭矢'},{t:'a',v:6,n:'连射'},{t:'p',v:2,n:'毒箭'},{t:'z',v:1,n:'穿心箭·眩晕'},{t:'a',v:8,n:'精准射击'}],
    loot:{cards:['double','inspect','poison_flask','weaken']}},
-  {name:'石之傀儡',  art:'🗿',tier:'fight',hpMult:1.1,
+  {name:'石之傀儡',  art:'🗿',tier:'fight',power:3,aiType:'power',hpMult:1.1,
    actions:[{t:'d',v:7,n:'岩石护甲'},{t:'a',v:9,n:'岩拳'},{t:'d',v:5,n:'岩石护甲'},{t:'a',v:12,n:'重压'}],
    loot:{cards:['defend','fortify','barrier','guard_quick']}},
-  {name:'影子刺客',  art:'🥷',tier:'fight',hpMult:.7,
-   actions:[{t:'a',v:7,n:'暗袭'},{t:'a',v:7,n:'连刺'},{t:'a',v:6,n:'连刺'},{t:'a',v:12,n:'致命一击'}],
+  {name:'影子刺客',  art:'🥷',tier:'fight',power:3,aiType:'skill',hpMult:.7,
+   actions:[{t:'a',v:7,n:'暗袭'},{t:'x',v:1,n:'缴械'},{t:'a',v:7,n:'连刺'},{t:'a',v:6,n:'连刺'},{t:'a',v:12,n:'致命一击'}],
    loot:{cards:['double','whirl','adrenaline','inspect']}},
-  {name:'暴怒骷髅战士',art:'💀',tier:'fight',hpMult:.85,
+  {name:'暴怒骷髅战士',art:'💀',tier:'fight',power:4,aiType:'power',hpMult:.85,
    actions:[{t:'a',v:6,n:'骨爪'},{t:'s',v:1,n:'激怒'},{t:'a',v:8,n:'骨爪'},{t:'a',v:12,n:'暴怒重击'},{t:'a',v:8,n:'骨爪'}],
    loot:{cards:['strength','warcry','slam','berserker']}},
-  {name:'毒疫蜘蛛巢母',art:'🕷',tier:'fight',hpMult:.8,
-   actions:[{t:'p',v:3,n:'毒液喷涌'},{t:'a',v:5,n:'毒爪缠绕'},{t:'p',v:2,n:'毒液喷涌'},{t:'a',v:7,n:'巢母撕咬'}],
+  {name:'毒疫蜘蛛巢母',art:'🕷',tier:'fight',power:4,aiType:'skill',hpMult:.8,
+   actions:[{t:'p',v:2,n:'毒液喷涌'},{t:'a',v:5,n:'毒爪缠绕'},{t:'p',v:2,n:'毒液喷涌'},{t:'a',v:7,n:'巢母撕咬'},{t:'z',v:1,n:'黏丝束缚·眩晕'}],
    loot:{cards:['poison_flask','corruption','venom_blade','weaken']}},
-  /* ── 精英 ── */
-  {name:'石像鬼领主',art:'🗿',tier:'elite',hpMult:1.6,
+  /* ── 精英 Tier 5-7 ── */
+  {name:'石像鬼领主',art:'🗿',tier:'elite',power:5,aiType:'power',hpMult:1.6,
    actions:[{t:'d',v:8,n:'石甲'},{t:'a',v:10,n:'利爪'},{t:'a',v:10,n:'利爪'},{t:'s',v:1,n:'狂暴'},{t:'a',v:14,n:'击碎'}],
    loot:{cards:['fortify','barrier','counter','jugg']}},
-  {name:'亡命法师',  art:'🧟',tier:'elite',hpMult:1.5,
-   actions:[{t:'a',v:9,n:'暗影爆'},{t:'p',v:3,n:'瘟疫'},{t:'a',v:9,n:'暗影爆'},{t:'s',v:1,n:'邪能涌现'},{t:'a',v:12,n:'灵魂爆破'}],
+  {name:'亡命法师',  art:'🧟',tier:'elite',power:6,aiType:'skill',hpMult:1.5,
+   actions:[{t:'a',v:9,n:'暗影爆'},{t:'p',v:2,n:'瘟疫'},{t:'z',v:1,n:'黑暗诅咒·眩晕'},{t:'a',v:9,n:'暗影爆'},{t:'s',v:1,n:'邪能涌现'},{t:'a',v:12,n:'灵魂爆破'}],
    loot:{cards:['poison_flask','weaken','corruption','warcry']}},
-  {name:'幽灵骑士',  art:'👾',tier:'elite',hpMult:1.8,
+  {name:'幽灵骑士',  art:'👾',tier:'elite',power:6,aiType:'power',hpMult:1.8,
    actions:[{t:'a',v:10,n:'魂枪'},{t:'a',v:10,n:'魂枪'},{t:'h',v:7,n:'幽魂复原'},{t:'a',v:14,n:'死亡冲锋'}],
    loot:{cards:['slam','strength','warcry','adrenaline']}},
-  {name:'冰霜女巫',  art:'🧊',tier:'elite',hpMult:1.4,
-   actions:[{t:'a',v:8,n:'冰刃'},{t:'w',v:2,n:'寒冬诅咒'},{t:'a',v:8,n:'冰刃'},{t:'a',v:11,n:'冰风暴'},{t:'d',v:6,n:'冰盾'}],
+  {name:'冰霜女巫',  art:'🧊',tier:'elite',power:5,aiType:'skill',hpMult:1.4,
+   actions:[{t:'a',v:8,n:'冰刃'},{t:'w',v:2,n:'寒冬诅咒'},{t:'x',v:2,n:'寒冰束缚·缴械'},{t:'a',v:8,n:'冰刃'},{t:'a',v:11,n:'冰风暴'},{t:'d',v:6,n:'冰盾'}],
    loot:{cards:['barrier','counter','weaken','meditate']}},
-  {name:'嗜血吸血鬼伯爵',art:'🦇',tier:'elite',hpMult:1.55,
+  {name:'嗜血吸血鬼伯爵',art:'🦇',tier:'elite',power:7,aiType:'power',hpMult:1.55,
    actions:[{t:'a',v:9,n:'鲜血汲取'},{t:'h',v:8,n:'血液复苏'},{t:'a',v:11,n:'鲜血汲取'},{t:'s',v:1,n:'嗜血增幅'},{t:'a',v:14,n:'死亡之咬'}],
    loot:{cards:['vampire_oath','regen','bloodrush','blood_pact']}},
-  /* ── Boss ── */
-  {name:'深渊魔龙',  art:'🐲',tier:'boss', hpMult:3.0, epithet:'炎焰霸主',epithetSub:'龙鳞·烈焰·不灭',
+  /* ── Boss Tier 8-10 ── */
+  {name:'深渊魔龙',  art:'🐲',tier:'boss',power:9,aiType:'power',hpMult:3.0,epithet:'炎焰霸主',epithetSub:'龙鳞·烈焰·不灭',
    actions:[{t:'a',v:10,n:'龙焰吐息'},{t:'a',v:8,n:'爪击'},{t:'a',v:8,n:'爪击'},{t:'s',v:1,n:'龙之怒'},{t:'a',v:14,n:'龙尾横扫'},{t:'d',v:8,n:'鳞甲'}],
    loot:{cards:['sacrifice','multishot','strength','bloodrush','slam']}},
-  {name:'混沌之主',  art:'👁', tier:'boss', hpMult:2.5, epithet:'虚空凝视者',epithetSub:'混沌·腐化·无解',
-   actions:[{t:'a',v:9,n:'混沌光束'},{t:'p',v:3,n:'腐化之瘟'},{t:'a',v:9,n:'混沌光束'},{t:'s',v:1,n:'混沌涌现'},{t:'a',v:13,n:'毁灭凝视'},{t:'p',v:2,n:'腐化之瘟'}],
+  {name:'混沌之主',  art:'👁', tier:'boss',power:8,aiType:'skill',hpMult:2.5,epithet:'虚空凝视者',epithetSub:'混沌·腐化·无解',
+   actions:[{t:'a',v:9,n:'混沌光束'},{t:'p',v:2,n:'腐化之瘟'},{t:'z',v:1,n:'精神侵蚀·眩晕'},{t:'a',v:9,n:'混沌光束'},{t:'s',v:1,n:'混沌涌现'},{t:'a',v:13,n:'毁灭凝视'},{t:'p',v:2,n:'腐化之瘟'}],
    loot:{cards:['poison_flask','corruption','warcry','weaken','vampire_oath']}},
-  {name:'腐化巨人',  art:'👹',tier:'boss', hpMult:3.2, epithet:'不死骸骨王',epithetSub:'腐朽·再生·重压',
+  {name:'腐化巨人',  art:'👹',tier:'boss',power:10,aiType:'power',hpMult:3.2,epithet:'不死骸骨王',epithetSub:'腐朽·再生·重压',
    actions:[{t:'d',v:9,n:'腐骨护甲'},{t:'a',v:11,n:'猛击'},{t:'h',v:8,n:'腐化再生'},{t:'a',v:11,n:'猛击'},{t:'d',v:6,n:'腐骨护甲'},{t:'a',v:15,n:'巨力重压'}],
    loot:{cards:['fortify','slam','meditate','jugg','barrier']}},
-  {name:'时间骗子',  art:'⏳',tier:'boss', hpMult:2.8, epithet:'流逝编织者',epithetSub:'迅捷·侵蚀·无常',
-   actions:[{t:'a',v:10,n:'时间刀刃'},{t:'w',v:2,n:'时间侵蚀'},{t:'a',v:10,n:'时间刀刃'},{t:'a',v:13,n:'迅捷突进'},{t:'s',v:1,n:'时间加速'}],
+  {name:'时间骗子',  art:'⏳',tier:'boss',power:8,aiType:'skill',hpMult:2.8,epithet:'流逝编织者',epithetSub:'迅捷·侵蚀·无常',
+   actions:[{t:'a',v:10,n:'时间刀刃'},{t:'w',v:2,n:'时间侵蚀'},{t:'x',v:2,n:'时间停滞·缴械'},{t:'a',v:10,n:'时间刀刃'},{t:'a',v:13,n:'迅捷突进'},{t:'s',v:1,n:'时间加速'}],
    loot:{cards:['whirl','double','adrenaline','execute','focus_stone']}},
-  {name:'深海怪物',  art:'🐙',tier:'boss', hpMult:3.0, epithet:'深渊触手神',epithetSub:'毒素·吞噬·复原',
-   actions:[{t:'a',v:8,n:'触手拍击'},{t:'a',v:8,n:'触手拍击'},{t:'p',v:2,n:'深海毒素'},{t:'a',v:12,n:'吞噬'},{t:'h',v:6,n:'深海复原'},{t:'a',v:10,n:'恐怖触手'}],
+  {name:'深海怪物',  art:'🐙',tier:'boss',power:9,aiType:'skill',hpMult:3.0,epithet:'深渊触手神',epithetSub:'毒素·吞噬·复原',
+   actions:[{t:'a',v:8,n:'触手拍击'},{t:'p',v:2,n:'深海毒素'},{t:'z',v:1,n:'触手缠绕·眩晕'},{t:'a',v:12,n:'吞噬'},{t:'h',v:6,n:'深海复原'},{t:'a',v:10,n:'恐怖触手'}],
    loot:{cards:['corruption','barrier','sacrifice','poison_flask','vampire_oath']}},
 ];
 const EVTS=[
@@ -936,6 +936,98 @@ let chapter={floor:1,theme:null,modifier:null,boss:null};
 let battle={enemy:null,enemyHp:0,enemyMaxHp:0,enemyBlk:0,enemyStr:0,enemyWeak:0,enemyVuln:0,enemyPoison:0,enemyBleed:0,enemyStun:0,enemyActions:[],enemyActionIdx:0,deck:[],drawPile:[],hand:[],discardPile:[],exhPile:[],apLeft:3,maxAp:3,blk:0,str:0,jugg:false,lifestealMode:false,fortified:0,playerPoison:0,playerWeak:0,playerStun:0,playerDisarm:0,turn:1,selectedCards:[],firstCard:true,nextFree:false};
 let mapData={rows:[],step:0,playerCol:2,history:[]};
 let rs={dmgDealt:0,dmgTaken:0,cardsPlayed:0,turns:0,chaptersCleared:0};
+
+// ── 导航状态栈 ──
+const _nav=[];
+function navPush(label,fn){_nav.push({label,fn});fn();}
+function navPop(){
+  if(_nav.length>1){_nav.pop();_nav[_nav.length-1].fn();}
+  else{navClear();backToMap();}
+}
+function navClear(){_nav.length=0;}
+
+// ── 存档管理器 ──
+const SM={
+  V:3,K:'cd_save',
+  save(){
+    try{
+      localStorage.setItem(this.K,JSON.stringify({
+        v:this.V,ts:Date.now(),
+        player:{...player},
+        deck:battle.deck.map(c=>({...c})),
+        map:JSON.parse(JSON.stringify(mapData)),
+        chapter:{...chapter,usedEnemies:[...(chapter.usedEnemies||[])]},
+        rs:{...rs}
+      }));return true;
+    }catch(e){return false;}
+  },
+  load(){
+    try{
+      const sv=JSON.parse(localStorage.getItem(this.K));
+      if(!sv||sv.v!==this.V)return false;
+      player={...sv.player};
+      chapter={...sv.chapter,usedEnemies:new Set(sv.chapter.usedEnemies||[])};
+      rs={...sv.rs};
+      mapData=JSON.parse(JSON.stringify(sv.map));
+      battle.deck=sv.deck.map(c=>({...c}));
+      window._mapRank=7;
+      document.getElementById('mb').style.display='none';
+      navClear();showView('mv');renderMap();renderHud();renderTokens();
+      return true;
+    }catch(e){return false;}
+  },
+  exists(){return!!localStorage.getItem(this.K);},
+  clear(){try{localStorage.removeItem(this.K);}catch(e){}},
+  auto(){if(phase!==PH.BATTLE&&phase!==PH.DEAD)this.save();}
+};
+
+// ── 卡牌动态生成器 ──
+const CardGen={
+  one(ps){
+    const tier=ps<30?'common':ps<60?'uncommon':'rare';
+    const kinds=['atk','atk','def','skl'];
+    const kind=kinds[0|Math.random()*kinds.length];
+    const scale=0.8+Math.random()*0.4;
+    const base=Math.max(8,ps*scale*.5);
+    const id='g'+Date.now().toString(36)+(Math.random()*1e6|0).toString(36);
+    if(kind==='atk'){
+      const cost=base<14?0:base<28?1:2;
+      const atk=Math.round(base/(cost===0?1.2:cost===1?1:0.75));
+      const multi=Math.random()<.25&&atk>7?2:1;
+      const finalAtk=multi>1?Math.round(atk*.6):atk;
+      return{id,name:this._n('atk',tier),art:this._a('atk'),kind:'atk',rar:tier,cost,
+        atk:finalAtk,times:multi,desc:multi>1?`造成 <b>${finalAtk}</b> 伤 <b>×2</b>`:`造成 <b>${finalAtk}</b> 伤害`};
+    }
+    if(kind==='def'){
+      const cost=base<11?0:base<22?1:2;
+      const blk=Math.round(base/(cost===0?1.3:cost===1?1:0.7));
+      return{id,name:this._n('def',tier),art:this._a('def'),kind:'def',rar:tier,cost,blk,
+        desc:`获得 <b>${blk}</b> 格挡`};
+    }
+    const cost=tier==='rare'?1:0;
+    const r=Math.random();
+    if(r<.35){const draw=1+(tier!=='common'?1:0);
+      return{id,name:this._n('skl',tier),art:'🔍',kind:'skl',rar:tier,cost,draw,desc:`摸 <b>${draw}</b> 张牌`};}
+    if(r<.65){const heal=Math.round(base*.4+3);
+      return{id,name:this._n('skl',tier),art:'💊',kind:'skl',rar:tier,cost,heal,exhaust:true,desc:`回复 <b>${heal}</b> HP（消耗）`};}
+    const str=Math.max(1,Math.round(base*.12));
+    return{id,name:this._n('skl',tier),art:'💪',kind:'skl',rar:tier,cost,str,dur:999,desc:`【全场】攻击 <b>+${str}</b>`};
+  },
+  pool(ps,n){
+    const res=[];const seen=new Set();let tries=0;
+    while(res.length<n&&tries<n*5){tries++;const c=this.one(ps);if(!seen.has(c.name)){seen.add(c.name);res.push(c);}}
+    return res;
+  },
+  _n(kind,tier){
+    const p={rare:['神圣','深渊','远古','混沌'],uncommon:['精良','强化','迅捷','锻造'],common:['基础','初级','粗糙','朴素']};
+    const s={atk:['斩击','打击','突刺','猛击','连斩'],def:['护盾','格挡','铁壁','壁垒','防御'],skl:['秘术','洞察','焦点','技巧','悟道']};
+    return p[tier][0|Math.random()*p[tier].length]+'·'+s[kind][0|Math.random()*s[kind].length];
+  },
+  _a(kind){
+    return{atk:['⚔','🗡','💢','⚡','🔥'],def:['🛡','🌊','💠','🏰','⬡'],skl:['✨','💎','🔮','💡','🌀']}[kind][0|Math.random()*5];
+  }
+};
+
 function calcPS(){
   const ds=battle.deck.reduce((s,c)=>{const w={common:1,uncommon:2,rare:4,curse:-1};return s+(w[c.rar]||1)+(cardValue(c)||0)*.05;},0);
   return Math.round(ds+(player.maxHp/80)*20+chapter.floor*8+player.kills*2+Math.floor(player.gold/20));
@@ -1105,11 +1197,9 @@ function renderMap(){
       </div>`;
     }
     return`<div class="mcard${reachCls}${bossCls}${dimCls}${selCls}" ${click} style="border-color:${card.col};background:${card.bg}">
-      <div class="mcsuit" style="color:${sc}">${card.suit}</div>
-      <div class="mclabel" style="color:${card.col}">${card.label||''}</div>
-      <div class="mcicon" style="text-shadow:0 0 14px ${card.col}">${ti.ic}</div>
+      <div class="mcicon" style="text-shadow:0 0 14px ${card.col};margin-top:6px">${ti.ic}</div>
       <div class="mctype" style="color:${card.col}">${ti.nm}</div>
-      ${isActive&&isReach&&card.type!=='boss'?`<div class="mchint">${rankHint}</div>`:''}
+      ${isActive&&isReach?`<div class="mchint" style="color:${card.col}">${rankHint}</div>`:''}
     </div>`;
   }
 
@@ -1193,6 +1283,8 @@ function pickMapCard(col){
     case 'altar':     startAltar();break;
   }
   if(phase===PH.MAP)renderMap();
+  // 每步地图自动存档
+  SM.auto();
 }
 // ── 战前情报 ──
 function getBattleRating(isElite,isBoss){
@@ -1363,6 +1455,10 @@ function playSelectedCards(){
   const sel=battle.selectedCards||[];if(!sel.length)return;
   const idx=sel[0];const c=battle.hand[idx];
   if(!c||c.unplayable){toast('无效出牌','r');return;}
+  // 眩晕：本回合无法出牌
+  if(battle.playerStun>0){toast('🌀 你被眩晕，本回合无法出牌！','r');return;}
+  // 缴械：无法使用攻击牌
+  if(battle.playerDisarm>0&&c.kind==='atk'){toast('⛓ 你被缴械，无法使用攻击牌！','r');return;}
   const cardCost=battle.nextFree?0:c.cost;battle.nextFree=false;
   if(battle.apLeft<cardCost){toast('行动力不足','r');return;}
   battle.apLeft-=cardCost;rs.cardsPlayed++;battle.firstCard=false;
@@ -1383,13 +1479,15 @@ function endTurn(){
   battle.discardPile.push(...battle.hand);battle.hand=[];
   // Bleed tick
   if(battle.enemyBleed>0){const bd=3;battle.enemyHp=Math.max(0,battle.enemyHp-bd);rs.dmgDealt+=bd;floatDmg(bd,'#8b1a1a');battle.enemyBleed--;if(battle.enemyHp<=0){endBattle(true);return;}}
-  // Enemy poison tick
-  if(battle.enemyPoison>0){const pd=battle.enemyPoison;battle.enemyHp=Math.max(0,battle.enemyHp-pd);floatDmg(pd,'#55dd33');toast(`☠ 中毒 -${pd} HP`);battle.enemyPoison=Math.max(0,pd-1);if(battle.enemyHp<=0){endBattle(true);return;}}
-  // Execute enemy action
+  // Enemy poison tick（可叠加递增：每回合+1直到上限8）
+  if(battle.enemyPoison>0){const pd=battle.enemyPoison;battle.enemyHp=Math.max(0,battle.enemyHp-pd);floatDmg(pd,'#55dd33');toast(`☠ 中毒蔓延 -${pd} HP`);battle.enemyPoison=Math.min(8,pd+1);if(battle.enemyHp<=0){endBattle(true);return;}}
+  // Execute enemy action（跳过眩晕回合）
   battle.enemyBlk=0;
   const acts=battle.enemyActions||[];
   let _eDidAtk=false,_eDmg=0;
-  if(acts.length>0){
+  const enemyStunned=(battle.enemyStun||0)>0;
+  if(enemyStunned){battle.enemyStun--;toast(`${battle.enemy.name} 眩晕中，跳过行动！`,'g');}
+  else if(acts.length>0){
     const idx=battle.enemyActionIdx%acts.length;battle.enemyActionIdx++;
     const act=acts[idx];
     if(act.t==='a'){
@@ -1401,8 +1499,12 @@ function endTurn(){
     }else if(act.t==='d'){battle.enemyBlk=(battle.enemyBlk||0)+act.v;toast(`${battle.enemy.name} 获得 ${act.v} 格挡`);
     }else if(act.t==='s'){battle.enemyStr=Math.min((battle.enemyStr||0)+act.v,3);toast(`${battle.enemy.name} 力量 +${act.v}`);
     }else if(act.t==='h'){const healed=Math.min(act.v,battle.enemyMaxHp-battle.enemyHp);battle.enemyHp=Math.min(battle.enemyMaxHp,battle.enemyHp+act.v);if(healed>0)toast(`${battle.enemy.name} 回复 ${healed} HP`);
-    }else if(act.t==='p'){battle.playerPoison=Math.min(9,(battle.playerPoison||0)+act.v);toast(`你中毒了！(+${act.v}层)`,'r');
-    }else if(act.t==='w'){battle.playerWeak=Math.min(5,(battle.playerWeak||0)+act.v);toast(`你被虚弱了！(${act.v}回合)`,'r');}
+    }else if(act.t==='p'){battle.playerPoison=Math.min(8,(battle.playerPoison||0)+act.v);toast(`你中毒了！(+${act.v}层)`,'r');
+    }else if(act.t==='w'){battle.playerWeak=Math.min(5,(battle.playerWeak||0)+act.v);toast(`你被虚弱了！(${act.v}回合)`,'r');
+    }else if(act.t==='z'){// 眩晕玩家
+      battle.playerStun=Math.min(3,(battle.playerStun||0)+act.v);toast(`${act.n}！你被眩晕 ${act.v} 回合！`,'r');sfx(130,.2,'square',.1,-30);
+    }else if(act.t==='x'){// 缴械玩家
+      battle.playerDisarm=Math.min(3,(battle.playerDisarm||0)+act.v);toast(`${act.n}！你被缴械 ${act.v} 回合！`,'r');sfx(160,.15,'square',.1,-20);}
   }else{
     _eDidAtk=true;
     let eatk=(battle.enemy.atk||8)+(battle.enemyStr||0);if(battle.enemyWeak>0)eatk=Math.floor(eatk*.75);
@@ -1413,8 +1515,12 @@ function endTurn(){
   battle.blk=0;
   if(chapter.modifier?.onTurnStart)chapter.modifier.onTurnStart(battle,player);
   if(battle.enemyWeak>0)battle.enemyWeak--;if(battle.enemyVuln>0)battle.enemyVuln--;
-  if(battle.playerPoison>0){player.hp=Math.max(0,player.hp-battle.playerPoison);floatDmg(battle.playerPoison,'#2d7a27',true);battle.playerPoison=Math.max(0,battle.playerPoison-1);}
+  // 玩家中毒（叠加递增，每回合+1）
+  if(battle.playerPoison>0){const ppd=battle.playerPoison;player.hp=Math.max(0,player.hp-ppd);floatDmg(ppd,'#2d7a27',true);toast(`☠ 你中毒受到 ${ppd} 点伤害`,'r');battle.playerPoison=Math.min(8,ppd+1);}
   if(battle.playerWeak>0)battle.playerWeak--;
+  // 眩晕/缴械递减
+  if(battle.playerStun>0)battle.playerStun--;
+  if(battle.playerDisarm>0)battle.playerDisarm--;
   if(player.hp<=0){endBattle(false);return;}
   battle.turn++;rs.turns++;battle.apLeft=battle.maxAp;battle.selectedCards=[];battle.firstCard=true;
   const drawN=chapter.modifier?.handLimit?Math.min(player.drawCount||5,chapter.modifier.handLimit):player.drawCount||5;
@@ -1443,8 +1549,8 @@ function endBattle(won){
       window._pendingCurse=false;
       setTimeout(()=>showBossReward(chapter.floor>=3),1000);
     }
-    else showReward(g);
-  }else{sfx(80,.4,'sawtooth',.15,-30);showGameOver();clearSave();}
+    else{showReward(g);SM.auto();}
+  }else{sfx(80,.4,'sawtooth',.15,-30);showGameOver();SM.clear();}
 }
 function showChapterIntro(){
   const info=generateChapter();const mod=info.mod;
@@ -2402,33 +2508,10 @@ function confirmLegacy(){
   toast(`⬡ 已选择传承 ${picks.length} 张牌`,'g');
   const lsEl=document.getElementById('legacy-section');if(lsEl)lsEl.style.display='none';
 }
-// ── 存档系统 ──
-function saveGame(){
-  try{
-    const sv={player:{...player},deck:[...battle.deck],
-      mapData:JSON.parse(JSON.stringify(mapData)),
-      chapter:{...chapter,usedEnemies:[...(chapter.usedEnemies||[])]},
-      rs:{...rs},v:2};
-    localStorage.setItem('cd_save',JSON.stringify(sv));
-  }catch(e){}
-}
-function loadGame(){
-  try{
-    const sv=JSON.parse(localStorage.getItem('cd_save'));
-    if(!sv||sv.v!==2)return false;
-    player={...sv.player};
-    chapter={...sv.chapter,usedEnemies:new Set(sv.chapter.usedEnemies||[])};
-    rs={...sv.rs};
-    mapData=JSON.parse(JSON.stringify(sv.mapData));
-    const sd=buildStarterDeck();
-    battle={enemy:null,enemyHp:0,enemyMaxHp:0,enemyBlk:0,enemyStr:0,enemyWeak:0,enemyVuln:0,enemyPoison:0,enemyActions:[],enemyActionIdx:0,deck:[...sv.deck],drawPile:[],hand:[],discardPile:[],exhPile:[],apLeft:3,maxAp:3,blk:0,str:0,jugg:false,lifestealMode:false,playerPoison:0,playerWeak:0,enemyBleed:0,fortified:0,turn:1,selectedCards:[],firstCard:true,nextFree:false};
-    window._mapRank=7;
-    document.getElementById('mb').style.display='none';
-    showView('mv');renderMap();renderHud();renderTokens();
-    toast('存档已加载','g');return true;
-  }catch(e){return false;}
-}
-function clearSave(){try{localStorage.removeItem('cd_save');}catch(e){}}
+// ── 存档系统（SM封装）──
+function saveGame(){SM.save();}
+function loadGame(){const ok=SM.load();if(ok)toast('存档已加载','g');return ok;}
+function clearSave(){SM.clear();}
 // ── 音效系统 ──
 let _ac=null;
 function ac(){if(!_ac){try{_ac=new(window.AudioContext||window.webkitAudioContext)();}catch(e){}}return _ac;}
@@ -2564,27 +2647,27 @@ function finishCutscene(){
   _csOnComplete?.();_csOnComplete=null;
 }
 function initGame(){
-  stopBGM();
+  stopBGM();navClear();
   player={hp:80,maxHp:80,gold:80,floor:1,kills:0,steps:0,drawCount:5,maxAp:3};
   chapter={floor:1,theme:null,modifier:null,boss:null};
   const startDeck=buildStarterDeck();
   clearLegacy();
-  battle={enemy:null,enemyHp:0,enemyMaxHp:0,enemyBlk:0,enemyStr:0,enemyWeak:0,enemyVuln:0,enemyPoison:0,enemyActions:[],enemyActionIdx:0,deck:startDeck,drawPile:[],hand:[],discardPile:[],exhPile:[],apLeft:3,maxAp:3,blk:0,str:0,jugg:false,lifestealMode:false,playerPoison:0,playerWeak:0,enemyBleed:0,fortified:0,turn:1,selectedCards:[],firstCard:true,nextFree:false};
+  battle={enemy:null,enemyHp:0,enemyMaxHp:0,enemyBlk:0,enemyStr:0,enemyWeak:0,enemyVuln:0,enemyPoison:0,enemyBleed:0,enemyStun:0,enemyActions:[],enemyActionIdx:0,deck:startDeck,drawPile:[],hand:[],discardPile:[],exhPile:[],apLeft:3,maxAp:3,blk:0,str:0,jugg:false,lifestealMode:false,playerPoison:0,playerWeak:0,playerStun:0,playerDisarm:0,fortified:0,turn:1,selectedCards:[],firstCard:true,nextFree:false};
   rs={dmgDealt:0,dmgTaken:0,cardsPlayed:0,turns:0,chaptersCleared:0};
   window._mapRank=7;
   document.getElementById('mb').style.display='none';
-  clearSave();showCutscene('intro',showChapterIntro);
+  SM.clear();showCutscene('intro',showChapterIntro);
 }
 // 开始时检查存档
 function checkSave(){
-  if(localStorage.getItem('cd_save')){
-    // Show continue option in chapter intro area
+  if(SM.exists()){
+    document.getElementById('cid').textContent='✦ 卡牌地牢 ✦';
     document.getElementById('cif').textContent='卡牌地牢';
     document.getElementById('cin').textContent='检测到存档';
     document.getElementById('cit').textContent='是否继续上次冒险？';
     const bw=document.getElementById('ci-bless-wrap');
     bw.innerHTML=`<div class="tcards-table">
-      <div class="ccard" onclick="loadGame()" style="transform:rotate(-5deg) translateY(7px)">
+      <div class="ccard" onclick="tryLoadGame()" style="transform:rotate(-5deg) translateY(7px)">
         <div class="ccard-top" style="background:linear-gradient(90deg,transparent,rgba(45,140,45,.5),transparent)"></div>
         <div class="ccard-icon">📖</div><div class="ccard-text">继续冒险</div>
         <div class="ccard-sub">读取上次存档</div>
@@ -2596,13 +2679,13 @@ function checkSave(){
       </div>
     </div>`;
     document.getElementById('ci-skip-bless').style.display='none';
-    document.getElementById('cid').textContent='✦ 卡牌地牢 ✦';
     showView('ci');
   }else{
     initGame();
   }
 }
-function newRun(){clearSave();initGame();}
+function tryLoadGame(){const ok=SM.load();if(ok){toast('存档已加载','g');}else{toast('存档版本不兼容，开始新游戏','r');SM.clear();initGame();}}
+function newRun(){SM.clear();initGame();}
 checkSave();
 </script>
 </body>
