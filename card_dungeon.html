@@ -836,13 +836,19 @@ const DB=[
 function gc(id){const c=DB.find(c=>c.id===id);return c?JSON.parse(JSON.stringify(c)):null;}
 function cardValue(c){
   if(!c||c.rar==='curse')return 0;
+  if(c.special){
+    // Special cards: fixed base scores because their power isn't captured by numeric stat fields
+    const sv={soul_strike:60,chaos_shot:40,last_stand:42,martyr:53,catalyze:29,
+               phantom_hit:40,heartbreak:27,desperation:37,bloodrush:40,execute:43};
+    const rm=c.rar==='rare'?1.5:c.rar==='uncommon'?1.2:1;
+    return Math.round((sv[c.special]||40)*rm*(1+(c.upgradeCount||0)*.2));
+  }
   const base=(c.atk||0)*2+(c.atk&&c.times?(c.atk*(c.times-1)*1.5):0)+
     (c.blk||0)*1.5+(c.heal||0)*1.5+(c.str||0)*8+(c.draw||0)*7+
     (c.ap||0)*12+(c.poison||0)*5+(c.weak||0)*6+(c.vuln||0)*6;
   const cm=[1.4,1,0.8,0.65][Math.min(c.cost||0,3)];
   const rm=c.rar==='rare'?1.5:c.rar==='uncommon'?1.2:1;
-  const sp=c.special?1.15:1;
-  return Math.max(5,Math.round(base*cm*rm*sp));
+  return Math.max(5,Math.round(base*cm*rm*(1+(c.upgradeCount||0)*.18)));
 }
 function upgradeCard(c){
   if(!c||c.rar==='curse')return;
