@@ -852,6 +852,22 @@ function cardValue(c){
 }
 function upgradeCard(c){
   if(!c||c.rar==='curse')return;
+  if(c.special){
+    switch(c.special){
+      case 'soul_strike':  c.soulPct=(c.soulPct||.25)+.05; c.desc=`造成敌人当前HP的 <b>${Math.round(c.soulPct*100)}%</b> 伤害（无视格挡）`; break;
+      case 'chaos_shot':   c.chaosMin=(c.chaosMin||8)+4;c.chaosMax=(c.chaosMax||45)+15; c.desc=`造成 <b>${c.chaosMin}~${c.chaosMax}</b> 随机伤害`; break;
+      case 'last_stand':   c.lsDmgHigh=(c.lsDmgHigh||55)+20;c.lsDmgLow=(c.lsDmgLow||15)+7; c.desc=`HP≤30%时造成 <b>${c.lsDmgHigh}</b> 伤，否则 <b>${c.lsDmgLow}</b> 伤`; break;
+      case 'martyr':       c.exhaust=false; c.desc='消耗当前HP仅剩1，造成等量无视格挡伤害'; break;
+      case 'catalyze':     c.catalyzeCount=(c.catalyzeCount||1)+1; c.desc=`下 <b>${c.catalyzeCount}</b> 张牌费用归零（消耗）`; break;
+      case 'phantom_hit':  c.cost=Math.max(0,c.cost-1); c.desc='造成等于当前格挡量的伤害（无视敌人格挡）'; break;
+      case 'heartbreak':   c.hbDmg=(c.hbDmg||14)+8; c.desc=`清除敌人所有格挡，造成 <b>${c.hbDmg}</b> 伤害`; break;
+      case 'desperation':  c.despDiv=Math.max(5,(c.despDiv||15)-5); c.desc=`获得 力量 = 缺失HP÷${c.despDiv}（最少1）（消耗）`; break;
+      case 'bloodrush':    c.cost=Math.max(0,c.cost-1); c.desc='造成等于 <b>缺失HP</b> 的伤害'; break;
+      case 'execute':      c.execThresh=(c.execThresh||.30)+.10;c.execDmg=(c.execDmg||18)+10; c.desc=`敌人HP＜${Math.round((c.execThresh)*100)}%时即死，否则造成 <b>${c.execDmg}</b> 伤`; break;
+    }
+    c.upgraded=true;c.upgradeCount=(c.upgradeCount||0)+1;
+    return;
+  }
   const pct=c.rar==='rare'?0.28:c.rar==='uncommon'?0.22:0.18;
   if(c.kind==='atk'&&c.atk){c.atk=Math.max(c.atk+2,Math.round(c.atk*(1+pct)));}
   else if(c.kind==='def'&&c.blk){c.blk=Math.max(c.blk+2,Math.round(c.blk*(1+pct)));}
@@ -1007,7 +1023,7 @@ const EVTS=[
 let phase=PH.INTRO;
 let player={hp:80,maxHp:80,gold:80,floor:1,kills:0,steps:0,drawCount:5,maxAp:3};
 let chapter={floor:1,theme:null,modifier:null,boss:null};
-let battle={enemy:null,enemyHp:0,enemyMaxHp:0,enemyBlk:0,enemyStr:0,enemyWeak:0,enemyVuln:0,enemyPoison:0,enemyBleed:0,enemyStun:0,enemyActions:[],enemyActionIdx:0,nextEnemyAction:null,deck:[],drawPile:[],hand:[],discardPile:[],exhPile:[],apLeft:3,maxAp:3,blk:0,str:0,jugg:false,lifestealMode:false,fortified:0,playerPoison:0,playerWeak:0,playerStun:0,playerDisarm:0,turn:1,selectedCards:[],firstCard:true,nextFree:false};
+let battle={enemy:null,enemyHp:0,enemyMaxHp:0,enemyBlk:0,enemyStr:0,enemyWeak:0,enemyVuln:0,enemyPoison:0,enemyBleed:0,enemyStun:0,enemyActions:[],enemyActionIdx:0,nextEnemyAction:null,deck:[],drawPile:[],hand:[],discardPile:[],exhPile:[],apLeft:3,maxAp:3,blk:0,str:0,jugg:false,lifestealMode:false,fortified:0,playerPoison:0,playerWeak:0,playerStun:0,playerDisarm:0,turn:1,selectedCards:[],firstCard:true,nextFreeCount:0};
 let mapData={rows:[],step:0,playerCol:2,history:[]};
 let rs={dmgDealt:0,dmgTaken:0,cardsPlayed:0,turns:0,chaptersCleared:0};
 
@@ -1082,46 +1098,100 @@ const SM={
 const CardGen={
   one(ps){
     const tier=ps<30?'common':ps<60?'uncommon':'rare';
-    const kinds=['atk','atk','def','skl'];
-    const kind=kinds[0|Math.random()*kinds.length];
-    const scale=0.8+Math.random()*0.4;
+    const scale=0.7+Math.random()*0.6;
     const base=Math.max(8,ps*scale*.5);
     const id='g'+Date.now().toString(36)+(Math.random()*1e6|0).toString(36);
-    if(kind==='atk'){
-      const cost=base<14?0:base<28?1:2;
-      const atk=Math.round(base/(cost===0?1.2:cost===1?1:0.75));
-      const multi=Math.random()<.25&&atk>7?2:1;
-      const finalAtk=multi>1?Math.round(atk*.6):atk;
-      return{id,name:this._n('atk',tier),art:this._a('atk'),kind:'atk',rar:tier,cost,
-        atk:finalAtk,times:multi,desc:multi>1?`造成 <b>${finalAtk}</b> 伤 <b>×2</b>`:`造成 <b>${finalAtk}</b> 伤害`};
-    }
-    if(kind==='def'){
-      const cost=base<11?0:base<22?1:2;
-      const blk=Math.round(base/(cost===0?1.3:cost===1?1:0.7));
-      return{id,name:this._n('def',tier),art:this._a('def'),kind:'def',rar:tier,cost,blk,
-        desc:`获得 <b>${blk}</b> 格挡`};
-    }
-    const cost=tier==='rare'?1:0;
     const r=Math.random();
-    if(r<.35){const draw=1+(tier!=='common'?1:0);
-      return{id,name:this._n('skl',tier),art:'🔍',kind:'skl',rar:tier,cost,draw,desc:`摸 <b>${draw}</b> 张牌`};}
-    if(r<.65){const heal=Math.round(base*.4+3);
-      return{id,name:this._n('skl',tier),art:'💊',kind:'skl',rar:tier,cost,heal,exhaust:true,desc:`回复 <b>${heal}</b> HP（消耗）`};}
-    const str=Math.max(1,Math.round(base*.12));
-    return{id,name:this._n('skl',tier),art:'💪',kind:'skl',rar:tier,cost,str,dur:999,desc:`【全场】攻击 <b>+${str}</b>`};
+    if(r<.38)return this._mkAtk(id,tier,base);
+    if(r<.63)return this._mkDef(id,tier,base);
+    if(r<.83)return this._mkSkl(id,tier,base);
+    return this._mkCombo(id,tier,base);
+  },
+  _mkAtk(id,tier,base){
+    const cost=base<14?0:base<28?1:2;
+    const atk=Math.round(base/(cost===0?1.2:cost===1?1:0.75));
+    const r=Math.random();
+    if(r<.26){return{id,name:this._n('atk',tier),art:this._a('atk'),kind:'atk',rar:tier,cost,atk,desc:`造成 <b>${atk}</b> 伤害`};}
+    if(r<.44){const da=Math.round(atk*.62);return{id,name:this._n('atk',tier,'d'),art:'⚡',kind:'atk',rar:tier,cost,atk:da,times:2,desc:`造成 <b>${da}</b> 伤 <b>×2</b>`};}
+    if(r<.54){const ta=Math.round(atk*.42);return{id,name:this._n('atk',tier,'t'),art:'🌀',kind:'atk',rar:tier,cost:Math.min(2,cost+1),atk:ta,times:3,desc:`造成 <b>${ta}</b> 伤 <b>×3</b>`};}
+    if(r<.65){const ra=Math.round(atk*.72);return{id,name:this._n('atk',tier,'s'),art:'🗡',kind:'atk',rar:tier,cost,atk:ra,draw:1,desc:`造成 <b>${ra}</b> 伤，摸 <b>1</b> 张牌`};}
+    if(r<.75){const wa=Math.round(atk*.75);const wt=tier==='rare'?2:1;return{id,name:this._n('atk',tier,'w'),art:'💚',kind:'atk',rar:tier,cost,atk:wa,weak:wt,desc:`造成 <b>${wa}</b> 伤，虚弱敌人 <b>${wt}</b> 回合`};}
+    if(r<.87){const pa=Math.round(atk*.6);const pt=Math.max(1,Math.round(base*.08));return{id,name:this._n('atk',tier,'p'),art:'☠',kind:'atk',rar:tier,cost,atk:pa,poison:pt,desc:`造成 <b>${pa}</b> 伤，施毒 <b>${pt}</b> 层`};}
+    const va=Math.round(atk*.65);return{id,name:this._n('atk',tier,'v'),art:'💥',kind:'atk',rar:tier,cost,atk:va,vuln:1,desc:`造成 <b>${va}</b> 伤，易伤敌人1回合`};
+  },
+  _mkDef(id,tier,base){
+    const cost=base<11?0:base<22?1:2;
+    const blk=Math.round(base/(cost===0?1.3:cost===1?1:0.7));
+    const r=Math.random();
+    if(r<.38){return{id,name:this._n('def',tier),art:this._a('def'),kind:'def',rar:tier,cost,blk,desc:`获得 <b>${blk}</b> 格挡`};}
+    if(r<.58){const bh=Math.round(blk*.72);const hl=Math.max(2,Math.round(base*.12));return{id,name:this._n('def',tier,'h'),art:'💊',kind:'def',rar:tier,cost,blk:bh,heal:hl,desc:`获得 <b>${bh}</b> 格挡，回复 <b>${hl}</b> HP`};}
+    if(r<.75){const bd=Math.round(blk*.75);return{id,name:this._n('def',tier,'d'),art:'🔍',kind:'def',rar:tier,cost,blk:bd,draw:1,desc:`获得 <b>${bd}</b> 格挡，摸 <b>1</b> 张牌`};}
+    const bs=Math.round(blk*.65);const st=Math.max(1,Math.round(base*.06));return{id,name:this._n('def',tier,'q'),art:'💪',kind:'def',rar:tier,cost,blk:bs,str:st,dur:999,desc:`获得 <b>${bs}</b> 格挡，【全场】攻击 <b>+${st}</b>`};
+  },
+  _mkSkl(id,tier,base){
+    const cost=tier==='rare'?1:Math.random()<.28?1:0;
+    const r=Math.random();
+    if(r<.28){const draw=1+(tier!=='common'?1:0);return{id,name:this._n('skl',tier,'dr'),art:'🔍',kind:'skl',rar:tier,cost,draw,desc:`摸 <b>${draw}</b> 张牌`};}
+    if(r<.50){const heal=Math.round(base*.38+3);return{id,name:this._n('skl',tier,'hl'),art:'💊',kind:'skl',rar:tier,cost,heal,exhaust:true,desc:`回复 <b>${heal}</b> HP（消耗）`};}
+    if(r<.68){const str=Math.max(1,Math.round(base*.12));return{id,name:this._n('skl',tier,'st'),art:'💪',kind:'skl',rar:tier,cost,str,dur:999,desc:`【全场】攻击 <b>+${str}</b>`};}
+    if(r<.83){const poi=Math.max(1,Math.round(base*.10));return{id,name:this._n('skl',tier,'po'),art:'☠',kind:'skl',rar:tier,cost,poison:poi,desc:`施毒 <b>${poi}</b> 层`};}
+    const draw2=1+(tier==='rare'?1:0);const str2=1;return{id,name:this._n('skl',tier,'ds'),art:'✨',kind:'skl',rar:tier,cost,draw:draw2,str:str2,dur:999,desc:`摸 <b>${draw2}</b> 张牌，【全场】攻击 <b>+${str2}</b>`};
+  },
+  _mkCombo(id,tier,base){
+    const cost=1;const r=Math.random();
+    if(r<.32){const a=Math.round(base*.42);const b2=Math.round(base*.28);return{id,name:this._n('atk',tier,'c'),art:'⚔',kind:'atk',rar:tier,cost,atk:a,blk:b2,desc:`造成 <b>${a}</b> 伤，获得 <b>${b2}</b> 格挡`};}
+    if(r<.60){const p=Math.max(1,Math.round(base*.08));return{id,name:this._n('skl',tier,'pc'),art:'🔮',kind:'skl',rar:tier,cost,poison:p,draw:1,desc:`施毒 <b>${p}</b> 层，摸 <b>1</b> 张牌`};}
+    if(r<.80){const h=Math.round(base*.25+2);return{id,name:this._n('skl',tier,'hc'),art:'💎',kind:'skl',rar:tier,cost,heal:h,draw:1,exhaust:true,desc:`回复 <b>${h}</b> HP，摸 <b>1</b> 张牌（消耗）`};}
+    const a2=Math.round(base*.35);const w=1;return{id,name:this._n('atk',tier,'wc'),art:'💫',kind:'atk',rar:tier,cost,atk:a2,weak:w,poison:Math.max(1,Math.round(base*.05)),desc:`造成 <b>${a2}</b> 伤，虚弱+施毒`};
   },
   pool(ps,n){
     const res=[];const seen=new Set();let tries=0;
-    while(res.length<n&&tries<n*5){tries++;const c=this.one(ps);if(!seen.has(c.name)){seen.add(c.name);res.push(c);}}
+    while(res.length<n&&tries<n*30){tries++;
+      const c=this.one(ps);
+      // Deduplicate by stat fingerprint (kind+cost+effects in value buckets of 3)
+      const fp=`${c.kind}|${c.cost}|${Math.round((c.atk||0)/3)}|${c.times||1}|${Math.round((c.blk||0)/3)}|${c.draw||0}|${c.str||0}|${Math.round((c.poison||0))}|${c.weak||0}|${c.vuln||0}|${Math.round((c.heal||0)/3)}`;
+      if(!seen.has(fp)){seen.add(fp);res.push(c);}
+    }
     return res;
   },
-  _n(kind,tier){
-    const p={rare:['神圣','深渊','远古','混沌'],uncommon:['精良','强化','迅捷','锻造'],common:['基础','初级','粗糙','朴素']};
-    const s={atk:['斩击','打击','突刺','猛击','连斩'],def:['护盾','格挡','铁壁','壁垒','防御'],skl:['秘术','洞察','焦点','技巧','悟道']};
-    return p[tier][0|Math.random()*p[tier].length]+'·'+s[kind][0|Math.random()*s[kind].length];
+  _n(kind,tier,sub=''){
+    const P={
+      rare:    ['神圣','深渊','远古','混沌','虚空','毁灭','永恒','禁忌','终焉','黑暗','超凡','冥界','星碎','龙威','灾厄','极限','无双','绝顶','异界','天罚'],
+      uncommon:['精锐','强化','迅捷','狂热','血腥','灼烧','锋利','凶猛','骨裂','毒液','暗影','残酷','霜冻','蓄力','闪电','猩红','腐蚀','噬魂','裂骨','铁血'],
+      common:  ['基础','初级','粗糙','朴素','苦涩','朽腐','廉价','饥渴','寒冷','晦暗','蹒跚','磨损','生锈','破败','廉鄙','陈旧','勉强','脆弱']
+    };
+    const S={
+      atk: ['斩击','打击','突刺','猛击','连斩','刺穿','劈砍','重击','扫荡','冲击','撕裂','爆破','穿甲','剑气','烈焰击','破空','裂地','噬命','斩首','毁灭冲'],
+      atkd:['双击','乱斩','飞刃','连刺','迅击','交叉','奇袭','双刃','影分','裂刃'],
+      atkt:['三连','风暴击','乱舞','狂刃','瀑布','狂击','三叶'],
+      atks:['迅斩','闪刺','流星','速劈','飞燕','电光','烈风'],
+      atkw:['破甲','削弱刺','腐蚀击','挫锐','迟化','瓦解','摧志'],
+      atkp:['毒刃','剧毒刺','感染击','腐化爪','蛊毒','侵蚀','疫病'],
+      atkv:['暴击','易伤击','破防','穿刺','碎甲','裂肤'],
+      atkc:['武斗','守攻','战技','反制斩','破军','逆刃'],
+      atkwc:['阴毒','腐化乱','毒刺破','混合击'],
+      def: ['护盾','格挡','铁壁','壁垒','防御','坚守','屏障','守护','抵御','要塞','铸盾','铁甲','固守','磐石','壁甲','硬壳','金钟','铁幕'],
+      defh:['治愈盾','回春防','守护泉','疗愈壁','复元盾','生命壁','活力盾'],
+      defd:['轻盾','灵动盾','迅盾','敏捷护','流动防','活跃守'],
+      defq:['战意盾','力量护','不屈壁','武威防','钢铁意','强化盾','勇气盾'],
+      skl: ['秘术','洞察','焦点','技巧','悟道','冥想','灵悟','顿悟','领悟','觉醒','灵光','奥义','参悟','启示','洞明'],
+      skldr:['洞察','探寻','灵悟','顿悟','领悟','抽签','翻牌','抓牌','览阅'],
+      sklhl:['回春术','疗愈咒','秘方','活力泉','复苏','养息','驱痛','治疗'],
+      sklst:['蓄力术','强化咒','武威冥','焦点训','战意','锻体','催力','爆发'],
+      sklpo:['毒术','炼毒','腐化咒','蛊惑','施毒术','毒雾','疫毒','溶蚀'],
+      sklds:['悟道','双修','秘法','两仪','刹那觉','灵光双'],
+      sklpc:['毒探','毒抽','腐察','蛊引'],
+      sklhc:['急救','翻找','战时','活血抽'],
+    };
+    const pArr=P[tier]||P.common;
+    const prefix=pArr[0|Math.random()*pArr.length];
+    const sKey=kind==='atk'?'atk'+(sub||''):kind==='def'?'def'+(sub||''):'skl'+(sub||'');
+    const sfxArr=S[sKey]||S[kind]||S.atk;
+    const suffix=sfxArr[0|Math.random()*sfxArr.length];
+    return prefix+'·'+suffix;
   },
   _a(kind){
-    return{atk:['⚔','🗡','💢','⚡','🔥'],def:['🛡','🌊','💠','🏰','⬡'],skl:['✨','💎','🔮','💡','🌀']}[kind][0|Math.random()*5];
+    return{atk:['⚔','🗡','💢','⚡','🔥','🌀','💥','🗜','🔱'],def:['🛡','🌊','💠','🏰','⬡','🔵','🧱','⚙'],skl:['✨','💎','🔮','💡','🌀','⚗','🔍','🌸','🎯']}[kind][0|Math.random()*9];
   }
 };
 
@@ -1487,7 +1557,7 @@ function startBattle(isElite,isBoss){
   const normalCards=battle.deck.filter(c=>!c.innate);
   battle.drawPile=shuf([...normalCards]);battle.hand=innateCards.slice(0,2);battle.discardPile=[];battle.exhPile=[];
   const startAp=player.maxAp||3;
-  battle.blk=0;battle.str=0;battle.jugg=false;battle.lifestealMode=false;battle.playerPoison=0;battle.playerWeak=0;battle.playerStun=0;battle.playerDisarm=0;battle.enemyBleed=0;battle.enemyStun=0;battle.fortified=0;battle.apLeft=startAp;battle.maxAp=startAp;battle.turn=1;battle.selectedCards=[];battle.firstCard=true;battle.nextFree=false;
+  battle.blk=0;battle.str=0;battle.jugg=false;battle.lifestealMode=false;battle.playerPoison=0;battle.playerWeak=0;battle.playerStun=0;battle.playerDisarm=0;battle.enemyBleed=0;battle.enemyStun=0;battle.fortified=0;battle.apLeft=startAp;battle.maxAp=startAp;battle.turn=1;battle.selectedCards=[];battle.firstCard=true;battle.nextFreeCount=0;
   if(chapter.modifier?.onBattleStart)chapter.modifier.onBattleStart(battle,player);
   applyRelicHooks('onBattleStart',battle,player);
   const ep=document.getElementById('ep');
@@ -1566,19 +1636,19 @@ function applySingleCard(c,mult){
   if(c.special==='shieldsmash'){if(battle.blk>0){const d=battle.blk;battle.blk=0;const pen=Math.max(0,d-(battle.enemyBlk||0));battle.enemyBlk=Math.max(0,(battle.enemyBlk||0)-d);battle.enemyHp=Math.max(0,battle.enemyHp-pen);if(pen>0){rs.dmgDealt+=pen;floatDmg(pen,'#c0392b');}}else toast('没有格挡','r');}
   if(c.special==='poisonburst'){const pd=(battle.enemyPoison||0)*4;if(pd>0){battle.enemyHp=Math.max(0,battle.enemyHp-pd);rs.dmgDealt+=pd;floatDmg(pd,'#2d7a27');}else toast('敌人未中毒','r');}
   if(c.special==='bloodrush'){const md=Math.max(0,player.maxHp-player.hp);if(md>0){battle.enemyHp=Math.max(0,battle.enemyHp-md);rs.dmgDealt+=md;floatDmg(md,'#c0392b');}else toast('HP已满','r');}
-  if(c.special==='execute'){const pct=battle.enemyHp/(battle.enemyMaxHp||1);const xd=pct<=0.30?battle.enemyHp:(c.execDmg||18);battle.enemyHp=Math.max(0,battle.enemyHp-xd);rs.dmgDealt+=xd;floatDmg(xd,'#c0392b');}
+  if(c.special==='execute'){const pct=battle.enemyHp/(battle.enemyMaxHp||1);const xd=pct<=(c.execThresh||.30)?battle.enemyHp:(c.execDmg||18);battle.enemyHp=Math.max(0,battle.enemyHp-xd);rs.dmgDealt+=xd;floatDmg(xd,'#c0392b');}
   if(c.special==='counter'){const na=battle.nextEnemyAction;const g2=na?.t==='a'?(na.v+(battle.enemyStr||0)):(battle.enemy.atk||8);battle.blk+=g2;toast(`+${g2} 格挡（反击）`);}
   if(c.special==='discard'){if(battle.hand.length>0){const mx=Math.max(...battle.hand.map(h=>h.cost));const di=battle.hand.findIndex(h=>h.cost===mx);if(di>=0)battle.discardPile.push(battle.hand.splice(di,1)[0]);}drawCards(2);}
   if(c.apscale)battle.apLeft=0;
   // ── 奇异牌特殊逻辑 ──
-  if(c.special==='soul_strike'){const d=Math.floor((battle.enemyHp||0)*.25);if(d>0){battle.enemyHp=Math.max(0,battle.enemyHp-d);rs.dmgDealt+=d;floatDmg(d,'#9a5abf');sfx(260,.18,'square',.1,120);}else toast('敌人HP太低','r');}
-  if(c.special==='chaos_shot'){const raw=8+Math.floor(Math.random()*38);let d=raw+(battle.str||0);if(battle.playerWeak>0)d=Math.floor(d*.75);if(battle.enemyVuln>0)d=Math.ceil(d*1.5);const pen=Math.max(0,d-(battle.enemyBlk||0));battle.enemyBlk=Math.max(0,(battle.enemyBlk||0)-d);battle.enemyHp=Math.max(0,battle.enemyHp-pen);rs.dmgDealt+=pen;if(pen>0){floatDmg(pen,'#c0392b');sfx(180+pen,.15,'sawtooth',.1,-60);}toast(`🎲 混沌：${raw}伤`);}
-  if(c.special==='last_stand'){const isLow=player.hp/player.maxHp<=0.30;let d=(isLow?55:15)+(battle.str||0);if(battle.playerWeak>0)d=Math.floor(d*.75);if(battle.enemyVuln>0)d=Math.ceil(d*1.5);const pen=Math.max(0,d-(battle.enemyBlk||0));battle.enemyBlk=Math.max(0,(battle.enemyBlk||0)-d);battle.enemyHp=Math.max(0,battle.enemyHp-pen);rs.dmgDealt+=pen;if(pen>0){floatDmg(pen,isLow?'#c0392b':'#aa5040');sfx(180+pen,.15,'sawtooth',.1,-60);}if(isLow)toast('🔥 绝地反击！55伤！','g');}
+  if(c.special==='soul_strike'){const p=c.soulPct||.25;const d=Math.floor((battle.enemyHp||0)*p);if(d>0){battle.enemyHp=Math.max(0,battle.enemyHp-d);rs.dmgDealt+=d;floatDmg(d,'#9a5abf');sfx(260,.18,'square',.1,120);}else toast('敌人HP太低','r');}
+  if(c.special==='chaos_shot'){const mn=c.chaosMin||8,mx=c.chaosMax||45;const raw=mn+Math.floor(Math.random()*(mx-mn+1));let d=raw+(battle.str||0);if(battle.playerWeak>0)d=Math.floor(d*.75);if(battle.enemyVuln>0)d=Math.ceil(d*1.5);const pen=Math.max(0,d-(battle.enemyBlk||0));battle.enemyBlk=Math.max(0,(battle.enemyBlk||0)-d);battle.enemyHp=Math.max(0,battle.enemyHp-pen);rs.dmgDealt+=pen;if(pen>0){floatDmg(pen,'#c0392b');sfx(180+pen,.15,'sawtooth',.1,-60);}toast(`🎲 混沌：${raw}伤`);}
+  if(c.special==='last_stand'){const isLow=player.hp/player.maxHp<=0.30;let d=((isLow?(c.lsDmgHigh||55):(c.lsDmgLow||15)))+(battle.str||0);if(battle.playerWeak>0)d=Math.floor(d*.75);if(battle.enemyVuln>0)d=Math.ceil(d*1.5);const pen=Math.max(0,d-(battle.enemyBlk||0));battle.enemyBlk=Math.max(0,(battle.enemyBlk||0)-d);battle.enemyHp=Math.max(0,battle.enemyHp-pen);rs.dmgDealt+=pen;if(pen>0){floatDmg(pen,isLow?'#c0392b':'#aa5040');sfx(180+pen,.15,'sawtooth',.1,-60);}if(isLow)toast(`🔥 绝地反击！${c.lsDmgHigh||55}伤！`,'g');}
   if(c.special==='martyr'){const md=Math.max(0,player.hp-1);player.hp=1;if(md>0){battle.enemyHp=Math.max(0,battle.enemyHp-md);rs.dmgDealt+=md;floatDmg(md,'#c0392b');sfx(120+md,.2,'sawtooth',.15,-60);}toast(`☀ 殉道！${md}伤`,'g');}
-  if(c.special==='catalyze'){battle.nextFree=true;toast('⚗ 下张牌费用归零！','g');}
+  if(c.special==='catalyze'){const _cz=c.catalyzeCount||1;battle.nextFreeCount=_cz;toast(`⚗ 下${_cz>1?_cz+'张':'1张'}牌费用归零！`,'g');}
   if(c.special==='phantom_hit'){const d=battle.blk||0;if(d>0){battle.enemyHp=Math.max(0,battle.enemyHp-d);rs.dmgDealt+=d;floatDmg(d,'#9a6abf');sfx(240,.14,'square',.1,80);toast(`👻 幻影 ${d}伤`);}else toast('没有格挡可用','r');}
-  if(c.special==='heartbreak'){const cleared=battle.enemyBlk||0;battle.enemyBlk=0;let d=14+(battle.str||0);if(battle.playerWeak>0)d=Math.floor(d*.75);if(battle.enemyVuln>0)d=Math.ceil(d*1.5);battle.enemyHp=Math.max(0,battle.enemyHp-d);rs.dmgDealt+=d;if(d>0){floatDmg(d,'#c0392b');sfx(200+d,.15,'sawtooth',.1,-60);}if(cleared>0)toast(`💥 粉碎 ${cleared} 格挡！`);}
-  if(c.special==='desperation'){const missing=Math.max(0,player.maxHp-player.hp);const s=Math.max(1,Math.floor(missing/15));battle.str+=s;toast(`🩸 绝望之力 +${s} 力量！`,'g');}
+  if(c.special==='heartbreak'){const cleared=battle.enemyBlk||0;battle.enemyBlk=0;let d=(c.hbDmg||14)+(battle.str||0);if(battle.playerWeak>0)d=Math.floor(d*.75);if(battle.enemyVuln>0)d=Math.ceil(d*1.5);battle.enemyHp=Math.max(0,battle.enemyHp-d);rs.dmgDealt+=d;if(d>0){floatDmg(d,'#c0392b');sfx(200+d,.15,'sawtooth',.1,-60);}if(cleared>0)toast(`💥 粉碎 ${cleared} 格挡！`);}
+  if(c.special==='desperation'){const missing=Math.max(0,player.maxHp-player.hp);const s=Math.max(1,Math.floor(missing/(c.despDiv||15)));battle.str+=s;toast(`🩸 绝望之力 +${s} 力量！`,'g');}
   return totalDmg;
 }
 function playSelectedCards(){
@@ -1589,7 +1659,7 @@ function playSelectedCards(){
   if(battle.playerStun>0){toast('🌀 你被眩晕，本回合无法出牌！','r');return;}
   // 缴械：无法使用攻击牌
   if(battle.playerDisarm>0&&c.kind==='atk'){toast('⛓ 你被缴械，无法使用攻击牌！','r');return;}
-  const cardCost=battle.nextFree?0:c.cost;battle.nextFree=false;
+  const cardCost=battle.nextFreeCount>0?0:c.cost;if(battle.nextFreeCount>0)battle.nextFreeCount--;
   if(battle.apLeft<cardCost){toast('行动力不足','r');return;}
   battle.apLeft-=cardCost;rs.cardsPlayed++;battle.firstCard=false;
   sfx(c.kind==='atk'?220:c.kind==='def'?350:280,.06,'square',.07,c.kind==='atk'?-80:30);
@@ -2195,6 +2265,7 @@ function floatDmg(n,color,isPlayer=false){const el=document.createElement('div')
 function previewUpgrade(c){
   const copy=JSON.parse(JSON.stringify(c));upgradeCard(copy);
   const diff=[];
+  if(c.special&&copy.desc!==c.desc)diff.push(`<span style="color:var(--slime)">${copy.desc}</span>`);
   if(copy.atk!==c.atk)diff.push(`伤害 ${c.atk}→<b style="color:var(--slime)">${copy.atk}</b>`);
   if(copy.blk!==c.blk)diff.push(`格挡 ${c.blk}→<b style="color:var(--slime)">${copy.blk}</b>`);
   if(copy.cost!==c.cost)diff.push(`费用 ${c.cost}→<b style="color:var(--slime)">${copy.cost}</b>`);
@@ -2202,6 +2273,7 @@ function previewUpgrade(c){
   if(copy.heal!==c.heal)diff.push(`治疗 ${c.heal}→<b style="color:var(--slime)">${copy.heal}</b>`);
   if(copy.str!==c.str)diff.push(`力量 ${c.str}→<b style="color:var(--slime)">${copy.str}</b>`);
   if(copy.poison!==c.poison)diff.push(`中毒 ${c.poison}→<b style="color:var(--slime)">${copy.poison}</b>`);
+  if(c.special&&copy.exhaust!==c.exhaust&&!copy.exhaust)diff.push('<b style="color:var(--slime)">不再消耗</b>');
   const vOld=cardValue(c),vNew=cardValue(copy);
   return`${diff.join('，')} <span style="color:var(--amber);font-size:8px">(${vOld}→${vNew}g)</span>`;
 }
@@ -2865,7 +2937,7 @@ function initGame(){
   chapter={floor:1,theme:null,modifier:null,boss:null};
   const startDeck=buildStarterDeck();
   clearLegacy();
-  battle={enemy:null,enemyHp:0,enemyMaxHp:0,enemyBlk:0,enemyStr:0,enemyWeak:0,enemyVuln:0,enemyPoison:0,enemyBleed:0,enemyStun:0,enemyActions:[],enemyActionIdx:0,nextEnemyAction:null,deck:startDeck,drawPile:[],hand:[],discardPile:[],exhPile:[],apLeft:3,maxAp:3,blk:0,str:0,jugg:false,lifestealMode:false,playerPoison:0,playerWeak:0,playerStun:0,playerDisarm:0,fortified:0,turn:1,selectedCards:[],firstCard:true,nextFree:false};
+  battle={enemy:null,enemyHp:0,enemyMaxHp:0,enemyBlk:0,enemyStr:0,enemyWeak:0,enemyVuln:0,enemyPoison:0,enemyBleed:0,enemyStun:0,enemyActions:[],enemyActionIdx:0,nextEnemyAction:null,deck:startDeck,drawPile:[],hand:[],discardPile:[],exhPile:[],apLeft:3,maxAp:3,blk:0,str:0,jugg:false,lifestealMode:false,playerPoison:0,playerWeak:0,playerStun:0,playerDisarm:0,fortified:0,turn:1,selectedCards:[],firstCard:true,nextFreeCount:0};
   rs={dmgDealt:0,dmgTaken:0,cardsPlayed:0,turns:0,chaptersCleared:0};
   window._mapRank=7;
   document.getElementById('mb').style.display='none';
