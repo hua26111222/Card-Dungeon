@@ -121,9 +121,9 @@ html,body{background:var(--void);color:var(--text);font-family:var(--fm);font-si
 .hcrb.rcu{color:var(--soul);border-color:var(--violet)}
 
 /* ═══ 战斗 KOF格斗风格 ═══ */
-#bv{display:none;grid-template-areas:"scene""hand""buttons""stats";grid-template-columns:1fr;grid-template-rows:260px minmax(180px,1fr) auto auto;min-height:calc(100vh - 62px)}
+#bv{display:none;grid-template-areas:"scene""hand""buttons""stats";grid-template-columns:1fr;grid-template-rows:1fr auto auto auto;height:calc(100dvh - 62px)}
 .bscene{grid-area:scene;position:relative;overflow:hidden;display:flex;align-items:stretch;
-  background:#07050e}
+  background:#07050e;min-height:140px}
 .bscene::before{content:'';position:absolute;left:0;right:0;bottom:82px;height:2px;z-index:1;pointer-events:none;
   background:linear-gradient(90deg,transparent 0%,rgba(200,169,110,.22) 25%,rgba(200,169,110,.1) 50%,rgba(200,169,110,.22) 75%,transparent 100%);
   box-shadow:0 0 18px rgba(200,169,110,.08)}
@@ -141,7 +141,8 @@ html,body{background:var(--void);color:var(--text);font-family:var(--fm);font-si
 .bchar-e::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;z-index:3;
   background:linear-gradient(90deg,var(--blood2),var(--gore),var(--blood2))}
 .pav{flex:1;width:100%;min-height:50px;display:flex;align-items:flex-end;justify-content:center;font-size:58px;
-  padding-bottom:4px;position:relative;overflow:hidden;filter:drop-shadow(0 4px 10px rgba(0,0,0,.8))}
+  padding-bottom:4px;position:relative;overflow:hidden;filter:drop-shadow(0 4px 10px rgba(0,0,0,.8));
+  animation:idle-bob 2.1s ease-in-out infinite}
 .ep{flex:1;width:100%;min-height:60px;display:flex;align-items:flex-end;justify-content:center;font-size:78px;
   padding-bottom:2px;position:relative;overflow:hidden;filter:drop-shadow(0 4px 12px rgba(0,0,0,.9))}
 .ep::after{content:'';position:absolute;inset:0;
@@ -463,6 +464,51 @@ html,body{background:var(--void);color:var(--text);font-family:var(--fm);font-si
 .tc-price{color:var(--bone);font-weight:700;letter-spacing:1px}
 .tc-val{color:var(--amber);opacity:.75}
 
+/* ── KOF 格斗风格动画 ── */
+/* 角色空闲晃动 */
+@keyframes idle-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
+@keyframes idle-flip{0%,100%{transform:scaleX(-1) translateY(0)}50%{transform:scaleX(-1) translateY(-7px)}}
+/* 敌人内层span：镜像朝向玩家 */
+.ep-inner{display:block;transform:scaleX(-1);animation:idle-flip 1.85s ease-in-out infinite}
+/* 玩家出牌动作 */
+@keyframes atk-lunge{
+  0%{transform:translateY(0) translateX(0)}
+  18%{transform:translateY(-10px) translateX(2px)}
+  48%{transform:translateY(-4px) translateX(30px) scale(1.1)}
+  78%{transform:translateY(0) translateX(8px)}
+  100%{transform:translateY(0) translateX(0)}}
+@keyframes def-raise{
+  0%,100%{transform:scale(1) rotate(0) translateY(0)}
+  40%{transform:scale(1.1) rotate(-10deg) translateY(-10px)}}
+@keyframes skl-cast{
+  0%,100%{transform:scale(1) translateY(0)}
+  30%{transform:scale(1.14) translateY(-14px)}
+  65%{transform:scale(1.05) translateY(-5px)}}
+@keyframes p-hit{
+  0%,100%{transform:translateX(0)}
+  30%{transform:translateX(-16px)}
+  70%{transform:translateX(-4px)}}
+/* 敌人动作（含scaleX(-1)基础变换） */
+@keyframes e-hit{
+  0%,100%{transform:scaleX(-1) translateX(0)}
+  25%{transform:scaleX(-1) translateX(20px)}
+  68%{transform:scaleX(-1) translateX(5px)}}
+@keyframes e-atk{
+  0%,100%{transform:scaleX(-1) translateX(0) translateY(0)}
+  22%{transform:scaleX(-1) translateX(-4px) translateY(-9px)}
+  52%{transform:scaleX(-1) translateX(-32px) translateY(-2px)}
+  80%{transform:scaleX(-1) translateX(-8px) translateY(0)}}
+/* 动作触发类（!important 覆盖空闲动画） */
+.pav.a-atk{animation:atk-lunge .52s ease-out forwards!important}
+.pav.a-def{animation:def-raise .48s ease-out forwards!important}
+.pav.a-skl{animation:skl-cast .55s ease-out forwards!important}
+.pav.a-hit{animation:p-hit .38s ease-out forwards!important}
+.ep-inner.a-hit{animation:e-hit .40s ease-out forwards!important}
+.ep-inner.a-atk{animation:e-atk .58s ease-out forwards!important}
+/* 地图节点选中高亮 */
+.mcard.mc-sel{border-width:2px!important;
+  transform:translateY(-10px) scale(1.1)!important;
+  box-shadow:0 0 20px rgba(200,169,110,.5),0 12px 26px rgba(0,0,0,.9)!important}
 @media(min-width:600px){
   #app{max-width:100%}
   #bv{min-height:calc(100vh - 64px)}
@@ -1036,7 +1082,7 @@ function startBattle(isElite,isBoss){
   battle.blk=0;battle.str=0;battle.jugg=false;battle.lifestealMode=false;battle.playerPoison=0;battle.playerWeak=0;battle.enemyBleed=0;battle.fortified=0;battle.apLeft=startAp;battle.maxAp=startAp;battle.turn=1;battle.selectedCards=[];battle.firstCard=true;
   if(chapter.modifier?.onBattleStart)chapter.modifier.onBattleStart(battle,player);
   applyRelicHooks('onBattleStart',battle,player);
-  const ep=document.getElementById('ep');ep.textContent=en.art;ep.className='ep'+(isBoss?' fb':isElite?' fe':'');
+  const ep=document.getElementById('ep');ep.innerHTML='<span class="ep-inner">'+en.art+'</span>';ep.className='ep'+(isBoss?' fb':isElite?' fe':'');
   const enEl=document.getElementById('en');enEl.textContent=en.name;enEl.className='en'+(isBoss?' bos':isElite?' eli':'');
   document.getElementById('etag').textContent=`${isBoss?'☠ 首领':isElite?'✦ 精英':'⚔ 战斗'}  ·  第 ${toR(chapter.floor)} 章  ·  ${chapter.theme?.name||''}`;
   showView('bv');
@@ -1121,6 +1167,8 @@ function playSelectedCards(){
   if(battle.apLeft<c.cost){toast('行动力不足','r');return;}
   battle.apLeft-=c.cost;rs.cardsPlayed++;battle.firstCard=false;
   sfx(c.kind==='atk'?220:c.kind==='def'?350:280,.06,'square',.07,c.kind==='atk'?-80:30);
+  showCardFly(c);
+  triggerPAnim(c.kind==='atk'?'a-atk':c.kind==='def'?'a-def':'a-skl');
   battle.hand.splice(idx,1);
   if(c.exhaust)battle.exhPile.push(c);else battle.discardPile.push(c);
   battle.selectedCards=[];
@@ -1138,13 +1186,15 @@ function endTurn(){
   // Execute enemy action
   battle.enemyBlk=0;
   const acts=battle.enemyActions||[];
+  let _eDidAtk=false,_eDmg=0;
   if(acts.length>0){
     const idx=battle.enemyActionIdx%acts.length;battle.enemyActionIdx++;
     const act=acts[idx];
     if(act.t==='a'){
+      _eDidAtk=true;
       let eatk=act.v+(battle.enemyStr||0);if(battle.enemyWeak>0)eatk=Math.floor(eatk*.75);
       if(battle.fortified>0){eatk=Math.floor(eatk*.5);battle.fortified--;toast('🛡 坚固减伤');}
-      const dmg=Math.max(0,eatk-battle.blk);player.hp=Math.max(0,player.hp-dmg);battle.blk=Math.max(0,battle.blk-eatk);rs.dmgTaken+=dmg;
+      const dmg=Math.max(0,eatk-battle.blk);player.hp=Math.max(0,player.hp-dmg);battle.blk=Math.max(0,battle.blk-eatk);rs.dmgTaken+=dmg;_eDmg=dmg;
       if(dmg>0){floatDmg(dmg,'#8b1a1a',true);sfx(100+dmg,.2,'sawtooth',.12,-40);}
     }else if(act.t==='d'){battle.enemyBlk=(battle.enemyBlk||0)+act.v;toast(`${battle.enemy.name} 获得 ${act.v} 格挡`);
     }else if(act.t==='s'){battle.enemyStr=Math.min((battle.enemyStr||0)+act.v,3);toast(`${battle.enemy.name} 力量 +${act.v}`);
@@ -1152,9 +1202,10 @@ function endTurn(){
     }else if(act.t==='p'){battle.playerPoison=Math.min(9,(battle.playerPoison||0)+act.v);toast(`你中毒了！(+${act.v}层)`,'r');
     }else if(act.t==='w'){battle.playerWeak=Math.min(5,(battle.playerWeak||0)+act.v);toast(`你被虚弱了！(${act.v}回合)`,'r');}
   }else{
+    _eDidAtk=true;
     let eatk=(battle.enemy.atk||8)+(battle.enemyStr||0);if(battle.enemyWeak>0)eatk=Math.floor(eatk*.75);
     if(battle.fortified>0){eatk=Math.floor(eatk*.5);battle.fortified--;}
-    const dmg=Math.max(0,eatk-battle.blk);player.hp=Math.max(0,player.hp-dmg);battle.blk=Math.max(0,battle.blk-eatk);rs.dmgTaken+=dmg;
+    const dmg=Math.max(0,eatk-battle.blk);player.hp=Math.max(0,player.hp-dmg);battle.blk=Math.max(0,battle.blk-eatk);rs.dmgTaken+=dmg;_eDmg=dmg;
     if(dmg>0){floatDmg(dmg,'#8b1a1a',true);sfx(100+dmg,.2,'sawtooth',.12,-40);}
   }
   battle.blk=0;
@@ -1167,6 +1218,8 @@ function endTurn(){
   const drawN=chapter.modifier?.handLimit?Math.min(player.drawCount||5,chapter.modifier.handLimit):player.drawCount||5;
   drawCards(drawN);
   renderBattle();document.getElementById('dtn').textContent=battle.turn;
+  // 敌人攻击 & 玩家受击动画（DOM已更新后触发）
+  if(_eDidAtk){setTimeout(()=>{triggerEAnim('a-atk');if(_eDmg>0)setTimeout(()=>triggerPAnim('a-hit'),260);},40);}
 }
 function endBattle(won){
   stopBGM();
@@ -1581,6 +1634,7 @@ function renderTokens(){
   document.getElementById('tk-g').innerHTML=mk(Math.min(player.gold,16),'tgo','●',8);
 }
 function showView(name){
+  document.body.style.overflow=name==='bv'?'hidden':'';
   const map={ci:'#ci',mv:'#mv',bv:'#bv',ov:'#ov',gov:'#gov',winv:'#winv'};
   Object.entries(map).forEach(([k,sel])=>{const el=document.querySelector(sel);if(!el)return;const show=k===name;el.style.display=show?(k==='bv'?'grid':k==='gov'?'flex':k==='ci'?'flex':'block'):'none';if(show)el.classList.add('vi');});
 }
@@ -1599,6 +1653,39 @@ function previewUpgrade(c){
   if(copy.poison!==c.poison)diff.push(`中毒 ${c.poison}→<b style="color:var(--slime)">${copy.poison}</b>`);
   const vOld=cardValue(c),vNew=cardValue(copy);
   return`${diff.join('，')} <span style="color:var(--amber);font-size:8px">(${vOld}→${vNew}g)</span>`;
+}
+function triggerPAnim(cls){
+  const el=document.getElementById('pav');if(!el)return;
+  el.classList.remove('a-atk','a-def','a-skl','a-hit');void el.offsetWidth;
+  el.classList.add(cls);
+  el.addEventListener('animationend',()=>el.classList.remove(cls),{once:true});
+}
+function triggerEAnim(cls){
+  const el=document.querySelector('#ep .ep-inner');if(!el)return;
+  el.classList.remove('a-hit','a-atk');void el.offsetWidth;
+  el.classList.add(cls);
+  el.addEventListener('animationend',()=>el.classList.remove(cls),{once:true});
+}
+function showCardFly(c){
+  try{
+    const pav=document.getElementById('pav');const ep=document.getElementById('ep');
+    if(!pav||!ep)return;
+    const pR=pav.getBoundingClientRect();const eR=ep.getBoundingClientRect();
+    const fly=document.createElement('span');
+    fly.style.cssText='position:fixed;z-index:9999;pointer-events:none;font-size:26px;line-height:1;'
+      +'left:'+(pR.left+pR.width*.45-13)+'px;top:'+(pR.top+pR.height*.45-13)+'px';
+    fly.textContent=c.kind==='atk'?(c.art||'🗡'):c.kind==='def'?'🛡':'✨';
+    document.body.appendChild(fly);
+    const dx=(eR.left+eR.width*.5)-(pR.left+pR.width*.45);
+    const dy=(eR.top+eR.height*.4)-(pR.top+pR.height*.45);
+    fly.animate(
+      c.kind==='def'
+        ?[{transform:'scale(1)',opacity:1},{transform:'scale(2.2) translateY(-28px)',opacity:0}]
+        :[{transform:'rotate(-8deg) scale(1.3)',opacity:1},
+          {transform:'translate('+dx+'px,'+dy+'px) rotate(22deg) scale(0.25)',opacity:0}],
+      {duration:c.kind==='def'?300:400,easing:c.kind==='def'?'ease-out':'ease-in'}
+    ).onfinish=()=>fly.remove();
+  }catch(e){}
 }
 function showCardPicker(act,cards,cancelFn){
   window._pickCards=cards;window._pickCancel=cancelFn||null;window._pickAct=act;window._pickSel=null;
