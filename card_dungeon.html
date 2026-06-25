@@ -1095,9 +1095,9 @@ function pickMapCard(col){
   player.steps=(player.steps||0)+1;
 
   switch(card.type){
-    case 'fight':     startBattle(false,false);break;
-    case 'elite':     startBattle(true,false);break;
-    case 'boss':      startBattle(false,true);break;
+    case 'fight':     showPreBattle(false,false);break;
+    case 'elite':     showPreBattle(true,false);break;
+    case 'boss':      showPreBattle(false,true);break;
     case 'event':     startEvent();break;
     case 'tavern':    startTavern();break;
     case 'campfire':  startCampfire();break;
@@ -1106,6 +1106,47 @@ function pickMapCard(col){
     case 'altar':     startAltar();break;
   }
   if(phase===PH.MAP)renderMap();
+}
+// ── 战前情报 ──
+function getBattleRating(isElite,isBoss){
+  if(isBoss)return{label:'首领',color:'var(--violet)',icon:'☠',desc:'章节最终守卫，实力未知，全力迎战',tier:'boss'};
+  if(isElite)return{label:'精英',color:'var(--amber)',icon:'✦',desc:'强大的精英敌人，掉落优质战利品',tier:'elite'};
+  const rank=window._mapRank||7;const floor=chapter.floor||1;const em=window._mapEffectMult||1;
+  const danger=(rank/7)*(1+(floor-1)*.2)*em;
+  if(danger<0.65)return{label:'弱鸡',color:'var(--slime)',icon:'🟢',desc:'不堪一击，速速了结',tier:'fight'};
+  if(danger<0.95)return{label:'普通',color:'var(--text)',icon:'⚔',desc:'标准战斗，保持戒备',tier:'fight'};
+  if(danger<1.25)return{label:'强敌',color:'var(--gore2)',icon:'🔴',desc:'不可小觑，仔细规划出牌',tier:'fight'};
+  return{label:'险境',color:'var(--blood)',icon:'☠',desc:'高度危险，生命可能不保',tier:'fight'};
+}
+function showPreBattle(isElite,isBoss){
+  phase=PH.OV;
+  const rat=getBattleRating(isElite,isBoss);
+  const fp=chapter.floor;const rank=window._mapRank||7;
+  const rankMult=rank<=4?.85:rank<=8?1.0:rank<=12?1.15:1.30;
+  const tierScale=(1+(fp-1)*.1)*rankMult;const em=window._mapEffectMult||1;
+  const hpBase=player.maxHp*(isBoss?1.4:isElite?0.9:0.5);
+  const hpNorm=isBoss?3.0:isElite?1.6:1.0;
+  const hpAvg=isBoss?3.0:isElite?1.6:0.85;
+  const estHp=Math.round(hpBase*(hpAvg/hpNorm)*tierScale*(em>1&&!isBoss?em:1));
+  const dangerPct=isBoss?.19:isElite?.14:.11;
+  const estAtk=Math.round(player.maxHp*dangerPct*tierScale);
+  document.getElementById('ovtag').textContent=isBoss?'☠  首领降临':isElite?'✦  精英遭遇':'⚔  战斗预警';
+  document.getElementById('ovtit').textContent='即将进入战斗';
+  const h=`<div style="text-align:center;margin-bottom:14px;padding:10px">
+    <div style="display:inline-block;padding:6px 24px;border:2px solid ${rat.color};color:${rat.color};font-size:18px;font-family:var(--fs);letter-spacing:4px;background:rgba(0,0,0,.5);text-shadow:0 0 12px ${rat.color}">
+      ${rat.icon} ${rat.label}
+    </div>
+    <div style="font-size:11px;color:var(--text2);margin-top:8px;font-style:italic">${rat.desc}</div>
+  </div>
+  <div style="background:rgba(0,0,0,.3);border:1px solid var(--crack2);padding:12px 10px;margin-bottom:14px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;text-align:center">
+    <div><div style="font-size:9px;color:var(--text3);letter-spacing:2px;margin-bottom:4px">敌方生命</div><div style="font-size:14px;color:var(--gore2);font-weight:700">${Math.round(estHp*.85)}~${Math.round(estHp*1.15)}</div></div>
+    <div><div style="font-size:9px;color:var(--text3);letter-spacing:2px;margin-bottom:4px">每回合伤害</div><div style="font-size:14px;color:var(--amber);font-weight:700">${Math.round(estAtk*.8)}~${Math.round(estAtk*1.2)}</div></div>
+    <div><div style="font-size:9px;color:var(--text3);letter-spacing:2px;margin-bottom:4px">你的生命</div><div style="font-size:14px;color:var(--slime);font-weight:700">${player.hp}/${player.maxHp}</div></div>
+  </div>
+  <button class="ovbtn gd" onclick="startBattle(${isElite},${isBoss})">⚔ 进入战斗</button>
+  <button class="ovbtn" onclick="backToMap()">↩ 撤退（返回地图）</button>`;
+  document.getElementById('ovb').innerHTML=h;
+  showView('ov');renderHud();renderTokens();
 }
 function startBattle(isElite,isBoss){
   phase=PH.BATTLE;saveGame();startBGM('battle');
@@ -1127,7 +1168,11 @@ function startBattle(isElite,isBoss){
   battle.blk=0;battle.str=0;battle.jugg=false;battle.lifestealMode=false;battle.playerPoison=0;battle.playerWeak=0;battle.enemyBleed=0;battle.fortified=0;battle.apLeft=startAp;battle.maxAp=startAp;battle.turn=1;battle.selectedCards=[];battle.firstCard=true;battle.nextFree=false;
   if(chapter.modifier?.onBattleStart)chapter.modifier.onBattleStart(battle,player);
   applyRelicHooks('onBattleStart',battle,player);
-  const ep=document.getElementById('ep');ep.innerHTML='<span class="ep-inner">'+en.art+'</span>';ep.className='ep'+(isBoss?' fb':isElite?' fe':'');
+  const ep=document.getElementById('ep');
+  const eBadgeSz=isBoss?'22px':isElite?'18px':'14px';
+  ep.innerHTML=`<span class="ep-inner">${getEnemySprite(isBoss?'boss':isElite?'elite':'fight')}<span style="font-size:${eBadgeSz};line-height:1;display:block;text-align:center">${en.art}</span></span>`;
+  ep.className='ep'+(isBoss?' fb':isElite?' fe':'');
+  const pav=document.getElementById('pav');if(pav)pav.innerHTML=getPlayerSprite();
   const enEl=document.getElementById('en');enEl.textContent=en.name;enEl.className='en'+(isBoss?' bos':isElite?' eli':'');
   document.getElementById('etag').textContent=`${isBoss?'☠ 首领':isElite?'✦ 精英':'⚔ 战斗'}  ·  第 ${toR(chapter.floor)} 章  ·  ${chapter.theme?.name||''}`;
   showView('bv');
@@ -1524,8 +1569,8 @@ function startCampfire(){
     <div class="ccard" style="transform:rotate(5deg) translateY(7px)" onclick="doRest('upgrade')">
       <div class="ccard-top" style="background:linear-gradient(90deg,transparent,rgba(106,58,154,.5),transparent)"></div>
       <div class="ccard-icon">⬆</div>
-      <div class="ccard-text">领悟</div>
-      <div class="ccard-sub">强化一张牌 · 攻击+3 / 格挡+3 / 技能-1费</div>
+      <div class="ccard-text">升级卡牌</div>
+      <div class="ccard-sub">按稀有度提升属性 · 稀有+28% · 罕见+22% · 普通+18%</div>
     </div>
   </div>`;
   document.getElementById('ovb').innerHTML=h;
@@ -1604,7 +1649,7 @@ function confirmTavBuy(){
 function doRest(act){
   const em=window._mapEffectMult||1;
   if(act==='heal'){const h=Math.floor(player.maxHp*.3*em);player.hp=Math.min(player.maxHp,player.hp+h);toast(`+${h} HP`,'g');setTimeout(backToMap,600);}
-  else if(act==='upgrade'){const up=battle.deck.filter(c=>c.kind==='atk'||c.kind==='def'||c.kind==='skl'||c.kind==='pwr');if(up.length)return showCardPicker('upgrade',up);toast('没有可强化的牌','r');}
+  else if(act==='upgrade'){const up=battle.deck.filter(c=>c.kind==='atk'||c.kind==='def'||c.kind==='skl'||c.kind==='pwr');if(up.length){window._upgradeFromCamp=true;return showCardPicker('upgrade',up);}toast('没有可强化的牌','r');}
   else{const rm=battle.deck.filter(c=>c.kind!=='crs');if(rm.length)return showCardPicker('remove',rm);toast('没有可移除的牌','r');}
   renderHud();renderTokens();
 }
@@ -1827,8 +1872,9 @@ function showCardPicker(act,cards,cancelFn){
 }
 function renderPickerUI(){
   const act=window._pickAct;const cards=window._pickCards;const sel=window._pickSel;
-  document.getElementById('ovtag').textContent=act==='upgrade'?'⚒  锻造':'🗑  移除';
-  document.getElementById('ovtit').textContent=act==='upgrade'?'选择锻造的卡牌':'选择移除的卡牌';
+  const fromCamp=window._upgradeFromCamp;
+  document.getElementById('ovtag').textContent=act==='upgrade'?(fromCamp?'⬆  领悟升级':'⚒  锻造强化'):'🗑  移除';
+  document.getElementById('ovtit').textContent=act==='upgrade'?(fromCamp?'选择一张牌升级':'选择一张牌锻造'):'选择移除的卡牌';
   const tableHtml=cards.map((c,i)=>renderPokerCard(c,`selectPickCard(${i})`,{idx:i,total:cards.length,bought:false,sel:sel===i})).join('');
   let confirmHtml='';
   if(sel!==null&&sel<cards.length){
@@ -1852,9 +1898,9 @@ function renderPickerUI(){
 function selectPickCard(i){window._pickSel=i;renderPickerUI();}
 function confirmPick(){
   const act=window._pickAct;const i=window._pickSel;const c=window._pickCards?.[i];if(!c)return;
-  if(act==='upgrade'){upgradeCard(c);toast(`锻造：${c.name}`,'g');}
+  if(act==='upgrade'){upgradeCard(c);toast(`${window._upgradeFromCamp?'升级':'锻造'}：${c.name}`,'g');}
   else{const idx=battle.deck.indexOf(c);if(idx>=0)battle.deck.splice(idx,1);toast(`移除：${c.name}`);}
-  window._pickSel=null;window._pickCancel=null;
+  window._pickSel=null;window._pickCancel=null;window._upgradeFromCamp=false;
   renderHud();renderTokens();setTimeout(backToMap,600);
 }
 function showDeck(){
