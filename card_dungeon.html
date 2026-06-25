@@ -933,7 +933,7 @@ const EVTS=[
 let phase=PH.INTRO;
 let player={hp:80,maxHp:80,gold:80,floor:1,kills:0,steps:0,drawCount:5,maxAp:3};
 let chapter={floor:1,theme:null,modifier:null,boss:null};
-let battle={enemy:null,enemyHp:0,enemyMaxHp:0,enemyBlk:0,enemyStr:0,enemyWeak:0,enemyVuln:0,enemyPoison:0,enemyBleed:0,enemyActions:[],enemyActionIdx:0,deck:[],drawPile:[],hand:[],discardPile:[],exhPile:[],apLeft:3,maxAp:3,blk:0,str:0,jugg:false,lifestealMode:false,fortified:0,playerPoison:0,playerWeak:0,turn:1,selectedCards:[],firstCard:true,nextFree:false};
+let battle={enemy:null,enemyHp:0,enemyMaxHp:0,enemyBlk:0,enemyStr:0,enemyWeak:0,enemyVuln:0,enemyPoison:0,enemyBleed:0,enemyStun:0,enemyActions:[],enemyActionIdx:0,deck:[],drawPile:[],hand:[],discardPile:[],exhPile:[],apLeft:3,maxAp:3,blk:0,str:0,jugg:false,lifestealMode:false,fortified:0,playerPoison:0,playerWeak:0,playerStun:0,playerDisarm:0,turn:1,selectedCards:[],firstCard:true,nextFree:false};
 let mapData={rows:[],step:0,playerCol:2,history:[]};
 let rs={dmgDealt:0,dmgTaken:0,cardsPlayed:0,turns:0,chaptersCleared:0};
 function calcPS(){
