@@ -647,6 +647,11 @@ html,body{background:var(--void);color:var(--text);font-family:var(--fm);font-si
     <div class="gotit" id="gotit">你已陨落</div>
     <div class="gosub" id="gosub"></div>
     <div class="gost" id="gost"></div>
+    <div id="legacy-section" style="display:none;width:100%;max-width:360px;margin-bottom:14px">
+      <div style="font-size:10px;color:var(--bone2);letter-spacing:2px;margin:14px 0 8px;text-align:center;border-top:1px solid var(--crack);padding-top:14px">⬡ 选最多3张牌传给下一局</div>
+      <div id="legacy-cards"></div>
+      <button id="legacy-btn" class="ovbtn gd" style="width:100%;margin-top:6px;opacity:.5" onclick="confirmLegacy()" disabled>点选卡牌传给下一局（最多3张）</button>
+    </div>
     <button class="brst" onclick="initGame()">再次挑战</button>
   </div>
   <div id="winv" style="display:none;flex-direction:column;align-items:center;justify-content:center;min-height:calc(100vh - 88px);text-align:center;padding:24px;background:radial-gradient(ellipse at 50% 30%,rgba(106,58,154,.25),transparent 60%),var(--void)">
@@ -716,6 +721,15 @@ const DB=[
   /* ── 诅咒 (crs) ── */
   {id:'regret',      name:'悔恨',    cost:0,kind:'crs',art:'💔',rar:'curse',    desc:'回合结束损失 1HP',curseTick:1},
   {id:'pain',        name:'剧痛',    cost:0,kind:'crs',art:'🩹',rar:'curse',    desc:'无法使用，占用手牌',unplayable:true},
+  /* ── 奇异牌：特殊机制 ── */
+  {id:'soul_strike', name:'灵魂重击',cost:2,kind:'atk',art:'💫',rar:'rare',     desc:'造成敌人当前HP的 <b>25%</b> 伤害（无视格挡）',special:'soul_strike'},
+  {id:'chaos_shot',  name:'混沌弹',  cost:1,kind:'atk',art:'🎲',rar:'uncommon', desc:'造成 <b>8~45</b> 随机伤害',special:'chaos_shot'},
+  {id:'last_stand',  name:'绝地反击',cost:1,kind:'atk',art:'🔥',rar:'uncommon', desc:'HP≤30%时造成 <b>55</b> 伤，否则 <b>15</b> 伤',special:'last_stand'},
+  {id:'martyr',      name:'殉道',    cost:0,kind:'atk',art:'☀',rar:'rare',     desc:'消耗当前HP仅剩1，造成等量无视格挡伤害（消耗）',special:'martyr',exhaust:true},
+  {id:'catalyze',    name:'催化',    cost:0,kind:'skl',art:'⚗',rar:'uncommon', desc:'下张牌费用归零（消耗）',special:'catalyze',exhaust:true},
+  {id:'phantom_hit', name:'幻影打击',cost:1,kind:'atk',art:'👻',rar:'rare',     desc:'造成等于当前格挡量的伤害（无视敌人格挡）',special:'phantom_hit'},
+  {id:'heartbreak',  name:'心碎一击',cost:1,kind:'atk',art:'💥',rar:'uncommon', desc:'清除敌人所有格挡，造成 <b>14</b> 伤害',special:'heartbreak'},
+  {id:'desperation', name:'绝望之力',cost:1,kind:'skl',art:'🩸',rar:'rare',     desc:'获得 力量 = 缺失HP÷15（最少1）（消耗）',special:'desperation',exhaust:true},
 ];
 function gc(id){const c=DB.find(c=>c.id===id);return c?JSON.parse(JSON.stringify(c)):null;}
 function cardValue(c){
@@ -745,13 +759,16 @@ function upgradeCard(c){
 }
 function buildStarterDeck(){
   const pick=(pool,n)=>Array(n).fill(0).map(()=>gc(pool[0|Math.random()*pool.length]));
-  return[
+  const base=[
     ...pick(['strike','slam','double','multishot'],3),
     ...pick(['defend','fortify','barrier','guard_quick'],3),
     ...pick(['inspect','discard','poison_flask','weaken','meditate'],2),
     gc('strength'),
     gc('focus_stone'),
   ];
+  const legacyIds=loadLegacy();
+  legacyIds.forEach(id=>{const c=gc(id);if(c){c.isLegacy=true;base.push(c);}});
+  return base;
 }
 const MODS=[
   {id:'burning',icon:'🔥',name:'灼烧之层',color:'#c0602a',desc:'敌人攻击+20%，但每回合回复2HP',apply:(e)=>{e.actions=(e.actions||[]).map(a=>a.t==='a'?{...a,v:Math.ceil(a.v*1.2)}:a)},onTurnStart:(b,p)=>{p.hp=Math.min(p.maxHp,p.hp+2);toast('+2 HP（灼烧回复）','g')}},
@@ -791,6 +808,12 @@ const ET=[
   {name:'影子刺客',  art:'🥷',tier:'fight',hpMult:.7,
    actions:[{t:'a',v:7,n:'暗袭'},{t:'a',v:7,n:'连刺'},{t:'a',v:6,n:'连刺'},{t:'a',v:12,n:'致命一击'}],
    loot:{cards:['double','whirl','adrenaline','inspect']}},
+  {name:'暴怒骷髅战士',art:'💀',tier:'fight',hpMult:.85,
+   actions:[{t:'a',v:6,n:'骨爪'},{t:'s',v:1,n:'激怒'},{t:'a',v:8,n:'骨爪'},{t:'a',v:12,n:'暴怒重击'},{t:'a',v:8,n:'骨爪'}],
+   loot:{cards:['strength','warcry','slam','berserker']}},
+  {name:'毒疫蜘蛛巢母',art:'🕷',tier:'fight',hpMult:.8,
+   actions:[{t:'p',v:3,n:'毒液喷涌'},{t:'a',v:5,n:'毒爪缠绕'},{t:'p',v:2,n:'毒液喷涌'},{t:'a',v:7,n:'巢母撕咬'}],
+   loot:{cards:['poison_flask','corruption','venom_blade','weaken']}},
   /* ── 精英 ── */
   {name:'石像鬼领主',art:'🗿',tier:'elite',hpMult:1.6,
    actions:[{t:'d',v:8,n:'石甲'},{t:'a',v:10,n:'利爪'},{t:'a',v:10,n:'利爪'},{t:'s',v:1,n:'狂暴'},{t:'a',v:14,n:'击碎'}],
@@ -804,6 +827,9 @@ const ET=[
   {name:'冰霜女巫',  art:'🧊',tier:'elite',hpMult:1.4,
    actions:[{t:'a',v:8,n:'冰刃'},{t:'w',v:2,n:'寒冬诅咒'},{t:'a',v:8,n:'冰刃'},{t:'a',v:11,n:'冰风暴'},{t:'d',v:6,n:'冰盾'}],
    loot:{cards:['barrier','counter','weaken','meditate']}},
+  {name:'嗜血吸血鬼伯爵',art:'🦇',tier:'elite',hpMult:1.55,
+   actions:[{t:'a',v:9,n:'鲜血汲取'},{t:'h',v:8,n:'血液复苏'},{t:'a',v:11,n:'鲜血汲取'},{t:'s',v:1,n:'嗜血增幅'},{t:'a',v:14,n:'死亡之咬'}],
+   loot:{cards:['vampire_oath','regen','bloodrush','blood_pact']}},
   /* ── Boss ── */
   {name:'深渊魔龙',  art:'🐲',tier:'boss', hpMult:3.0,
    actions:[{t:'a',v:10,n:'龙焰吐息'},{t:'a',v:8,n:'爪击'},{t:'a',v:8,n:'爪击'},{t:'s',v:1,n:'龙之怒'},{t:'a',v:14,n:'龙尾横扫'},{t:'d',v:8,n:'鳞甲'}],
@@ -864,7 +890,7 @@ const EVTS=[
 let phase=PH.INTRO;
 let player={hp:80,maxHp:80,gold:80,floor:1,kills:0,steps:0,drawCount:5,maxAp:3};
 let chapter={floor:1,theme:null,modifier:null,boss:null};
-let battle={enemy:null,enemyHp:0,enemyMaxHp:0,enemyBlk:0,enemyStr:0,enemyWeak:0,enemyVuln:0,enemyPoison:0,enemyBleed:0,enemyActions:[],enemyActionIdx:0,deck:[],drawPile:[],hand:[],discardPile:[],exhPile:[],apLeft:3,maxAp:3,blk:0,str:0,jugg:false,lifestealMode:false,fortified:0,playerPoison:0,playerWeak:0,turn:1,selectedCards:[],firstCard:true};
+let battle={enemy:null,enemyHp:0,enemyMaxHp:0,enemyBlk:0,enemyStr:0,enemyWeak:0,enemyVuln:0,enemyPoison:0,enemyBleed:0,enemyActions:[],enemyActionIdx:0,deck:[],drawPile:[],hand:[],discardPile:[],exhPile:[],apLeft:3,maxAp:3,blk:0,str:0,jugg:false,lifestealMode:false,fortified:0,playerPoison:0,playerWeak:0,turn:1,selectedCards:[],firstCard:true,nextFree:false};
 let mapData={rows:[],step:0,playerCol:2,history:[]};
 let rs={dmgDealt:0,dmgTaken:0,cardsPlayed:0,turns:0,chaptersCleared:0};
 function calcPS(){
@@ -882,7 +908,7 @@ function buildEnemy(tmpl,isElite,isBoss){
   const hpNorm=isBoss?3.0:isElite?1.6:1.0;
   const hp=Math.round(hpBase*(tmpl.hpMult/hpNorm)*tierScale*(isBoss&&window._bossDoubled?2:effectMult>1&&!isBoss?effectMult:1));
   // Target attack per turn: % of player maxHP (keeps fights fair)
-  const dangerPct=isBoss?.17:isElite?.13:.10;
+  const dangerPct=isBoss?.19:isElite?.14:.11;
   const targetAtkPerTurn=Math.round(player.maxHp*dangerPct*tierScale);
   // Scale action values so average damage output ≈ targetAtkPerTurn
   const tmplActions=tmpl.actions||[];
@@ -890,7 +916,7 @@ function buildEnemy(tmpl,isElite,isBoss){
   const avgTmplAtk=tmplAtkActions.length>0?tmplAtkActions.reduce((s,a)=>s+a.v,0)/tmplAtkActions.length:8;
   const attackFreq=tmplAtkActions.length/Math.max(tmplActions.length,1);
   const atkScale=targetAtkPerTurn/Math.max(avgTmplAtk*attackFreq,3);
-  const atkCap=player.maxHp*(isBoss?.30:isElite?.24:.18);
+  const atkCap=player.maxHp*(isBoss?.34:isElite?.26:.20);
   const actions=tmplActions.map(a=>({...a,
     v:a.t==='a'?Math.round(Math.min(Math.max(3,a.v*atkScale),atkCap)):
       a.t==='d'?Math.round(Math.max(2,a.v*atkScale*.4)):a.v}));
@@ -1100,7 +1126,7 @@ function startBattle(isElite,isBoss){
   const normalCards=battle.deck.filter(c=>!c.innate);
   battle.drawPile=shuf([...normalCards]);battle.hand=innateCards.slice(0,2);battle.discardPile=[];battle.exhPile=[];
   const startAp=player.maxAp||3;
-  battle.blk=0;battle.str=0;battle.jugg=false;battle.lifestealMode=false;battle.playerPoison=0;battle.playerWeak=0;battle.enemyBleed=0;battle.fortified=0;battle.apLeft=startAp;battle.maxAp=startAp;battle.turn=1;battle.selectedCards=[];battle.firstCard=true;
+  battle.blk=0;battle.str=0;battle.jugg=false;battle.lifestealMode=false;battle.playerPoison=0;battle.playerWeak=0;battle.enemyBleed=0;battle.fortified=0;battle.apLeft=startAp;battle.maxAp=startAp;battle.turn=1;battle.selectedCards=[];battle.firstCard=true;battle.nextFree=false;
   if(chapter.modifier?.onBattleStart)chapter.modifier.onBattleStart(battle,player);
   applyRelicHooks('onBattleStart',battle,player);
   const ep=document.getElementById('ep');ep.innerHTML='<span class="ep-inner">'+en.art+'</span>';ep.className='ep'+(isBoss?' fb':isElite?' fe':'');
@@ -1179,14 +1205,24 @@ function applySingleCard(c,mult){
   if(c.special==='counter'){const acts=battle.enemyActions||[];const na=acts.length?acts[(battle.enemyActionIdx||0)%acts.length]:null;const g2=na?.t==='a'?(na.v+(battle.enemyStr||0)):(battle.enemy.atk||8);battle.blk+=g2;toast(`+${g2} 格挡（反击）`);}
   if(c.special==='discard'){if(battle.hand.length>0){const mx=Math.max(...battle.hand.map(h=>h.cost));const di=battle.hand.findIndex(h=>h.cost===mx);if(di>=0)battle.discardPile.push(battle.hand.splice(di,1)[0]);}drawCards(2);}
   if(c.apscale)battle.apLeft=0;
+  // ── 奇异牌特殊逻辑 ──
+  if(c.special==='soul_strike'){const d=Math.floor((battle.enemyHp||0)*.25);if(d>0){battle.enemyHp=Math.max(0,battle.enemyHp-d);rs.dmgDealt+=d;floatDmg(d,'#9a5abf');sfx(260,.18,'square',.1,120);}else toast('敌人HP太低','r');}
+  if(c.special==='chaos_shot'){const raw=8+Math.floor(Math.random()*38);let d=raw+(battle.str||0);if(battle.playerWeak>0)d=Math.floor(d*.75);if(battle.enemyVuln>0)d=Math.ceil(d*1.5);const pen=Math.max(0,d-(battle.enemyBlk||0));battle.enemyBlk=Math.max(0,(battle.enemyBlk||0)-d);battle.enemyHp=Math.max(0,battle.enemyHp-pen);rs.dmgDealt+=pen;if(pen>0){floatDmg(pen,'#c0392b');sfx(180+pen,.15,'sawtooth',.1,-60);}toast(`🎲 混沌：${raw}伤`);}
+  if(c.special==='last_stand'){const isLow=player.hp/player.maxHp<=0.30;let d=(isLow?55:15)+(battle.str||0);if(battle.playerWeak>0)d=Math.floor(d*.75);if(battle.enemyVuln>0)d=Math.ceil(d*1.5);const pen=Math.max(0,d-(battle.enemyBlk||0));battle.enemyBlk=Math.max(0,(battle.enemyBlk||0)-d);battle.enemyHp=Math.max(0,battle.enemyHp-pen);rs.dmgDealt+=pen;if(pen>0){floatDmg(pen,isLow?'#c0392b':'#aa5040');sfx(180+pen,.15,'sawtooth',.1,-60);}if(isLow)toast('🔥 绝地反击！55伤！','g');}
+  if(c.special==='martyr'){const md=Math.max(0,player.hp-1);player.hp=1;if(md>0){battle.enemyHp=Math.max(0,battle.enemyHp-md);rs.dmgDealt+=md;floatDmg(md,'#c0392b');sfx(120+md,.2,'sawtooth',.15,-60);}toast(`☀ 殉道！${md}伤`,'g');}
+  if(c.special==='catalyze'){battle.nextFree=true;toast('⚗ 下张牌费用归零！','g');}
+  if(c.special==='phantom_hit'){const d=battle.blk||0;if(d>0){battle.enemyHp=Math.max(0,battle.enemyHp-d);rs.dmgDealt+=d;floatDmg(d,'#9a6abf');sfx(240,.14,'square',.1,80);toast(`👻 幻影 ${d}伤`);}else toast('没有格挡可用','r');}
+  if(c.special==='heartbreak'){const cleared=battle.enemyBlk||0;battle.enemyBlk=0;let d=14+(battle.str||0);if(battle.playerWeak>0)d=Math.floor(d*.75);if(battle.enemyVuln>0)d=Math.ceil(d*1.5);battle.enemyHp=Math.max(0,battle.enemyHp-d);rs.dmgDealt+=d;if(d>0){floatDmg(d,'#c0392b');sfx(200+d,.15,'sawtooth',.1,-60);}if(cleared>0)toast(`💥 粉碎 ${cleared} 格挡！`);}
+  if(c.special==='desperation'){const missing=Math.max(0,player.maxHp-player.hp);const s=Math.max(1,Math.floor(missing/15));battle.str+=s;toast(`🩸 绝望之力 +${s} 力量！`,'g');}
   return totalDmg;
 }
 function playSelectedCards(){
   const sel=battle.selectedCards||[];if(!sel.length)return;
   const idx=sel[0];const c=battle.hand[idx];
   if(!c||c.unplayable){toast('无效出牌','r');return;}
-  if(battle.apLeft<c.cost){toast('行动力不足','r');return;}
-  battle.apLeft-=c.cost;rs.cardsPlayed++;battle.firstCard=false;
+  const cardCost=battle.nextFree?0:c.cost;battle.nextFree=false;
+  if(battle.apLeft<cardCost){toast('行动力不足','r');return;}
+  battle.apLeft-=cardCost;rs.cardsPlayed++;battle.firstCard=false;
   sfx(c.kind==='atk'?220:c.kind==='def'?350:280,.06,'square',.07,c.kind==='atk'?-80:30);
   showCardFly(c);
   triggerPAnim(c.kind==='atk'?'a-atk':c.kind==='def'?'a-def':'a-skl');
@@ -1274,7 +1310,7 @@ function showChapterIntro(){
   const ptit=getPlayerTitle();
   const deckEl=document.getElementById('ci-deck');
   deckEl.innerHTML=`<div class="ci-dtag">${ptit.icon} ${ptit.title} · 牌组 ${battle.deck.length} 张</div>`+
-    battle.deck.map(c=>`<div class="ci-dcard" style="border-color:${kBorderColor[c.kind]||'var(--crack)'}"><span>${c.art}</span><span class="ci-dtitle" style="color:${kTextColor[c.kind]||'var(--text3)'}">${c.name}</span></div>`).join('');
+    battle.deck.map(c=>`<div class="ci-dcard${c.isLegacy?' legacy':''}" style="border-color:${c.isLegacy?'var(--amber)':kBorderColor[c.kind]||'var(--crack)'}"><span>${c.art}</span><span class="ci-dtitle" style="color:${kTextColor[c.kind]||'var(--text3)'}">${c.name}</span>${c.isLegacy?'<span style="position:absolute;top:1px;right:2px;font-size:7px;color:var(--amber);z-index:3">⬡</span>':''}</div>`).join('');
   if(mod.onChapterStart)mod.onChapterStart(player);
   // Generate 3 blessings
   const ALL_BLESS=[
@@ -1567,7 +1603,9 @@ function showGameOver(){
   document.getElementById('gotit').textContent='你已陨落';document.getElementById('gotit').style.color='var(--gore2)';
   document.getElementById('gosub').textContent=`第 ${toR(chapter.floor)} 章  ·  ${chapter.theme?.name||''}  ·  凄风中的传说`;
   document.getElementById('gost').innerHTML=`<div class="gor"><span class="gol">通关章节</span><span class="gov2">${rs.chaptersCleared}</span></div><div class="gor"><span class="gol">当前章节</span><span class="gov2">第 ${toR(chapter.floor)} 章</span></div><div class="gor"><span class="gol">最终 PS</span><span class="gov2">${ps}</span></div><div class="gor"><span class="gol">击杀数</span><span class="gov2">${player.kills}</span></div><div class="gor"><span class="gol">造成伤害</span><span class="gov2">${rs.dmgDealt}</span></div><div class="gor"><span class="gol">承受伤害</span><span class="gov2">${rs.dmgTaken}</span></div><div class="gor"><span class="gol">使用卡牌</span><span class="gov2">${rs.cardsPlayed}</span></div><div class="gor"><span class="gol">经历回合</span><span class="gov2">${rs.turns}</span></div>`;
+  window._legacySel=new Set();
   showView('gov');
+  renderLegacyPicker();
 }
 function getPlayerTitle(){
   const deck=battle.deck;if(!deck||!deck.length)return{title:'无名旅者',icon:'🗡',color:'var(--text)'};
@@ -1649,6 +1687,7 @@ function renderHud(){
   document.getElementById('h-hp').textContent=player.hp;
   document.getElementById('h-ap').textContent=phase===PH.BATTLE?battle.apLeft:(battle.maxAp||3);
   document.getElementById('h-gd').textContent=player.gold;
+  document.getElementById('h-dr').textContent=player.drawCount||5;
 }
 function renderTokens(){
   const mk=(n,cls,sym,max)=>{const s=Math.min(n,max);return Array(s).fill(`<span class="tok ${cls}">${sym}</span>`).join('')+(n>max?`<span class="tov">+${n-max}</span>`:'');};
@@ -2037,6 +2076,38 @@ function showVictory(){
   document.getElementById('winst').innerHTML=`<div class="gor"><span class="gol">通关章节</span><span class="gov2">${rs.chaptersCleared}</span></div><div class="gor"><span class="gol">最终 PS</span><span class="gov2">${ps}</span></div><div class="gor"><span class="gol">击杀数</span><span class="gov2">${player.kills}</span></div><div class="gor"><span class="gol">造成伤害</span><span class="gov2">${rs.dmgDealt}</span></div><div class="gor"><span class="gol">承受伤害</span><span class="gov2">${rs.dmgTaken}</span></div><div class="gor"><span class="gol">使用卡牌</span><span class="gov2">${rs.cardsPlayed}</span></div><div class="gor"><span class="gol">经历回合</span><span class="gov2">${rs.turns}</span></div>`;
   showView('winv');
 }
+// ── 传承系统 ──
+function saveLegacy(ids){try{localStorage.setItem('cd_legacy',JSON.stringify(ids.slice(0,3)));}catch(e){}}
+function loadLegacy(){try{const l=localStorage.getItem('cd_legacy');return l?JSON.parse(l):[];}catch(e){return[];}}
+function clearLegacy(){try{localStorage.removeItem('cd_legacy');}catch(e){}}
+function renderLegacyPicker(){
+  const lsEl=document.getElementById('legacy-section');
+  const lcEl=document.getElementById('legacy-cards');
+  if(!lsEl||!lcEl)return;
+  const eligible=(battle.deck||[]).filter(c=>c.rar!=='curse');
+  if(!eligible.length){lsEl.style.display='none';return;}
+  lsEl.style.display='block';
+  const sel=window._legacySel||new Set();
+  lcEl.innerHTML=`<div class="tcards-table" style="padding:8px 4px 12px">`+
+    eligible.map((c,i)=>renderPokerCard(c,`toggleLegacy(${i})`,{idx:i,total:eligible.length,sel:sel.has(i)})).join('')+
+  `</div>`;
+  const btn=document.getElementById('legacy-btn');
+  if(btn){const n=sel.size;btn.textContent=n>0?`⬡ 传承选中的 ${n} 张（最多3张）`:'点选卡牌传给下一局（最多3张）';btn.disabled=n===0;btn.style.opacity=n>0?'1':'0.5';}
+}
+function toggleLegacy(i){
+  const sel=window._legacySel||new Set();
+  if(sel.has(i))sel.delete(i);
+  else{if(sel.size>=3){toast('最多传承3张','r');return;}sel.add(i);}
+  window._legacySel=sel;renderLegacyPicker();
+}
+function confirmLegacy(){
+  const eligible=(battle.deck||[]).filter(c=>c.rar!=='curse');
+  const sel=window._legacySel||new Set();
+  const picks=[...sel].map(i=>eligible[i]).filter(Boolean);
+  saveLegacy(picks.map(c=>c.id));
+  toast(`⬡ 已选择传承 ${picks.length} 张牌`,'g');
+  const lsEl=document.getElementById('legacy-section');if(lsEl)lsEl.style.display='none';
+}
 // ── 存档系统 ──
 function saveGame(){
   try{
@@ -2056,7 +2127,7 @@ function loadGame(){
     rs={...sv.rs};
     mapData=JSON.parse(JSON.stringify(sv.mapData));
     const sd=buildStarterDeck();
-    battle={enemy:null,enemyHp:0,enemyMaxHp:0,enemyBlk:0,enemyStr:0,enemyWeak:0,enemyVuln:0,enemyPoison:0,enemyActions:[],enemyActionIdx:0,deck:[...sv.deck],drawPile:[],hand:[],discardPile:[],exhPile:[],apLeft:3,maxAp:3,blk:0,str:0,jugg:false,lifestealMode:false,playerPoison:0,playerWeak:0,enemyBleed:0,fortified:0,turn:1,selectedCards:[],firstCard:true};
+    battle={enemy:null,enemyHp:0,enemyMaxHp:0,enemyBlk:0,enemyStr:0,enemyWeak:0,enemyVuln:0,enemyPoison:0,enemyActions:[],enemyActionIdx:0,deck:[...sv.deck],drawPile:[],hand:[],discardPile:[],exhPile:[],apLeft:3,maxAp:3,blk:0,str:0,jugg:false,lifestealMode:false,playerPoison:0,playerWeak:0,enemyBleed:0,fortified:0,turn:1,selectedCards:[],firstCard:true,nextFree:false};
     window._mapRank=7;
     document.getElementById('mb').style.display='none';
     showView('mv');renderMap();renderHud();renderTokens();
@@ -2099,7 +2170,8 @@ function initGame(){
   player={hp:80,maxHp:80,gold:80,floor:1,kills:0,steps:0,drawCount:5,maxAp:3};
   chapter={floor:1,theme:null,modifier:null,boss:null};
   const startDeck=buildStarterDeck();
-  battle={enemy:null,enemyHp:0,enemyMaxHp:0,enemyBlk:0,enemyStr:0,enemyWeak:0,enemyVuln:0,enemyPoison:0,enemyActions:[],enemyActionIdx:0,deck:startDeck,drawPile:[],hand:[],discardPile:[],exhPile:[],apLeft:3,maxAp:3,blk:0,str:0,jugg:false,lifestealMode:false,playerPoison:0,playerWeak:0,enemyBleed:0,fortified:0,turn:1,selectedCards:[],firstCard:true};
+  clearLegacy();
+  battle={enemy:null,enemyHp:0,enemyMaxHp:0,enemyBlk:0,enemyStr:0,enemyWeak:0,enemyVuln:0,enemyPoison:0,enemyActions:[],enemyActionIdx:0,deck:startDeck,drawPile:[],hand:[],discardPile:[],exhPile:[],apLeft:3,maxAp:3,blk:0,str:0,jugg:false,lifestealMode:false,playerPoison:0,playerWeak:0,enemyBleed:0,fortified:0,turn:1,selectedCards:[],firstCard:true,nextFree:false};
   rs={dmgDealt:0,dmgTaken:0,cardsPlayed:0,turns:0,chaptersCleared:0};
   window._mapRank=7;
   document.getElementById('mb').style.display='none';
