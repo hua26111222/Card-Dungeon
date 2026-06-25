@@ -536,6 +536,33 @@ html,body{background:var(--void);color:var(--text);font-family:var(--fm);font-si
   .hcn{font-size:15px}
   .hcd{font-size:13px}
 }
+/* ═══ 过场动画 ═══ */
+#cutscene{position:fixed;inset:0;z-index:9999;display:none;flex-direction:column;background:var(--void);animation:cs-in .5s ease-out}
+@keyframes cs-in{from{opacity:0}to{opacity:1}}
+.cs-body{flex:1;display:flex;overflow:hidden}
+.cs-art{width:42%;flex-shrink:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:24px 16px;position:relative;overflow:hidden}
+.cs-art::after{content:'';position:absolute;right:0;top:0;bottom:0;width:40px;
+  background:linear-gradient(90deg,transparent,var(--void))}
+.cs-art-icon{font-size:80px;filter:drop-shadow(0 0 40px currentColor);animation:cs-float 3s ease-in-out infinite}
+@keyframes cs-float{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-12px) scale(1.05)}}
+.cs-art-title{font-family:var(--fs);font-size:14px;letter-spacing:4px;margin-top:16px;text-align:center;text-shadow:0 0 20px currentColor}
+.cs-art-sub{font-size:9px;letter-spacing:3px;margin-top:6px;text-align:center;opacity:.6;font-style:italic}
+.cs-text-area{flex:1;display:flex;flex-direction:column;justify-content:center;padding:28px 20px 28px 8px;overflow:hidden}
+.cs-chapter{font-size:10px;color:var(--blood2);letter-spacing:5px;margin-bottom:12px;font-style:italic}
+.cs-title{font-family:var(--fs);font-size:22px;font-weight:900;color:var(--bone);letter-spacing:4px;
+  text-shadow:0 0 24px rgba(200,169,110,.5),2px 2px 0 #000;margin-bottom:16px;line-height:1.3}
+.cs-lines{flex:1;overflow:hidden}
+.cs-line{font-size:13px;color:var(--text2);line-height:2.1;font-style:italic;opacity:0;transition:opacity .4s;min-height:1.8em}
+.cs-line.vis{opacity:1}
+.cs-line b{color:var(--bone);font-style:normal}
+.cs-cursor{display:inline-block;width:2px;height:13px;background:var(--bone2);margin-left:2px;vertical-align:middle;animation:blink .7s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+.cs-footer{padding:10px 16px;display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--crack);flex-shrink:0}
+.cs-skip{font-size:11px;color:var(--text3);letter-spacing:2px;cursor:pointer;font-style:italic;padding:6px 12px;border:1px solid var(--crack);background:transparent;font-family:var(--fm)}
+.cs-skip:hover{color:var(--text2);border-color:var(--crack2)}
+.cs-cont{font-size:11px;color:var(--bone);letter-spacing:2px;cursor:pointer;padding:6px 16px;border:1px solid var(--bone2);background:rgba(200,169,110,.08);font-family:var(--fm);display:none}
+.cs-cont:hover{background:rgba(200,169,110,.15)}
 </style>
 </head>
 <body>
@@ -664,6 +691,24 @@ html,body{background:var(--void);color:var(--text);font-family:var(--fm);font-si
 </div>
 </div>
 <div class="toast" id="toast"></div>
+<div id="cutscene">
+  <div class="cs-body">
+    <div class="cs-art" id="cs-art">
+      <div class="cs-art-icon" id="cs-icon">⚔</div>
+      <div class="cs-art-title" id="cs-atit"></div>
+      <div class="cs-art-sub" id="cs-asub"></div>
+    </div>
+    <div class="cs-text-area">
+      <div class="cs-chapter" id="cs-chap"></div>
+      <div class="cs-title" id="cs-title"></div>
+      <div class="cs-lines" id="cs-lines"></div>
+    </div>
+  </div>
+  <div class="cs-footer">
+    <button class="cs-skip" onclick="skipCutscene()">跳过 ▶▶</button>
+    <button class="cs-cont" id="cs-cont" onclick="finishCutscene()">继续 ▶</button>
+  </div>
+</div>
 <div id="deckmodal" style="display:none;position:fixed;inset:0;z-index:9000;background:rgba(7,5,10,.96);overflow-y:auto;padding:16px 12px">
   <div style="max-width:420px;margin:0 auto">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--crack)">
@@ -829,19 +874,19 @@ const ET=[
    actions:[{t:'a',v:9,n:'鲜血汲取'},{t:'h',v:8,n:'血液复苏'},{t:'a',v:11,n:'鲜血汲取'},{t:'s',v:1,n:'嗜血增幅'},{t:'a',v:14,n:'死亡之咬'}],
    loot:{cards:['vampire_oath','regen','bloodrush','blood_pact']}},
   /* ── Boss ── */
-  {name:'深渊魔龙',  art:'🐲',tier:'boss', hpMult:3.0,
+  {name:'深渊魔龙',  art:'🐲',tier:'boss', hpMult:3.0, epithet:'炎焰霸主',epithetSub:'龙鳞·烈焰·不灭',
    actions:[{t:'a',v:10,n:'龙焰吐息'},{t:'a',v:8,n:'爪击'},{t:'a',v:8,n:'爪击'},{t:'s',v:1,n:'龙之怒'},{t:'a',v:14,n:'龙尾横扫'},{t:'d',v:8,n:'鳞甲'}],
    loot:{cards:['sacrifice','multishot','strength','bloodrush','slam']}},
-  {name:'混沌之主',  art:'👁', tier:'boss', hpMult:2.5,
+  {name:'混沌之主',  art:'👁', tier:'boss', hpMult:2.5, epithet:'虚空凝视者',epithetSub:'混沌·腐化·无解',
    actions:[{t:'a',v:9,n:'混沌光束'},{t:'p',v:3,n:'腐化之瘟'},{t:'a',v:9,n:'混沌光束'},{t:'s',v:1,n:'混沌涌现'},{t:'a',v:13,n:'毁灭凝视'},{t:'p',v:2,n:'腐化之瘟'}],
    loot:{cards:['poison_flask','corruption','warcry','weaken','vampire_oath']}},
-  {name:'腐化巨人',  art:'👹',tier:'boss', hpMult:3.2,
+  {name:'腐化巨人',  art:'👹',tier:'boss', hpMult:3.2, epithet:'不死骸骨王',epithetSub:'腐朽·再生·重压',
    actions:[{t:'d',v:9,n:'腐骨护甲'},{t:'a',v:11,n:'猛击'},{t:'h',v:8,n:'腐化再生'},{t:'a',v:11,n:'猛击'},{t:'d',v:6,n:'腐骨护甲'},{t:'a',v:15,n:'巨力重压'}],
    loot:{cards:['fortify','slam','meditate','jugg','barrier']}},
-  {name:'时间骗子',  art:'⏳',tier:'boss', hpMult:2.8,
+  {name:'时间骗子',  art:'⏳',tier:'boss', hpMult:2.8, epithet:'流逝编织者',epithetSub:'迅捷·侵蚀·无常',
    actions:[{t:'a',v:10,n:'时间刀刃'},{t:'w',v:2,n:'时间侵蚀'},{t:'a',v:10,n:'时间刀刃'},{t:'a',v:13,n:'迅捷突进'},{t:'s',v:1,n:'时间加速'}],
    loot:{cards:['whirl','double','adrenaline','execute','focus_stone']}},
-  {name:'深海怪物',  art:'🐙',tier:'boss', hpMult:3.0,
+  {name:'深海怪物',  art:'🐙',tier:'boss', hpMult:3.0, epithet:'深渊触手神',epithetSub:'毒素·吞噬·复原',
    actions:[{t:'a',v:8,n:'触手拍击'},{t:'a',v:8,n:'触手拍击'},{t:'p',v:2,n:'深海毒素'},{t:'a',v:12,n:'吞噬'},{t:'h',v:6,n:'深海复原'},{t:'a',v:10,n:'恐怖触手'}],
    loot:{cards:['corruption','barrier','sacrifice','poison_flask','vampire_oath']}},
 ];
@@ -926,11 +971,12 @@ function buildEnemy(tmpl,isElite,isBoss){
 function generateChapter(){
   const theme=THEMES[0|Math.random()*THEMES.length];
   const mod=MODS[0|Math.random()*MODS.length];
-  const bossTmpls=ET.filter(e=>e.tier==='boss');
-  const boss=bossTmpls[0|Math.random()*bossTmpls.length];
-  chapter.theme=theme;chapter.modifier=mod;chapter.boss=boss;
-  chapter.usedEnemies=new Set();  // reset per-floor enemy dedup
-  return{theme,mod,boss,ps:calcPS(),floor:chapter.floor};
+  const bossTmpls=shuf(ET.filter(e=>e.tier==='boss'));
+  const boss=bossTmpls[0];
+  const boss2=bossTmpls[1]||bossTmpls[0];
+  chapter.theme=theme;chapter.modifier=mod;chapter.boss=boss;chapter.boss2=boss2;
+  chapter.usedEnemies=new Set();
+  return{theme,mod,boss,boss2,ps:calcPS(),floor:chapter.floor};
 }
 function buildMap(){
   const rows=[];
@@ -1332,7 +1378,7 @@ function endBattle(won){
     const gm=(chapter.modifier?.goldMult||1)*em;
     const g=Math.round((battle.enemy.goldMin+Math.random()*(battle.enemy.goldMax-battle.enemy.goldMin))*gm);
     player.gold+=g;
-    if(battle.enemy.tier==='boss'){rs.chaptersCleared++;const bGold=Math.floor(50*chapter.floor*(window._bossDoubled?2:1));player.gold+=bGold;toast(`章节通关！+${bGold}金币`,'g');window._bossDoubled=false;if(chapter.floor>=3)setTimeout(showVictory,900);else setTimeout(()=>{chapter.floor++;showChapterIntro();},900);}
+    if(battle.enemy.tier==='boss'){rs.chaptersCleared++;const bGold=Math.floor(50*chapter.floor*(window._bossDoubled?2:1));player.gold+=bGold;toast(`首领已倒！+${bGold}金币`,'g');window._bossDoubled=false;setTimeout(()=>showBossReward(chapter.floor>=3),1000);}
     else showReward(g);
   }else{sfx(80,.4,'sawtooth',.15,-30);showGameOver();clearSave();}
 }
@@ -2188,6 +2234,72 @@ function buildFusionCard(sources,val){
   }
   return r;
 }
+// ── Boss 胜利奖励 ──
+function showBossReward(isFinalFloor){
+  phase=PH.OV;
+  const ps=calcPS();
+  // 3张卡牌选项（偏稀有）
+  const pool=DB.filter(c=>c.rar!=='curse');
+  const used=new Set(battle.deck.map(c=>c.id));
+  const rc=Math.min(.55,ps/100);const uc=Math.min(.7,.3+ps/100);
+  const cardPicks=[];const usedPick=new Set(used);
+  for(let i=0;i<3;i++){
+    const av=shuf(pool.filter(c=>!usedPick.has(c.id)));
+    if(!av.length)break;
+    const w=av.map(c=>c.rar==='rare'?rc*5:c.rar==='uncommon'?uc*2.5:1);
+    const tot=w.reduce((s,x)=>s+x,0);let r=Math.random()*tot;
+    for(let j=0;j<av.length;j++){r-=w[j];if(r<=0){usedPick.add(av[j].id);cardPicks.push(av[j]);break;}}
+  }
+  // 2个能力选项（随机选3取2展示）
+  const floor=chapter.floor;
+  const ALL_ABILITIES=[
+    {art:'❤',name:'生命蜕变',desc:`最大HP +${Math.round(player.maxHp*.18)} 并立即回满`,apply:()=>{const h=Math.round(player.maxHp*.18);player.maxHp+=h;player.hp=player.maxHp;toast(`最大HP +${h} 已回满`,'g');}},
+    {art:'⚡',name:'战意涌现',desc:'永久 +1 行动点上限（上限5）',apply:()=>{player.maxAp=Math.min(5,(player.maxAp||3)+1);toast('+1 行动点上限！','g');}},
+    {art:'🃏',name:'手牌大师',desc:'永久 +1 抽牌数（上限8）',apply:()=>{player.drawCount=Math.min(8,(player.drawCount||5)+1);toast('+1 抽牌数！','g');}},
+    {art:'💰',name:'战利品搜刮',desc:`获得 ${Math.round(80*(1+floor*.4))} 金币`,apply:()=>{const g=Math.round(80*(1+floor*.4));player.gold+=g;toast(`+${g} 金币！`,'g');}},
+    {art:'⬆',name:'双重升华',desc:'随机升级牌组中的2张牌',apply:()=>{const up=shuf(battle.deck.filter(c=>c.rar!=='curse')).slice(0,2);up.forEach(c=>upgradeCard(c));toast(`升级：${up.map(c=>c.name).join('、')}`,'g');}},
+    {art:'🌟',name:'深渊馈赠',desc:'获得1张稀有卡 + HP回满',apply:()=>{const r=shuf(DB.filter(c=>c.rar==='rare'))[0];if(r){battle.deck.push({...gc(r.id)});}player.hp=player.maxHp;toast('HP回满！获得 '+(r?r.name:'稀有卡'),'g');}},
+  ];
+  const abilities=shuf(ALL_ABILITIES).slice(0,2);
+  window._bossReward={cardPicks,abilities,sel:null,selType:null,isFinalFloor};
+  renderBossRewardUI();
+}
+function renderBossRewardUI(){
+  const{cardPicks,abilities,sel,selType,isFinalFloor}=window._bossReward;
+  document.getElementById('ovtag').textContent='☠  首领已倒';
+  document.getElementById('ovtit').textContent='选择你的奖励';
+  const cardHtml=cardPicks.map((c,i)=>renderPokerCard(c,`selectBossCard(${i})`,{idx:i,total:cardPicks.length,sel:selType==='card'&&sel===i})).join('');
+  const abilHtml=abilities.map((ab,i)=>`<div onclick="selectBossAbility(${i})" style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid ${selType==='ability'&&sel===i?'var(--amber)':'var(--crack2)'};background:${selType==='ability'&&sel===i?'rgba(200,169,110,.1)':'rgba(0,0,0,.3)'};cursor:pointer;margin-bottom:6px;transition:border-color .15s">
+    <div style="font-size:22px;width:36px;text-align:center">${ab.art}</div>
+    <div style="flex:1"><div style="font-size:13px;color:var(--bone);font-family:var(--fs);font-weight:700;margin-bottom:3px">${ab.name}</div><div style="font-size:11px;color:var(--text2);font-style:italic">${ab.desc}</div></div>
+    ${selType==='ability'&&sel===i?'<div style="color:var(--amber);font-size:14px">✓</div>':''}
+  </div>`).join('');
+  let confirmHtml='';
+  if(sel!==null){
+    const name=selType==='card'?cardPicks[sel]?.name:abilities[sel]?.name;
+    confirmHtml=`<div style="display:flex;gap:8px;margin-top:8px">
+      <button class="ovbtn gd" style="flex:1;margin:0" onclick="confirmBossReward()">✓ 选择 ${name||''}</button>
+      <button class="ovbtn" style="flex:1;margin:0" onclick="window._bossReward.sel=null;window._bossReward.selType=null;renderBossRewardUI()">✗ 重选</button>
+    </div>`;
+  }
+  const h=`<div style="font-size:10px;color:var(--text3);letter-spacing:3px;margin-bottom:8px;text-align:center">── 选择一张卡牌 ──</div>
+  <div class="tcards-table" style="margin-bottom:14px">${cardHtml}</div>
+  <div style="font-size:10px;color:var(--text3);letter-spacing:3px;margin-bottom:8px;text-align:center">── 或选择一项能力 ──</div>
+  ${abilHtml}${confirmHtml}`;
+  document.getElementById('ovb').innerHTML=h;
+  showView('ov');renderHud();renderTokens();
+}
+function selectBossCard(i){window._bossReward.sel=i;window._bossReward.selType='card';renderBossRewardUI();}
+function selectBossAbility(i){window._bossReward.sel=i;window._bossReward.selType='ability';renderBossRewardUI();}
+function confirmBossReward(){
+  const{cardPicks,abilities,sel,selType,isFinalFloor}=window._bossReward;
+  if(sel===null)return;
+  if(selType==='card'){const c=cardPicks[sel];if(c)battle.deck.push({...gc(c.id)});toast('获得：'+(c?.name||''),'g');}
+  else if(selType==='ability'){abilities[sel]?.apply();}
+  window._bossReward=null;
+  if(isFinalFloor){setTimeout(showVictory,600);}
+  else{chapter.floor++;setTimeout(()=>showCutscene('floor'+chapter.floor,showChapterIntro),600);}
+}
 function showVictory(){
   phase=PH.DEAD;const ps=calcPS();
   document.getElementById('winsub').textContent=`通关 ${rs.chaptersCleared} 章  ·  ${chapter.theme?.name||''}  ·  深渊的征服者`;
@@ -2283,6 +2395,110 @@ function startBGM(mode){
   },190);
 }
 function stopBGM(){if(_bgmTimer){clearInterval(_bgmTimer);_bgmTimer=null;}}
+// ── 过场动画系统 ──
+const CUTSCENES={
+  intro:{
+    bg:'radial-gradient(ellipse at 30% 50%,rgba(139,26,26,.45),rgba(50,20,80,.3),var(--void))',
+    icon:'🗡',iconColor:'#c0392b',artTitle:'卡牌地牢',artSub:'CARD DUNGEON',
+    chap:'序章',title:'深渊的召唤',
+    lines:[
+      '黑暗之中，<b>你听到了召唤</b>……',
+      '无数英雄曾踏上这条路，无一生还。',
+      '他们的鲜血，浸透了每一张卡牌。',
+      '你手中的牌，是你<b>唯一的武器</b>。',
+      '命运，由此刻开始书写。',
+    ]
+  },
+  floor2:{
+    bg:'radial-gradient(ellipse at 30% 50%,rgba(106,58,154,.4),rgba(80,20,20,.3),var(--void))',
+    icon:'💀',iconColor:'#9a5abf',artTitle:'深渊第二层',artSub:'FLOOR II',
+    chap:'第二章',title:'深处的黑暗',
+    lines:[
+      '首领已倒，但<b>深渊从未止息</b>……',
+      '更深处，黑暗在蠢蠢欲动。',
+      '你的胜利只是开始，<b>真正的试炼</b>等待着你。',
+      '前方的敌人，远比你想象的<b>更为危险</b>。',
+      '继续前进……如果你还有勇气的话。',
+    ]
+  },
+  floor3:{
+    bg:'radial-gradient(ellipse at 30% 50%,rgba(139,0,0,.5),rgba(106,58,154,.3),var(--void))',
+    icon:'👁',iconColor:'#c0392b',artTitle:'最终深渊',artSub:'FINAL ABYSS',
+    chap:'第三章 · 最终章',title:'深渊的核心',
+    lines:[
+      '两层深渊，你已跨越。',
+      '这里是<b>黑暗的尽头</b>，也是一切的起源。',
+      '深渊之王正在等待，他<b>永远未曾被击败</b>。',
+      '你的每一张卡牌，都将被考验到极限。',
+      '胜利或死亡——<b>只有一种结局</b>。',
+    ]
+  },
+};
+let _csOnComplete=null;let _csLines=[];let _csLI=0;let _csCI=0;let _csTimer=null;
+function showCutscene(key,onComplete){
+  const sc=CUTSCENES[key];if(!sc){onComplete?.();return;}
+  _csOnComplete=onComplete;_csLines=sc.lines;_csLI=0;_csCI=0;
+  clearTimeout(_csTimer);
+  const el=document.getElementById('cutscene');
+  const artEl=document.getElementById('cs-art');
+  artEl.style.background=sc.bg||'var(--void)';
+  document.getElementById('cs-icon').textContent=sc.icon;
+  document.getElementById('cs-icon').style.color=sc.iconColor||'var(--bone)';
+  document.getElementById('cs-atit').textContent=sc.artTitle||'';
+  document.getElementById('cs-atit').style.color=sc.iconColor||'var(--bone)';
+  document.getElementById('cs-asub').textContent=sc.artSub||'';
+  document.getElementById('cs-chap').textContent=sc.chap||'';
+  document.getElementById('cs-title').textContent=sc.title||'';
+  document.getElementById('cs-lines').innerHTML='';
+  document.getElementById('cs-cont').style.display='none';
+  el.style.display='flex';
+  setTimeout(()=>csNextLine(),400);
+}
+function csNextLine(){
+  if(_csLI>=_csLines.length){csFinishAll();return;}
+  const linesEl=document.getElementById('cs-lines');
+  const lineEl=document.createElement('div');lineEl.className='cs-line';
+  lineEl.innerHTML='';linesEl.appendChild(lineEl);
+  const rawHtml=_csLines[_csLI];_csLI++;_csCI=0;
+  csTypeHtml(lineEl,rawHtml,()=>{lineEl.classList.add('vis');setTimeout(()=>csNextLine(),700);});
+}
+function csTypeHtml(el,html,done){
+  // Strip tags for typing, restore them at end for simplicity
+  el.innerHTML=html+'<span class="cs-cursor"></span>';el.classList.add('vis');
+  // Actually reveal char by char by building up innerHTML
+  el.innerHTML='<span class="cs-cursor"></span>';
+  el.classList.add('vis');
+  const plain=html.replace(/<[^>]*>/g,'');const totalChars=plain.length;let typed=0;
+  const stripped=html;let result='';let tagBuffer='';let inTag=false;let charIdx=0;
+  const source=[...stripped];
+  function step(){
+    if(charIdx>=source.length){el.innerHTML=stripped;done?.();return;}
+    const ch=source[charIdx];charIdx++;
+    if(ch==='<'){inTag=true;tagBuffer='<';}
+    else if(inTag){tagBuffer+=ch;if(ch==='>'){inTag=false;result+=tagBuffer;tagBuffer='';}}
+    else{result+=ch;typed++;}
+    el.innerHTML=result+'<span class="cs-cursor"></span>';
+    const delay=typed<totalChars*.3?38:typed<totalChars*.7?32:42;
+    _csTimer=setTimeout(step,delay);
+  }
+  step();
+}
+function csFinishAll(){
+  const linesEl=document.getElementById('cs-lines');
+  linesEl.querySelectorAll('.cs-line').forEach(el=>el.classList.add('vis'));
+  document.getElementById('cs-cont').style.display='inline-block';
+}
+function skipCutscene(){
+  clearTimeout(_csTimer);
+  const linesEl=document.getElementById('cs-lines');
+  linesEl.innerHTML=_csLines.map(l=>`<div class="cs-line vis">${l}</div>`).join('');
+  document.getElementById('cs-cont').style.display='inline-block';
+}
+function finishCutscene(){
+  clearTimeout(_csTimer);
+  document.getElementById('cutscene').style.display='none';
+  _csOnComplete?.();_csOnComplete=null;
+}
 function initGame(){
   stopBGM();
   player={hp:80,maxHp:80,gold:80,floor:1,kills:0,steps:0,drawCount:5,maxAp:3};
@@ -2293,7 +2509,7 @@ function initGame(){
   rs={dmgDealt:0,dmgTaken:0,cardsPlayed:0,turns:0,chaptersCleared:0};
   window._mapRank=7;
   document.getElementById('mb').style.display='none';
-  clearSave();showChapterIntro();
+  clearSave();showCutscene('intro',showChapterIntro);
 }
 // 开始时检查存档
 function checkSave(){
