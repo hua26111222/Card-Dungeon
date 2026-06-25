@@ -1059,7 +1059,7 @@ function selectCard(i){
 }
 function applySingleCard(c,mult){
   let atk=(c.atk||0);
-  if(c.kind==='atk'||c.kind==='skl'){atk+=(battle.str||0);}
+  if(atk>0){atk+=(battle.str||0);}
   if(c.apscale){atk=c.atk*(battle.apLeft+c.cost);}
   if(battle.playerWeak>0&&atk>0)atk=Math.floor(atk*.75);
   const times=c.times||1;
