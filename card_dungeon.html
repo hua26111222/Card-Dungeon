@@ -1269,7 +1269,7 @@ const CardGen={
 };
 
 function calcPS(){
-  const ds=battle.deck.reduce((s,c)=>{const w={common:1,uncommon:2,rare:4,curse:-1};return s+(w[c.rar]||1)+(cardValue(c)||0)*.05;},0);
+  const ds=battle.deck.reduce((s,c)=>{if(!c)return s;const w={common:1,uncommon:2,rare:4,curse:-1};return s+(w[c.rar]||1)+(cardValue(c)||0)*.05;},0);
   return Math.round(ds+(player.maxHp/80)*20+chapter.floor*8+player.kills*2+Math.floor(player.gold/20));
 }
 function buildEnemy(tmpl,isElite,isBoss){
@@ -1644,24 +1644,34 @@ function showPreBattle(isElite,isBoss){
   showView('ov');renderHud();renderTokens();
 }
 function startBattle(isElite,isBoss){
-  phase=PH.BATTLE;saveGame();startBGM('battle');
   if(!chapter.usedEnemies)chapter.usedEnemies=new Set();
   const pm=isBoss?(window._bossPowerMult||1):1;
   const bossRef=isBoss?(window._bossRef||chapter.boss):null;
+  // 净化牌组中的 null 牌（防止历史脏数据导致崩溃）
+  battle.deck=battle.deck.filter(c=>!!c);
   let en;
-  if(!isBoss&&window._mapCard?._hasDims){
-    // 新三维体系：动态生成敌人
-    en=buildEnemyFromDims(window._mapCard,isElite,calcPS());
-    chapter.usedEnemies.add(en.name);
-  }else{
-    // Boss 或 fallback：使用 ET 模板
-    let pool=ET.filter(e=>isBoss?e.tier==='boss':isElite?e.tier==='elite':e.tier==='fight');
-    if(!isBoss){const fresh=pool.filter(e=>!chapter.usedEnemies.has(e.name));if(fresh.length)pool=fresh;else chapter.usedEnemies.clear();}
-    const tmpl=isBoss?bossRef:(pool[0|Math.random()*pool.length]);
-    if(tmpl)chapter.usedEnemies.add(tmpl.name);
-    en=buildEnemy(tmpl,isElite,isBoss);
+  try{
+    if(!isBoss&&window._mapCard?._hasDims){
+      en=buildEnemyFromDims(window._mapCard,isElite,calcPS());
+      chapter.usedEnemies.add(en.name);
+    }else{
+      let pool=ET.filter(e=>isBoss?e.tier==='boss':isElite?e.tier==='elite':e.tier==='fight');
+      if(!isBoss){const fresh=pool.filter(e=>!chapter.usedEnemies.has(e.name));if(fresh.length)pool=fresh;else chapter.usedEnemies.clear();}
+      const tmpl=isBoss?bossRef:(pool[0|Math.random()*pool.length]);
+      if(tmpl)chapter.usedEnemies.add(tmpl.name);
+      en=buildEnemy(tmpl,isElite,isBoss);
+    }
+  }catch(err){
+    // 生成失败：回滚 step、恢复地图，避免卡死
+    window._mapCard=null;
+    mapData.step=Math.max(0,mapData.step-1);
+    phase=PH.MAP;
+    toast('⚠ 战斗生成出错，已自动修复，请重试','r');
+    renderMap();return;
   }
+  if(!en){window._mapCard=null;mapData.step=Math.max(0,mapData.step-1);phase=PH.MAP;toast('⚠ 敌人生成失败，请重试','r');renderMap();return;}
   window._mapCard=null;
+  phase=PH.BATTLE;saveGame();startBGM('battle');
   // Apply boss power multiplier
   if(isBoss&&pm!==1){en.hp=Math.round(en.hp*pm);en.actions=en.actions.map(a=>a.t==='a'?{...a,v:Math.max(3,Math.round(a.v*pm))}:a);}
   // Boss curse variant: add curse card after battle
@@ -2103,7 +2113,7 @@ function doAbsorb(type){
   else if(type==='draw'){if((player.drawCount||5)<7){player.drawCount=(player.drawCount||5)+1;toast('+1 每回合摸牌','g');}else toast('摸牌已满','r');backToMap();}
   else if(type==='remove'){showCardPicker('remove',battle.deck.filter(c=>c.rar!=='curse'));}
 }
-function pickRewardCard(i){battle.deck.push(gc(window._rw[i].id));toast(`获得：${window._rw[i].name}`,'g');backToMap();}
+function pickRewardCard(i){const c=window._rw[i];if(!c)return;battle.deck.push({...c});toast(`获得：${c.name}`,'g');backToMap();}
 function skipReward(){backToMap();}
 function startEvent(){
   phase=PH.OV;const ev=EVTS[0|Math.random()*EVTS.length];window._ev=ev;
