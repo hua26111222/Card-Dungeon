@@ -1798,6 +1798,14 @@ function startBattle(isElite,isBoss){
   const enEl=document.getElementById('en');enEl.textContent=en.name;enEl.className='en'+(isBoss?' bos':isElite?' eli':'');
   document.getElementById('etag').textContent=`${isBoss?'☠ 首领':isElite?'✦ 精英':'⚔ 战斗'}  ·  第 ${toR(chapter.floor)} 章  ·  ${chapter.theme?.name||''}`;
   showView('bv');
+  // Clear battle FX overlays
+  const _sp=document.getElementById('enemy-speech');if(_sp){_sp.classList.remove('show');_sp.style.display='none';}
+  const _bt=document.getElementById('btxt');if(_bt){_bt.classList.remove('show');}
+  // Show enemy intro speech on battle start
+  setTimeout(()=>{
+    const _td2=battle.enemy?.trait&&TRAIT_DEFS&&TRAIT_DEFS[battle.enemy.trait];
+    if(_td2&&_td2.quote&&Math.random()<.7)enemySpeech('taunt');
+  },600);
   drawCards(chapter.modifier?.handLimit?Math.min(5,chapter.modifier.handLimit+1):5);
   renderBattle();
 }
@@ -1856,7 +1864,7 @@ function applySingleCard(c,mult){
   const g=Math.round((c.blk||0)*mult);
   if(g>0){
     battle.blk+=g;sfx(380,.08,'square',.08,40);
-    if(g>=12)showBatText('格挡！','#4aeeaa');
+    blockFX();if(g>=12)showBatText('格挡！','#4aeeaa');
     if(battle.jugg){const pen=Math.max(0,g-(battle.enemyBlk||0));battle.enemyBlk=Math.max(0,(battle.enemyBlk||0)-g);battle.enemyHp=Math.max(0,battle.enemyHp-pen);if(pen>0){rs.dmgDealt+=pen;floatDmg(pen,'#3a5a8a');}}
     toast(`+${g} 格挡`+(mult>1?` ×${mult.toFixed(1)}`:''));
   }
@@ -1950,7 +1958,7 @@ function endTurn(){
       else if(hadBlk){blockFX();showBatText('完美防御','#44ddaa');}
     }else if(act.t==='d'){battle.enemyBlk=(battle.enemyBlk||0)+act.v;toast(`${battle.enemy.name} 获得 ${act.v} 格挡`);
     }else if(act.t==='s'){battle.enemyStr=Math.min((battle.enemyStr||0)+act.v,3);toast(`${battle.enemy.name} 力量 +${act.v}`);
-    }else if(act.t==='h'){const healed=Math.min(act.v,battle.enemyMaxHp-battle.enemyHp);battle.enemyHp=Math.min(battle.enemyMaxHp,battle.enemyHp+act.v);if(healed>0)toast(`${battle.enemy.name} 回复 ${healed} HP`);
+    }else if(act.t==='h'){const healed=Math.min(act.v,battle.enemyMaxHp-battle.enemyHp);battle.enemyHp=Math.min(battle.enemyMaxHp,battle.enemyHp+act.v);if(healed>0){toast(`${battle.enemy.name} 回复 ${healed} HP`);if(Math.random()<.5)enemySpeech('heal');}
     }else if(act.t==='p'){battle.playerPoison=Math.min(8,(battle.playerPoison||0)+act.v);toast(`你中毒了！(+${act.v}层)`,'r');
     }else if(act.t==='w'){battle.playerWeak=Math.min(5,(battle.playerWeak||0)+act.v);toast(`你被虚弱了！(${act.v}回合)`,'r');
     }else if(act.t==='z'){// 眩晕玩家
@@ -2023,10 +2031,13 @@ function endTurn(){
     }
   }else{
     _eDidAtk=true;
+    if(Math.random()<.3)enemySpeech('taunt');
     let eatk=(battle.enemy.atk||8)+(battle.enemyStr||0);if(battle.enemyWeak>0)eatk=Math.floor(eatk*.75);
     if(battle.fortified>0){eatk=Math.floor(eatk*.5);battle.fortified--;}
+    const hadBlk2=battle.blk>0;
     const dmg=Math.max(0,eatk-battle.blk);player.hp=Math.max(0,player.hp-dmg);battle.blk=Math.max(0,battle.blk-eatk);rs.dmgTaken+=dmg;_eDmg=dmg;
-    if(dmg>0){floatDmg(dmg,'#8b1a1a',true);sfx(100+dmg,.2,'sawtooth',.12,-40);}
+    if(dmg>0){floatDmg(dmg,'#8b1a1a',true);sfx(100+dmg,.2,'sawtooth',.12,-40);hitFX(false);}
+    else if(hadBlk2){blockFX();showBatText('完美防御','#44ddaa');}
   }
   battle.blk=0;
   // 小偷逃跑检测（带着偷来的牌逃跑，不触发游戏结束）
@@ -3410,49 +3421,116 @@ function startBGM(mode){
 }
 function stopBGM(){if(_bgmTimer){clearInterval(_bgmTimer);_bgmTimer=null;}}
 // ── 过场动画系统 ──
+// ── 过场故事即时生成 ──
+function genIntroLines(key){
+  const _p=arr=>arr[0|Math.random()*arr.length];
+  if(key==='intro'){
+    const opening=[
+      '黑暗之中，<b>你听到了召唤</b>……',
+      '深处传来一声低语，你的脚步不由自主地停下。',
+      '入口处风声突起，像是深渊在<b>呼唤着你的名字</b>。',
+      '某种东西在黑暗中盯着你，<b>已经盯了很久了</b>。',
+    ];
+    const history=[
+      '无数英雄曾踏上这条路，无一生还。',
+      '据说上一个进去的人，只剩下了一副牌。',
+      '古老的石壁刻满名字——都是<b>死在里面的人</b>。',
+      '地上有些血迹。很新鲜。',
+    ];
+    const cards=[
+      '你手中的牌，是你<b>唯一的武器</b>。',
+      '这副牌从哪来的？你已经记不清了……只知道<b>不能丢</b>。',
+      '每一张卡牌都有它的意志，它们<b>选择了你</b>。',
+      '牌在你手中微微发热，仿佛在<b>催促你前进</b>。',
+    ];
+    const theme=chapter?.theme?.name||'';
+    const themeLines=theme?[
+      `深渊回响着「<b>${theme}</b>」的气息……`,
+      `空气中弥漫着<b>${theme}</b>的味道，令人警惕。`,
+    ]:[];
+    const closing=[
+      '命运，由此刻开始书写。',
+      '无论如何，<b>已经没有退路了</b>。',
+      '深吸一口气——<b>进去吧。</b>',
+      '第一步，往往决定一切。',
+    ];
+    const lines=[_p(opening),_p(history),_p(cards)];
+    if(themeLines.length)lines.push(_p(themeLines));
+    lines.push(_p(closing));
+    return lines;
+  }
+  if(key==='floor2'){
+    const ps=calcPS();const ptit=getPlayerTitle();
+    const survived=[
+      `首领已倒，但<b>深渊从未止息</b>……`,
+      `第一关卡已破。你活下来了，<b>${ptit.title}</b>。`,
+      `血迹未干，下一层的门<b>已经开了</b>。`,
+      `胜利的余温还在——但深渊<b>不给你休息的机会</b>。`,
+    ];
+    const darker=[
+      '更深处，黑暗在蠢蠢欲动。',
+      '下面的敌人，见过你的样子了。',
+      '气温下降了。你感觉到<b>更大的东西</b>在等着你。',
+      '第二层的怪物，都是<b>第一层没能杀死你的那些</b>的亲属。',
+    ];
+    const state=ps>60?'你的实力已经相当可观——但够吗？':'你的处境不算好，<b>但还没到绝望的时候</b>。';
+    const closing=[
+      '继续前进……如果你还有勇气的话。',
+      '<b>别停下来。</b>停下来就死。',
+      '你的牌，会给你答案的。',
+      '这一层，会比你想象的<b>更难熬</b>。',
+    ];
+    return[_p(survived),_p(darker),state,_p(closing)];
+  }
+  if(key==='floor3'){
+    const ptit=getPlayerTitle();
+    const crossed=[
+      '两层深渊，你已跨越。',
+      `${ptit.icon} <b>${ptit.title}</b>——你走到了大多数人做梦都到不了的地方。`,
+      '第一层是噩梦。第二层是恐惧。<b>第三层是终结。</b>',
+      '活到这里的人，历史上屈指可数。',
+    ];
+    const core=[
+      '这里是<b>黑暗的尽头</b>，也是一切的起源。',
+      '深渊的核心——它<b>一直在等你来</b>。',
+      '空气变得黏稠，每一步都像是有人在拉着你往回走。',
+      '你能感觉到：<b>某个东西知道你来了。</b>',
+    ];
+    const final=[
+      '胜利或死亡——<b>只有一种结局。</b>',
+      '你的每一张牌，都将被推向极限。',
+      '<b>结束它</b>——或者被它结束。',
+      '这副牌和这条命，今天都要见分晓了。',
+    ];
+    return[_p(crossed),_p(core),_p(final)];
+  }
+  return null;
+}
 const CUTSCENES={
   intro:{
     bg:'radial-gradient(ellipse at 30% 50%,rgba(139,26,26,.45),rgba(50,20,80,.3),var(--void))',
     icon:'🗡',iconColor:'#c0392b',artTitle:'卡牌地牢',artSub:'CARD DUNGEON',
     chap:'序章',title:'深渊的召唤',
-    lines:[
-      '黑暗之中，<b>你听到了召唤</b>……',
-      '无数英雄曾踏上这条路，无一生还。',
-      '他们的鲜血，浸透了每一张卡牌。',
-      '你手中的牌，是你<b>唯一的武器</b>。',
-      '命运，由此刻开始书写。',
-    ]
+    lines:[]
   },
   floor2:{
     bg:'radial-gradient(ellipse at 30% 50%,rgba(106,58,154,.4),rgba(80,20,20,.3),var(--void))',
     icon:'💀',iconColor:'#9a5abf',artTitle:'深渊第二层',artSub:'FLOOR II',
     chap:'第二章',title:'深处的黑暗',
-    lines:[
-      '首领已倒，但<b>深渊从未止息</b>……',
-      '更深处，黑暗在蠢蠢欲动。',
-      '你的胜利只是开始，<b>真正的试炼</b>等待着你。',
-      '前方的敌人，远比你想象的<b>更为危险</b>。',
-      '继续前进……如果你还有勇气的话。',
-    ]
+    lines:[]
   },
   floor3:{
     bg:'radial-gradient(ellipse at 30% 50%,rgba(139,0,0,.5),rgba(106,58,154,.3),var(--void))',
     icon:'👁',iconColor:'#c0392b',artTitle:'最终深渊',artSub:'FINAL ABYSS',
     chap:'第三章 · 最终章',title:'深渊的核心',
-    lines:[
-      '两层深渊，你已跨越。',
-      '这里是<b>黑暗的尽头</b>，也是一切的起源。',
-      '深渊之王正在等待，他<b>永远未曾被击败</b>。',
-      '你的每一张卡牌，都将被考验到极限。',
-      '胜利或死亡——<b>只有一种结局</b>。',
-    ]
+    lines:[]
   },
 };
 let _csOnComplete=null;let _csLines=[];let _csLI=0;let _csCI=0;let _csTimer=null;let _csDone=false;
 function handleCsClick(){if(_csDone)finishCutscene();else skipCutscene();}
 function showCutscene(key,onComplete){
   const sc=CUTSCENES[key];if(!sc){onComplete?.();return;}
-  _csOnComplete=onComplete;_csLines=sc.lines;_csLI=0;_csCI=0;_csDone=false;
+  _csOnComplete=onComplete;_csLines=genIntroLines(key)||sc.lines;_csLI=0;_csCI=0;_csDone=false;
   clearTimeout(_csTimer);
   const el=document.getElementById('cutscene');
   const artEl=document.getElementById('cs-art');
