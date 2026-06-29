@@ -1141,7 +1141,7 @@ const SM={
       battle.deck=sv.deck.map(c=>({...c}));
       window._mapRank=7;
       document.getElementById('mb').style.display='none';
-      navClear();showView('mv');renderMap();renderHud();renderTokens();
+      phase=PH.MAP;navClear();showView('mv');renderMap();renderHud();renderTokens();
       return true;
     }catch(e){return false;}
   },
@@ -1673,7 +1673,7 @@ function startBattle(isElite,isBoss){
   const normalCards=battle.deck.filter(c=>!c.innate);
   battle.drawPile=shuf([...normalCards]);battle.hand=innateCards.slice(0,2);battle.discardPile=[];battle.exhPile=[];
   const startAp=player.maxAp||3;
-  battle.blk=0;battle.str=0;battle.jugg=false;battle.lifestealMode=false;battle.playerPoison=0;battle.playerWeak=0;battle.playerStun=0;battle.playerDisarm=0;battle.enemyBleed=0;battle.enemyStun=0;battle.fortified=0;battle.apLeft=startAp;battle.maxAp=startAp;battle.turn=1;battle.selectedCards=[];battle.firstCard=true;battle.nextFreeCount=0;
+  battle.blk=0;battle.str=0;battle.jugg=false;battle.lifestealMode=false;battle.playerPoison=0;battle.playerWeak=0;battle.playerStun=0;battle.playerDisarm=0;battle.enemyBleed=0;battle.enemyStun=0;battle.fortified=0;battle.apLeft=startAp;battle.maxAp=startAp;battle.turn=1;battle.selectedCards=[];battle.firstCard=true;battle.nextFreeCount=0;battle.stolenCards=[];battle.exiledCards=[];
   if(chapter.modifier?.onBattleStart)chapter.modifier.onBattleStart(battle,player);
   applyRelicHooks('onBattleStart',battle,player);
   const ep=document.getElementById('ep');
@@ -1907,7 +1907,7 @@ function endTurn(){
   if(battle.enemy?.escapeRound&&battle.turn>=battle.enemy.escapeRound){
     toast(`🎭 ${battle.enemy.name} 带着战利品逃跑了！`,'r');
     stopBGM();phase=PH.MAP;saveGame();
-    setTimeout(()=>{mapData.step++;renderMap();},800);
+    setTimeout(()=>renderMap(),800);
     return;
   }
   if(chapter.modifier?.onTurnStart)chapter.modifier.onTurnStart(battle,player);
@@ -2009,7 +2009,7 @@ function pickBlessing(idx){
   enterChapter();
 }
 function getDiff(ps){return ps<20?'🟢 平静':ps<40?'🟡 凶险':ps<65?'🟠 危机':ps<90?'🔴 绝境':'☠ 地狱';}
-function enterChapter(){buildMap();showView('mv');renderMap();renderHud();renderTokens();startBGM('map');}
+function enterChapter(){phase=PH.MAP;buildMap();showView('mv');renderMap();renderHud();renderTokens();startBGM('map');}
 function renderPokerCard(c,onclick,opts={}){
   const{price,bought=false,idx=0,total=1,sel=false}=opts;
   const d=(c.desc||'').replace('{atk}',c.atk||0).replace('{blk}',c.blk||0).replace('{heal}',c.heal||0).replace('{str}',c.str||0);
