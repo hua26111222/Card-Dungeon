@@ -1249,7 +1249,8 @@ const CardGen={
   one(ps){
     const tier=ps<30?'common':ps<60?'uncommon':'rare';
     const scale=0.7+Math.random()*0.6;
-    const base=Math.max(8,ps*scale*.5);
+    // 硬封顶：防止高PS阶段生成远超平衡的数值
+    const base=Math.max(8,Math.min(42,ps*scale*.5));
     const id='g'+Date.now().toString(36)+(Math.random()*1e6|0).toString(36);
     const r=Math.random();
     if(r<.38)return this._mkAtk(id,tier,base);
@@ -1259,40 +1260,40 @@ const CardGen={
   },
   _mkAtk(id,tier,base){
     const cost=base<14?0:base<28?1:2;
-    const atk=Math.round(base/(cost===0?1.2:cost===1?1:0.75));
+    const atk=Math.min(48,Math.round(base/(cost===0?1.2:cost===1?1:0.75)));
     const r=Math.random();
     if(r<.26){return{id,name:this._n('atk',tier),art:this._a('atk'),kind:'atk',rar:tier,cost,atk,desc:`造成 <b>${atk}</b> 伤害`};}
     if(r<.44){const da=Math.round(atk*.62);return{id,name:this._n('atk',tier,'d'),art:'⚡',kind:'atk',rar:tier,cost,atk:da,times:2,desc:`造成 <b>${da}</b> 伤 <b>×2</b>`};}
     if(r<.54){const ta=Math.round(atk*.42);return{id,name:this._n('atk',tier,'t'),art:'🌀',kind:'atk',rar:tier,cost:Math.min(2,cost+1),atk:ta,times:3,desc:`造成 <b>${ta}</b> 伤 <b>×3</b>`};}
     if(r<.65){const ra=Math.round(atk*.72);return{id,name:this._n('atk',tier,'s'),art:'🗡',kind:'atk',rar:tier,cost,atk:ra,draw:1,desc:`造成 <b>${ra}</b> 伤，摸 <b>1</b> 张牌`};}
     if(r<.75){const wa=Math.round(atk*.75);const wt=tier==='rare'?2:1;return{id,name:this._n('atk',tier,'w'),art:'💚',kind:'atk',rar:tier,cost,atk:wa,weak:wt,desc:`造成 <b>${wa}</b> 伤，虚弱敌人 <b>${wt}</b> 回合`};}
-    if(r<.87){const pa=Math.round(atk*.6);const pt=Math.max(1,Math.round(base*.08));return{id,name:this._n('atk',tier,'p'),art:'☠',kind:'atk',rar:tier,cost,atk:pa,poison:pt,desc:`造成 <b>${pa}</b> 伤，施毒 <b>${pt}</b> 层`};}
+    if(r<.87){const pa=Math.round(atk*.6);const pt=Math.min(6,Math.max(1,Math.round(base*.08)));return{id,name:this._n('atk',tier,'p'),art:'☠',kind:'atk',rar:tier,cost,atk:pa,poison:pt,desc:`造成 <b>${pa}</b> 伤，施毒 <b>${pt}</b> 层`};}
     const va=Math.round(atk*.65);return{id,name:this._n('atk',tier,'v'),art:'💥',kind:'atk',rar:tier,cost,atk:va,vuln:1,desc:`造成 <b>${va}</b> 伤，易伤敌人1回合`};
   },
   _mkDef(id,tier,base){
     const cost=base<11?0:base<22?1:2;
-    const blk=Math.round(base/(cost===0?1.3:cost===1?1:0.7));
+    const blk=Math.min(26,Math.round(base/(cost===0?1.3:cost===1?1:0.7)));
     const r=Math.random();
     if(r<.38){return{id,name:this._n('def',tier),art:this._a('def'),kind:'def',rar:tier,cost,blk,desc:`获得 <b>${blk}</b> 格挡`};}
-    if(r<.58){const bh=Math.round(blk*.72);const hl=Math.max(2,Math.round(base*.12));return{id,name:this._n('def',tier,'h'),art:'💊',kind:'def',rar:tier,cost,blk:bh,heal:hl,desc:`获得 <b>${bh}</b> 格挡，回复 <b>${hl}</b> HP`};}
+    if(r<.58){const bh=Math.round(blk*.72);const hl=Math.min(14,Math.max(2,Math.round(base*.12)));return{id,name:this._n('def',tier,'h'),art:'💊',kind:'def',rar:tier,cost,blk:bh,heal:hl,desc:`获得 <b>${bh}</b> 格挡，回复 <b>${hl}</b> HP`};}
     if(r<.75){const bd=Math.round(blk*.75);return{id,name:this._n('def',tier,'d'),art:'🔍',kind:'def',rar:tier,cost,blk:bd,draw:1,desc:`获得 <b>${bd}</b> 格挡，摸 <b>1</b> 张牌`};}
-    const bs=Math.round(blk*.65);const st=Math.max(1,Math.round(base*.06));return{id,name:this._n('def',tier,'q'),art:'💪',kind:'def',rar:tier,cost,blk:bs,str:st,dur:999,desc:`获得 <b>${bs}</b> 格挡，【全场】攻击 <b>+${st}</b>`};
+    const bs=Math.round(blk*.65);const st=Math.min(2,Math.max(1,Math.round(base*.06)));return{id,name:this._n('def',tier,'q'),art:'💪',kind:'def',rar:tier,cost,blk:bs,str:st,dur:999,desc:`获得 <b>${bs}</b> 格挡，【全场】攻击 <b>+${st}</b>`};
   },
   _mkSkl(id,tier,base){
     const cost=tier==='rare'?1:Math.random()<.28?1:0;
     const r=Math.random();
     if(r<.28){const draw=1+(tier!=='common'?1:0);return{id,name:this._n('skl',tier,'dr'),art:'🔍',kind:'skl',rar:tier,cost,draw,desc:`摸 <b>${draw}</b> 张牌`};}
-    if(r<.50){const heal=Math.round(base*.38+3);return{id,name:this._n('skl',tier,'hl'),art:'💊',kind:'skl',rar:tier,cost,heal,exhaust:true,desc:`回复 <b>${heal}</b> HP（消耗）`};}
-    if(r<.68){const str=Math.max(1,Math.round(base*.12));return{id,name:this._n('skl',tier,'st'),art:'💪',kind:'skl',rar:tier,cost,str,dur:999,desc:`【全场】攻击 <b>+${str}</b>`};}
-    if(r<.83){const poi=Math.max(1,Math.round(base*.10));return{id,name:this._n('skl',tier,'po'),art:'☠',kind:'skl',rar:tier,cost,poison:poi,desc:`施毒 <b>${poi}</b> 层`};}
+    if(r<.50){const heal=Math.min(16,Math.round(base*.38+3));return{id,name:this._n('skl',tier,'hl'),art:'💊',kind:'skl',rar:tier,cost,heal,exhaust:true,desc:`回复 <b>${heal}</b> HP（消耗）`};}
+    if(r<.68){const str=Math.min(2,Math.max(1,Math.round(base*.12)));return{id,name:this._n('skl',tier,'st'),art:'💪',kind:'skl',rar:tier,cost,str,dur:999,desc:`【全场】攻击 <b>+${str}</b>`};}
+    if(r<.83){const poi=Math.min(5,Math.max(1,Math.round(base*.10)));return{id,name:this._n('skl',tier,'po'),art:'☠',kind:'skl',rar:tier,cost,poison:poi,desc:`施毒 <b>${poi}</b> 层`};}
     const draw2=1+(tier==='rare'?1:0);const str2=1;return{id,name:this._n('skl',tier,'ds'),art:'✨',kind:'skl',rar:tier,cost,draw:draw2,str:str2,dur:999,desc:`摸 <b>${draw2}</b> 张牌，【全场】攻击 <b>+${str2}</b>`};
   },
   _mkCombo(id,tier,base){
     const cost=1;const r=Math.random();
-    if(r<.32){const a=Math.round(base*.42);const b2=Math.round(base*.28);return{id,name:this._n('atk',tier,'c'),art:'⚔',kind:'atk',rar:tier,cost,atk:a,blk:b2,desc:`造成 <b>${a}</b> 伤，获得 <b>${b2}</b> 格挡`};}
-    if(r<.60){const p=Math.max(1,Math.round(base*.08));return{id,name:this._n('skl',tier,'pc'),art:'🔮',kind:'skl',rar:tier,cost,poison:p,draw:1,desc:`施毒 <b>${p}</b> 层，摸 <b>1</b> 张牌`};}
-    if(r<.80){const h=Math.round(base*.25+2);return{id,name:this._n('skl',tier,'hc'),art:'💎',kind:'skl',rar:tier,cost,heal:h,draw:1,exhaust:true,desc:`回复 <b>${h}</b> HP，摸 <b>1</b> 张牌（消耗）`};}
-    const a2=Math.round(base*.35);const w=1;return{id,name:this._n('atk',tier,'wc'),art:'💫',kind:'atk',rar:tier,cost,atk:a2,weak:w,poison:Math.max(1,Math.round(base*.05)),desc:`造成 <b>${a2}</b> 伤，虚弱+施毒`};
+    if(r<.32){const a=Math.min(24,Math.round(base*.42));const b2=Math.min(14,Math.round(base*.28));return{id,name:this._n('atk',tier,'c'),art:'⚔',kind:'atk',rar:tier,cost,atk:a,blk:b2,desc:`造成 <b>${a}</b> 伤，获得 <b>${b2}</b> 格挡`};}
+    if(r<.60){const p=Math.min(4,Math.max(1,Math.round(base*.08)));return{id,name:this._n('skl',tier,'pc'),art:'🔮',kind:'skl',rar:tier,cost,poison:p,draw:1,desc:`施毒 <b>${p}</b> 层，摸 <b>1</b> 张牌`};}
+    if(r<.80){const h=Math.min(12,Math.round(base*.25+2));return{id,name:this._n('skl',tier,'hc'),art:'💎',kind:'skl',rar:tier,cost,heal:h,draw:1,exhaust:true,desc:`回复 <b>${h}</b> HP，摸 <b>1</b> 张牌（消耗）`};}
+    const a2=Math.min(20,Math.round(base*.35));const w=1;return{id,name:this._n('atk',tier,'wc'),art:'💫',kind:'atk',rar:tier,cost,atk:a2,weak:w,poison:Math.min(3,Math.max(1,Math.round(base*.05))),desc:`造成 <b>${a2}</b> 伤，虚弱+施毒`};
   },
   pool(ps,n){
     const res=[];const seen=new Set();let tries=0;
