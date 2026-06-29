@@ -1792,7 +1792,7 @@ function startBattle(isElite,isBoss){
   applyRelicHooks('onBattleStart',battle,player);
   const ep=document.getElementById('ep');
   const eBadgeSz=isBoss?'22px':isElite?'18px':'14px';
-  ep.innerHTML=`<span class="ep-inner">${getEnemySprite(isBoss?'boss':isElite?'elite':'fight')}<span style="font-size:${eBadgeSz};line-height:1;display:block;text-align:center">${en.art}</span></span>`;
+  ep.innerHTML=`<span class="ep-inner">${getEnemySprite(isBoss?'boss':isElite?'elite':'fight',en.trait)}</span>`;
   ep.className='ep'+(isBoss?' fb':isElite?' fe':'');
   const pav=document.getElementById('pav');if(pav)pav.innerHTML=getPlayerSprite();
   const enEl=document.getElementById('en');enEl.textContent=en.name;enEl.className='en'+(isBoss?' bos':isElite?' eli':'');
@@ -1880,13 +1880,13 @@ function applySingleCard(c,mult){
   if(c.special==='vampire_oath')battle.lifestealMode=true;
   if(c.special==='shieldsmash'){if(battle.blk>0){const d=battle.blk;battle.blk=0;const pen=Math.max(0,d-(battle.enemyBlk||0));battle.enemyBlk=Math.max(0,(battle.enemyBlk||0)-d);battle.enemyHp=Math.max(0,battle.enemyHp-pen);if(pen>0){rs.dmgDealt+=pen;floatDmg(pen,'#c0392b');}}else toast('没有格挡','r');}
   if(c.special==='poisonburst'){const pd=(battle.enemyPoison||0)*4;if(pd>0){battle.enemyHp=Math.max(0,battle.enemyHp-pd);rs.dmgDealt+=pd;floatDmg(pd,'#2d7a27');}else toast('敌人未中毒','r');}
-  if(c.special==='bloodrush'){const md=Math.max(0,player.maxHp-player.hp);if(md>0){battle.enemyHp=Math.max(0,battle.enemyHp-md);rs.dmgDealt+=md;floatDmg(md,'#c0392b');}else toast('HP已满','r');}
-  if(c.special==='execute'){const pct=battle.enemyHp/(battle.enemyMaxHp||1);const xd=pct<=(c.execThresh||.30)?battle.enemyHp:(c.execDmg||18);battle.enemyHp=Math.max(0,battle.enemyHp-xd);rs.dmgDealt+=xd;floatDmg(xd,'#c0392b');}
+  if(c.special==='bloodrush'){const md=Math.min(50,Math.max(0,player.maxHp-player.hp));if(md>0){battle.enemyHp=Math.max(0,battle.enemyHp-md);rs.dmgDealt+=md;floatDmg(md,'#c0392b');}else toast('HP已满','r');}
+  if(c.special==='execute'){const pct=battle.enemyHp/(battle.enemyMaxHp||1);const xd=pct<=(c.execThresh||.22)?battle.enemyHp:(c.execDmg||16);battle.enemyHp=Math.max(0,battle.enemyHp-xd);rs.dmgDealt+=xd;floatDmg(xd,'#c0392b');}
   if(c.special==='counter'){const na=battle.nextEnemyAction;const g2=na?.t==='a'?(na.v+(battle.enemyStr||0)):(battle.enemy.atk||8);battle.blk+=g2;toast(`+${g2} 格挡（反击）`);}
   if(c.special==='discard'){if(battle.hand.length>0){const mx=Math.max(...battle.hand.map(h=>h.cost));const di=battle.hand.findIndex(h=>h.cost===mx);if(di>=0)battle.discardPile.push(battle.hand.splice(di,1)[0]);}drawCards(2);}
   if(c.apscale)battle.apLeft=0;
   // ── 奇异牌特殊逻辑 ──
-  if(c.special==='soul_strike'){const p=c.soulPct||.25;const d=Math.floor((battle.enemyHp||0)*p);if(d>0){battle.enemyHp=Math.max(0,battle.enemyHp-d);rs.dmgDealt+=d;floatDmg(d,'#9a5abf');sfx(260,.18,'square',.1,120);}else toast('敌人HP太低','r');}
+  if(c.special==='soul_strike'){const p=c.soulPct||.18;const d=Math.floor((battle.enemyHp||0)*p);if(d>0){battle.enemyHp=Math.max(0,battle.enemyHp-d);rs.dmgDealt+=d;floatDmg(d,'#9a5abf');sfx(260,.18,'square',.1,120);}else toast('敌人HP太低','r');}
   if(c.special==='chaos_shot'){const mn=c.chaosMin||8,mx=c.chaosMax||45;const raw=mn+Math.floor(Math.random()*(mx-mn+1));let d=raw+(battle.str||0);if(battle.playerWeak>0)d=Math.floor(d*.75);if(battle.enemyVuln>0)d=Math.ceil(d*1.5);const pen=Math.max(0,d-(battle.enemyBlk||0));battle.enemyBlk=Math.max(0,(battle.enemyBlk||0)-d);battle.enemyHp=Math.max(0,battle.enemyHp-pen);rs.dmgDealt+=pen;if(pen>0){floatDmg(pen,'#c0392b');sfx(180+pen,.15,'sawtooth',.1,-60);}toast(`🎲 混沌：${raw}伤`);}
   if(c.special==='last_stand'){const isLow=player.hp/player.maxHp<=0.30;let d=((isLow?(c.lsDmgHigh||55):(c.lsDmgLow||15)))+(battle.str||0);if(battle.playerWeak>0)d=Math.floor(d*.75);if(battle.enemyVuln>0)d=Math.ceil(d*1.5);const pen=Math.max(0,d-(battle.enemyBlk||0));battle.enemyBlk=Math.max(0,(battle.enemyBlk||0)-d);battle.enemyHp=Math.max(0,battle.enemyHp-pen);rs.dmgDealt+=pen;if(pen>0){floatDmg(pen,isLow?'#c0392b':'#aa5040');sfx(180+pen,.15,'sawtooth',.1,-60);}if(isLow)toast(`🔥 绝地反击！${c.lsDmgHigh||55}伤！`,'g');}
   if(c.special==='martyr'){const md=Math.min(Math.max(0,player.hp-1),Math.round(player.maxHp*.52));player.hp=Math.max(1,player.hp-md);if(md>0){battle.enemyHp=Math.max(0,battle.enemyHp-md);rs.dmgDealt+=md;floatDmg(md,'#c0392b');sfx(120+md,.2,'sawtooth',.15,-60);}toast(`☀ 殉道！${md}伤`,'g');}
@@ -2579,7 +2579,7 @@ function renderBattle(){
   const bd=document.getElementById('bbd');if(b.blk>0){bd.style.display='flex';document.getElementById('bbv').textContent=b.blk;}else bd.style.display='none';
   let ps2='';if(b.str>0)ps2+=`<div class="sb ss">力量 +${b.str}</div>`;if(b.jugg)ps2+=`<div class="sb sbk">势不可挡</div>`;if(b.lifestealMode)ps2+=`<div class="sb" style="color:var(--blood);border-color:var(--blood2)">吸血</div>`;if(b.fortified>0)ps2+=`<div class="sb" style="color:var(--slime);border-color:var(--mold)">坚固 ${b.fortified}</div>`;if(b.playerWeak>0)ps2+=`<div class="sb sw">虚弱 ${b.playerWeak}</div>`;if(b.playerPoison>0)ps2+=`<div class="sb sp">中毒↑ ${b.playerPoison}</div>`;if(b.playerStun>0)ps2+=`<div class="sb" style="color:var(--amber);border-color:var(--bone2)">眩晕 ${b.playerStun}</div>`;if(b.playerDisarm>0)ps2+=`<div class="sb" style="color:var(--ash);border-color:var(--ash2)">缴械 ${b.playerDisarm}</div>`;
   document.getElementById('ps2').innerHTML=ps2;
-  const ptit=getPlayerTitle();document.getElementById('pav').textContent=ptit.icon;const pnEl=document.getElementById('pn');pnEl.textContent=ptit.title;pnEl.style.color=ptit.color||'var(--text)';
+  const ptit=getPlayerTitle();const pnEl=document.getElementById('pn');pnEl.textContent=ptit.icon+' '+ptit.title;pnEl.style.color=ptit.color||'var(--text)';
   const pips=Array(b.maxAp).fill(0).map((_,i)=>`<span class="app${i<b.apLeft?' on':''}"></span>`).join('');
   document.getElementById('app2').innerHTML=pips;document.getElementById('apt').textContent=`${b.apLeft}/${b.maxAp}`;
   document.getElementById('ddr').textContent=b.drawPile.length;document.getElementById('ddc').textContent=b.discardPile.length;document.getElementById('dex').textContent=b.exhPile.length;document.getElementById('dtn').textContent=b.turn;
@@ -2709,66 +2709,153 @@ function previewUpgrade(c){
   const vOld=cardValue(c),vNew=cardValue(copy);
   return`${diff.join('，')} <span style="color:var(--amber);font-size:8px">(${vOld}→${vNew}g)</span>`;
 }
-// ── 像素人形立绘 ──
-function _pxSprite(rows,px,hi,mid,lo){
-  let r='';
-  rows.forEach((row,y)=>{
-    [...row].forEach((ch,x)=>{
-      if(ch==='X'){
-        const n=rows.length;
-        const col=y<n*.35?hi:y<n*.7?mid:lo;
-        r+=`<rect x="${x*px}" y="${y*px}" width="${px}" height="${px}" fill="${col}"/>`;
-      }
-    });
-  });
-  return`<svg width="${(rows[0]||'').length*px}" height="${rows.length*px}" xmlns="http://www.w3.org/2000/svg" style="image-rendering:pixelated;display:block">${r}</svg>`;
-}
-const _SP={
-  warrior:[
-    '..XXX...',
-    '.XXXXX..',
-    '.X.X.X..',
-    '.XXXXX..',
-    '.XXXXXX.',
-    'XXXXXXXX',
-    '.XXXXXX.',
-    '..X..X..',
-    '..X..X..',
-    '..X..X..',
-    '.XX..XX.',
-  ],
-  mob:[
-    '..XXX...',
-    '.XXXXXX.',
-    '.X.X.X..',
-    '.XXXXXX.',
-    '.XXXXXXX',
-    'XXXXXXXX',
-    '.XXXXXXX',
-    '...X.X..',
-    '...X.X..',
-    '...X.X..',
-    '..XX.XX.',
-  ],
-  boss:[
-    '.XXXXXXX',
-    'XXXXXXXX',
-    'XX.X.XXX',
-    'XXXXXXXX',
-    'XXXXXXXX',
-    'XXXXXXXX',
-    '.XXXXXX.',
-    '.X....X.',
-    '.X....X.',
-    'XX....XX',
-    'XX....XX',
-  ],
+// ── SVG人形立绘系统 ──
+function _chDk(h,a){const p=(n)=>{const v=Math.max(0,parseInt(n,16)-a);return(v<16?'0':'')+v.toString(16);};return'#'+p(h.slice(1,3))+p(h.slice(3,5))+p(h.slice(5,7));}
+function _chrng(seed){let s=((seed^0x12345)>>>0)||1;return()=>{s=((s*1664525+1013904223)>>>0);return s%100;};}
+const _CHR_SK=['#f5d0a9','#e8b585','#d4956a','#c07850','#8b6040','#f0e8d0','#fff0d0','#d0e8d0'];
+const _CHR_HR=['#2a1a0a','#5a3010','#8b5020','#c07030','#d4a060','#f0d080','#e0e0e0','#4a4080','#c04040','#208040'];
+const _CHR_OT=['#3a5a8a','#8a3a3a','#3a8a5a','#6a3a8a','#8a7a3a','#3a6a8a','#1a3050','#503020','#1a1a1a','#7a3050'];
+const _CHR_AC=['#d4a030','#c0c0c0','#8050a0','#40a080','#c03020','#e0d060'];
+const _CHR_LG=['#2a2a4a','#4a2a2a','#2a4a2a','#3a3020','#1a1a1a','#502030'];
+const _TRAIT_CHAR={
+  '骑士'  :{build:'bulky', helm:'full_helm',  weapon:'sword',  cape:true, sk:0,hr:0,ot:0,ac:0,lg:0},
+  '魅魔'  :{build:'slim',  helm:'horns',      weapon:'dagger', cape:false,sk:6,hr:8,ot:9,ac:2,lg:3},
+  '骷髅'  :{build:'slim',  helm:'bare',       weapon:'sword',  cape:false,sk:5,hr:2,ot:8,ac:1,lg:4,undead:true},
+  '暴君'  :{build:'bulky', helm:'crown',      weapon:'axe',    cape:true, sk:3,hr:7,ot:7,ac:0,lg:5},
+  '术士'  :{build:'slim',  helm:'mage_hat',   weapon:'staff',  cape:false,sk:0,hr:6,ot:4,ac:2,lg:3},
+  '流浪者':{build:'normal',helm:'hood',       weapon:'dagger', cape:false,sk:2,hr:1,ot:2,ac:4,lg:2},
+  '盗贼'  :{build:'normal',helm:'hood',       weapon:'dagger', cape:false,sk:1,hr:0,ot:1,ac:1,lg:1},
+  '施法者':{build:'slim',  helm:'mage_hat',   weapon:'staff',  cape:false,sk:0,hr:8,ot:5,ac:2,lg:3},
+  '吸血鬼':{build:'slim',  helm:'short_hair', weapon:'dagger', cape:true, sk:7,hr:0,ot:9,ac:2,lg:4},
 };
-function getPlayerSprite(){return _pxSprite(_SP.warrior,6,'#c0d8e8','#7aaabf','#3a5a8a');}
-function getEnemySprite(tier){
-  if(tier==='boss')return _pxSprite(_SP.boss,9,'#c090e0','#9a5abf','#6a3a9a');
-  if(tier==='elite')return _pxSprite(_SP.mob,8,'#f0c060','#d4881a','#a06010');
-  return _pxSprite(_SP.mob,6,'#e05040','#c0392b','#8b1a1a');
+function genCharParams(seed,traitHint){
+  const rng=_chrng(seed),tr=_TRAIT_CHAR[traitHint]||{},ri=()=>rng();
+  return{
+    sk:_CHR_SK[tr.sk!==undefined?tr.sk:ri()%_CHR_SK.length],
+    hr:_CHR_HR[tr.hr!==undefined?tr.hr:ri()%_CHR_HR.length],
+    ot:_CHR_OT[tr.ot!==undefined?tr.ot:ri()%_CHR_OT.length],
+    ac:_CHR_AC[tr.ac!==undefined?tr.ac:ri()%_CHR_AC.length],
+    lg:_CHR_LG[tr.lg!==undefined?tr.lg:ri()%_CHR_LG.length],
+    build:tr.build||['normal','normal','bulky','slim'][ri()%4],
+    helm:tr.helm||['bare','short_hair','open_helm','full_helm','hood'][ri()%5],
+    weapon:tr.weapon||['sword','axe','staff','dagger','mace'][ri()%5],
+    cape:tr.cape!==undefined?tr.cape:(ri()%4===0),
+    undead:tr.undead||false,
+    eyeCol:['#ff3030','#30c0ff','#f0f050','#ff80b0'][ri()%4],
+  };
+}
+function _drawWpn(d,wp,x,y,len,ac){
+  if(wp==='sword'){
+    d.push(`<rect x="${x}" y="${y-len}" width="3" height="${len}" fill="${ac}" rx="1" opacity=".92"/>`);
+    d.push(`<rect x="${x-6}" y="${y-2}" width="14" height="3" fill="${ac}" rx="1"/>`);
+  }else if(wp==='axe'){
+    d.push(`<rect x="${x+1}" y="${y-len}" width="2.5" height="${len}" fill="#8a7060" rx="1"/>`);
+    d.push(`<path d="M${x-7},${y-len} Q${x-15},${y-len+10} ${x-5},${y-len+20} L${x+3},${y-len+4} Z" fill="${ac}" opacity=".9"/>`);
+  }else if(wp==='staff'){
+    d.push(`<rect x="${x+1}" y="${y-len}" width="2.5" height="${len}" fill="#7a5030" rx="1"/>`);
+    d.push(`<circle cx="${x+2}" cy="${y-len}" r="6" fill="${ac}" opacity=".82"/>`);
+    d.push(`<circle cx="${x+2}" cy="${y-len}" r="3" fill="white" opacity=".4"/>`);
+  }else if(wp==='dagger'){
+    d.push(`<path d="M${x},${y-len+8} L${x+2},${y-len} L${x+4},${y-len+8} Z" fill="${ac}" opacity=".88"/>`);
+    d.push(`<rect x="${x}" y="${y-len+8}" width="4" height="${len-8}" fill="${ac}" rx="1" opacity=".8"/>`);
+  }else if(wp==='mace'){
+    d.push(`<rect x="${x+1}" y="${y-len}" width="2.5" height="${len}" fill="#8a7060" rx="1"/>`);
+    d.push(`<rect x="${x-5}" y="${y-len-7}" width="13" height="9" fill="${ac}" rx="2" opacity=".88"/>`);
+  }
+}
+function _drawHead(d,p,cx,HY,HR){
+  const{sk,hr,ac,ot,undead,eyeCol,helm}=p;
+  const fc=undead?'#b0d8b0':sk;
+  d.push(`<ellipse cx="${cx}" cy="${HY}" rx="${HR}" ry="${Math.round(HR*1.08)}" fill="${fc}"/>`);
+  const ey=HY+1,ex1=cx-HR*.4,ex2=cx+HR*.4,er=undead?2.6:2;
+  d.push(`<ellipse cx="${ex1}" cy="${ey}" rx="${er}" ry="${+(er*.88).toFixed(1)}" fill="${undead?eyeCol:'#18100a'}"/>`);
+  d.push(`<ellipse cx="${ex2}" cy="${ey}" rx="${er}" ry="${+(er*.88).toFixed(1)}" fill="${undead?eyeCol:'#18100a'}"/>`);
+  if(undead){d.push(`<ellipse cx="${ex1}" cy="${ey}" rx="1" ry=".8" fill="white" opacity=".5"/>`);d.push(`<ellipse cx="${ex2}" cy="${ey}" rx="1" ry=".8" fill="white" opacity=".5"/>`);}
+  const my=HY+HR*.55;
+  if(undead)d.push(`<path d="M${cx-5},${my} l2,3 l2,-3 l2,3 l2,-3" stroke="${eyeCol}" stroke-width="1.4" fill="none" stroke-linecap="round"/>`);
+  else d.push(`<path d="M${cx-4},${my} Q${cx},${my+4} ${cx+4},${my}" stroke="#3a1a08" stroke-width="1.3" fill="none"/>`);
+  if(helm==='full_helm'){
+    d.push(`<ellipse cx="${cx}" cy="${HY-HR*.15}" rx="${HR+2}" ry="${+(HR*.92).toFixed(1)}" fill="${ot}" opacity=".93"/>`);
+    d.push(`<rect x="${+(cx-HR*.55).toFixed(1)}" y="${HY-2}" width="${+(HR*1.1).toFixed(1)}" height="7" fill="${_chDk(ot,40)}" rx="1"/>`);
+    d.push(`<rect x="${+(cx-HR*.35).toFixed(1)}" y="${+(HY-HR-.5).toFixed(1)}" width="${+(HR*.7).toFixed(1)}" height="4" fill="${ac}" rx="1"/>`);
+  }else if(helm==='open_helm'){
+    d.push(`<path d="M${+(cx-HR-1).toFixed(1)},${+(HY-HR*.35).toFixed(1)} Q${cx},${+(HY-HR*2.1).toFixed(1)} ${+(cx+HR+1).toFixed(1)},${+(HY-HR*.35).toFixed(1)}" fill="${ot}" opacity=".9"/>`);
+    d.push(`<ellipse cx="${+(cx-HR*.75).toFixed(1)}" cy="${+(HY+HR*.3).toFixed(1)}" rx="3.5" ry="5.5" fill="${hr}"/>`);
+    d.push(`<rect x="${+(cx-HR).toFixed(1)}" y="${+(HY-HR).toFixed(1)}" width="${+(HR*2).toFixed(1)}" height="4" fill="${ac}" rx="1" opacity=".7"/>`);
+  }else if(helm==='hood'){
+    d.push(`<path d="M${+(cx-HR*1.3).toFixed(1)},${+(HY+HR*.7).toFixed(1)} Q${cx},${+(HY-HR*2.3).toFixed(1)} ${+(cx+HR*1.3).toFixed(1)},${+(HY+HR*.7).toFixed(1)}" fill="${ot}" opacity=".88"/>`);
+    d.push(`<ellipse cx="${cx}" cy="${+(HY-HR*.3).toFixed(1)}" rx="${+(HR*.72).toFixed(1)}" ry="${+(HR*.8).toFixed(1)}" fill="${_chDk(ot,20)}" opacity=".72"/>`);
+  }else if(helm==='mage_hat'){
+    d.push(`<path d="M${cx},${+(HY-HR*2.9).toFixed(1)} L${+(cx-HR*1.5).toFixed(1)},${+(HY-HR*.3).toFixed(1)} L${+(cx+HR*1.5).toFixed(1)},${+(HY-HR*.3).toFixed(1)} Z" fill="${ot}" opacity=".95"/>`);
+    d.push(`<ellipse cx="${cx}" cy="${+(HY-HR*.35).toFixed(1)}" rx="${+(HR*1.7).toFixed(1)}" ry="${+(HR*.32).toFixed(1)}" fill="${ot}"/>`);
+    d.push(`<ellipse cx="${cx}" cy="${+(HY-HR*.35).toFixed(1)}" rx="${+(HR*1.7).toFixed(1)}" ry="${+(HR*.32).toFixed(1)}" fill="${ac}" opacity=".32"/>`);
+    d.push(`<ellipse cx="${cx}" cy="${+(HY-HR*.75).toFixed(1)}" rx="${+(HR*.88).toFixed(1)}" ry="${+(HR*.55).toFixed(1)}" fill="${hr}"/>`);
+  }else if(helm==='horns'){
+    d.push(`<path d="M${+(cx-HR*.5).toFixed(1)},${+(HY-HR).toFixed(1)} C${+(cx-HR*1.2).toFixed(1)},${+(HY-HR*1.5).toFixed(1)} ${+(cx-HR*1.1).toFixed(1)},${+(HY-HR*2.2).toFixed(1)} ${+(cx-HR*.3).toFixed(1)},${+(HY-HR*1.1).toFixed(1)}" fill="${ac}" opacity=".88"/>`);
+    d.push(`<path d="M${+(cx+HR*.5).toFixed(1)},${+(HY-HR).toFixed(1)} C${+(cx+HR*1.2).toFixed(1)},${+(HY-HR*1.5).toFixed(1)} ${+(cx+HR*1.1).toFixed(1)},${+(HY-HR*2.2).toFixed(1)} ${+(cx+HR*.3).toFixed(1)},${+(HY-HR*1.1).toFixed(1)}" fill="${ac}" opacity=".88"/>`);
+    d.push(`<ellipse cx="${cx}" cy="${+(HY-HR*.75).toFixed(1)}" rx="${+(HR*.85).toFixed(1)}" ry="${+(HR*.55).toFixed(1)}" fill="${hr}"/>`);
+  }else if(helm==='crown'){
+    d.push(`<rect x="${+(cx-HR*1.05).toFixed(1)}" y="${+(HY-HR*1.6).toFixed(1)}" width="${+(HR*2.1).toFixed(1)}" height="${+(HR*.65).toFixed(1)}" fill="${ac}" rx="2"/>`);
+    for(let i=0;i<5;i++){const tx=+(cx-HR*.8+i*HR*.4).toFixed(1);d.push(`<path d="M${tx},${+(HY-HR*1.6).toFixed(1)} L${+(tx+HR*.2).toFixed(1)},${+(HY-HR*2.15).toFixed(1)} L${+(tx+HR*.4).toFixed(1)},${+(HY-HR*1.6).toFixed(1)}" fill="${ac}"/>`);}
+    d.push(`<ellipse cx="${cx}" cy="${+(HY-HR*.75).toFixed(1)}" rx="${+(HR*.88).toFixed(1)}" ry="${+(HR*.55).toFixed(1)}" fill="${hr}"/>`);
+  }else if(helm==='short_hair'){
+    d.push(`<ellipse cx="${cx}" cy="${+(HY-HR*.75).toFixed(1)}" rx="${+(HR*.88).toFixed(1)}" ry="${+(HR*.58).toFixed(1)}" fill="${hr}"/>`);
+    d.push(`<ellipse cx="${+(cx-HR*.65).toFixed(1)}" cy="${+(HY+HR*.15).toFixed(1)}" rx="3.5" ry="5" fill="${hr}"/>`);
+  }else{
+    d.push(`<ellipse cx="${cx}" cy="${+(HY-HR*.75).toFixed(1)}" rx="${+(HR*.88).toFixed(1)}" ry="${+(HR*.58).toFixed(1)}" fill="${hr}"/>`);
+    d.push(`<ellipse cx="${+(cx-HR*.82).toFixed(1)}" cy="${+(HY+HR*.55).toFixed(1)}" rx="4" ry="9" fill="${hr}"/>`);
+    d.push(`<ellipse cx="${+(cx+HR*.82).toFixed(1)}" cy="${+(HY+HR*.55).toFixed(1)}" rx="4" ry="9" fill="${hr}"/>`);
+  }
+}
+function drawHumanoid(p,W,H){
+  const d=[];
+  const isBulky=p.build==='bulky',isSlim=p.build==='slim';
+  const cx=Math.round(W/2);
+  const HR=isSlim?7:isBulky?10:8.5;
+  const HY=Math.round(H*.22);
+  const NY=HY+Math.round(HR*1.15);
+  const TY=NY+3;
+  const BH=Math.round(isBulky?H*.31:isSlim?H*.27:H*.29);
+  const BY=TY+BH;
+  const BW=isBulky?22:isSlim?13:17;
+  if(p.cape){d.push(`<path d="M${cx-BW*.5},${TY+6} Q${cx-BW*1.8},${BY+H*.08} ${cx-BW*.3},${BY+H*.22} L${cx+BW*.3},${BY+H*.22} Q${cx+BW*1.8},${BY+H*.08} ${cx+BW*.5},${TY+6}" fill="${p.ot}" opacity=".68"/>`);}
+  const AY=TY+2,AW=isBulky?5.5:isSlim?3:4,ALen=Math.round(isBulky?H*.18:H*.15);
+  d.push(`<rect x="${cx-BW-AW*2}" y="${AY}" width="${AW*2}" height="${ALen}" fill="${p.ot}" rx="2"/>`);
+  d.push(`<rect x="${cx+BW}" y="${AY}" width="${AW*2}" height="${ALen}" fill="${p.ot}" rx="2"/>`);
+  const handY=AY+ALen;
+  _drawWpn(d,p.weapon,cx+BW+AW*2-2,handY,Math.round(H*.22),p.ac);
+  const FALen=Math.round(ALen*.6);
+  d.push(`<rect x="${cx-BW-AW*2+1}" y="${handY}" width="${AW*2-1}" height="${FALen}" fill="${p.sk}" rx="2"/>`);
+  d.push(`<rect x="${cx+BW+1}" y="${handY}" width="${AW*2-1}" height="${FALen}" fill="${p.sk}" rx="2"/>`);
+  d.push(`<rect x="${cx-BW}" y="${TY}" width="${BW*2}" height="${BH}" fill="${p.ot}" rx="${isBulky?5:3}"/>`);
+  d.push(`<rect x="${cx-BW+2}" y="${TY+Math.round(BH*.65)}" width="${BW*2-4}" height="4" fill="${p.ac}" rx="2" opacity=".85"/>`);
+  if(isBulky)d.push(`<rect x="${cx-6}" y="${TY+4}" width="12" height="6" fill="${p.ac}" rx="2" opacity=".5"/>`);
+  const LW=isBulky?8:isSlim?5:6,LLeg=Math.round(H*.28),LY=BY;
+  d.push(`<rect x="${cx-BW*.5-LW}" y="${LY}" width="${LW*2}" height="${LLeg}" fill="${p.lg}" rx="3"/>`);
+  d.push(`<rect x="${cx+BW*.5-LW}" y="${LY}" width="${LW*2}" height="${LLeg}" fill="${p.lg}" rx="3"/>`);
+  const bootY=LY+LLeg;
+  d.push(`<rect x="${cx-BW*.5-LW-2}" y="${bootY}" width="${LW*2+4}" height="5" fill="${_chDk(p.ac,30)}" rx="2"/>`);
+  d.push(`<rect x="${cx+BW*.5-LW-2}" y="${bootY}" width="${LW*2+4}" height="5" fill="${_chDk(p.ac,30)}" rx="2"/>`);
+  d.push(`<rect x="${cx-4}" y="${NY}" width="8" height="5" fill="${p.undead?'#b0d8b0':p.sk}" rx="1"/>`);
+  _drawHead(d,p,cx,HY,HR);
+  return`<svg width="${W}" height="${H}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}">${d.join('')}</svg>`;
+}
+function genPlayerAppearance(){
+  const s=(window._playerSeed||(window._playerSeed=((Date.now()^(Math.random()*99999|0))&0xffff)||1));
+  return genCharParams(s,null);
+}
+function getPlayerSprite(){
+  if(!window._playerAppear)window._playerAppear=genPlayerAppearance();
+  return drawHumanoid(window._playerAppear,72,110);
+}
+function getEnemySprite(tier,trait){
+  let seed=0;
+  if(trait){for(let i=0;i<trait.length;i++)seed+=trait.charCodeAt(i)*(i+7);}
+  seed+=tier.length*11;
+  const p=genCharParams(seed,trait);
+  const W=tier==='boss'?88:tier==='elite'?76:66;
+  const H=tier==='boss'?128:tier==='elite'?114:102;
+  return drawHumanoid(p,W,H);
 }
 function triggerPAnim(cls){
   const el=document.getElementById('pav');if(!el)return;
@@ -3599,6 +3686,7 @@ function initGame(){
   chapter={floor:1,theme:null,modifier:null,boss:null};
   const startDeck=buildStarterDeck();
   clearLegacy();
+  window._playerSeed=null;window._playerAppear=null;
   battle={enemy:null,enemyHp:0,enemyMaxHp:0,enemyBlk:0,enemyStr:0,enemyWeak:0,enemyVuln:0,enemyPoison:0,enemyBleed:0,enemyStun:0,enemyActions:[],enemyActionIdx:0,nextEnemyAction:null,deck:startDeck,drawPile:[],hand:[],discardPile:[],exhPile:[],apLeft:3,maxAp:3,blk:0,str:0,jugg:false,lifestealMode:false,playerPoison:0,playerWeak:0,playerStun:0,playerDisarm:0,fortified:0,turn:1,selectedCards:[],firstCard:true,nextFreeCount:0};
   rs={dmgDealt:0,dmgTaken:0,cardsPlayed:0,turns:0,chaptersCleared:0};
   window._mapRank=7;
