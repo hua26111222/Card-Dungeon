@@ -1842,7 +1842,8 @@ function startBattle(isElite,isBoss){
 }
 function shuf(a){const b=[...a];for(let i=b.length-1;i>0;i--){const j=0|Math.random()*(i+1);[b[i],b[j]]=[b[j],b[i]];}return b;}
 function drawCards(n){
-  const lim=chapter.modifier?.handLimit||5;
+  const modLim=chapter.modifier?.handLimit||99;
+  const lim=Math.min(10,modLim);
   for(let i=0;i<n;i++){if(battle.hand.length>=lim)break;if(!battle.drawPile.length){battle.drawPile=shuf([...battle.discardPile]);battle.discardPile=[];}if(battle.drawPile.length)battle.hand.push(battle.drawPile.shift());}
 }
 function getPlayType(cards){
@@ -2300,11 +2301,8 @@ function renderRewardUI(){
   ${confirmHtml}`;
   if(isElite||isBoss){
     h+=`<div style="margin:8px 0 4px;font-size:9px;color:var(--text3);letter-spacing:2px;text-align:center">— 或 吸收属性 —</div>`;
-    const maxApReached=(battle.maxAp||3)>=5;const maxDrawReached=(player.drawCount||5)>=7;
     h+=`<div style="display:flex;gap:6px;flex-wrap:wrap">`;
     h+=`<button class="ovbtn" style="flex:1;margin:0;padding:5px 8px;font-size:10px" onclick="doAbsorb('hp')"><span>🩸 生命力</span><span class="sub">最大HP+20，回复20</span></button>`;
-    if(!maxApReached)h+=`<button class="ovbtn" style="flex:1;margin:0;padding:5px 8px;font-size:10px" onclick="doAbsorb('ap')"><span>⚡ 能量</span><span class="sub">行动力上限+1</span></button>`;
-    if(!maxDrawReached)h+=`<button class="ovbtn" style="flex:1;margin:0;padding:5px 8px;font-size:10px" onclick="doAbsorb('draw')"><span>🃏 感知</span><span class="sub">每回合摸牌+1</span></button>`;
     h+=`<button class="ovbtn" style="flex:1;margin:0;padding:5px 8px;font-size:10px;border-color:var(--blood2)" onclick="doAbsorb('remove')"><span>🗑 净化</span><span class="sub">移除一张牌</span></button>`;
     h+=`</div>`;
   }
@@ -2317,8 +2315,6 @@ function renderRewardUI(){
 function selectRwCard(i){window._rwSel=i;renderRewardUI();}
 function doAbsorb(type){
   if(type==='hp'){player.maxHp+=20;player.hp=Math.min(player.maxHp,player.hp+20);toast('+20 最大HP','g');backToMap();}
-  else if(type==='ap'){if((battle.maxAp||3)<5){battle.maxAp++;player.maxAp=battle.maxAp;toast('+1 行动力上限','g');}else toast('行动力已满','r');backToMap();}
-  else if(type==='draw'){if((player.drawCount||5)<7){player.drawCount=(player.drawCount||5)+1;toast('+1 每回合摸牌','g');}else toast('摸牌已满','r');backToMap();}
   else if(type==='remove'){showCardPicker('remove',battle.deck.filter(c=>c.rar!=='curse'));}
 }
 function pickRewardCard(i){const c=window._rw[i];if(!c)return;battle.deck.push({...c});toast(`获得：${c.name}`,'g');backToMap();}
@@ -3186,9 +3182,17 @@ function playGamble(tier){
     if(Math.random()<.5){
       const cards=shuf(DB.filter(c=>c.rar!=='curse')).slice(0,2);
       cards.forEach(c=>battle.deck.push(JSON.parse(JSON.stringify(c))));
-      toast(`赢了！获得 ${cards.map(c=>c.name).join(' + ')}`,'g');
-    }else{player.gold=Math.max(0,player.gold-cost);toast(`输了！再失去 ${cost} 金币`,'r');renderHud();}
-    setTimeout(startGamble,700);return;
+      // 显示赢牌确认画面
+      document.getElementById('ovtag').textContent='🎲  赌馆结算';
+      document.getElementById('ovtit').textContent='全或无 — 赢了！';
+      document.getElementById('ovb').innerHTML=`
+        <div class="ovd" style="color:var(--amber)">🎉 运气爆棚！获得以下 <b>${cards.length}</b> 张牌：</div>
+        <div class="tcards-table">${cards.map((c,i)=>renderPokerCard(c,null,{idx:i,total:cards.length})).join('')}</div>
+        <button class="ovbtn gd" style="margin-top:8px" onclick="startGamble()">再来一局</button>
+        <button class="ovbtn" onclick="backToMap()">离开赌馆</button>`;
+      renderHud();renderTokens();
+    }else{player.gold=Math.max(0,player.gold-cost);toast(`输了！再失去 ${cost} 金币`,'r');renderHud();setTimeout(startGamble,700);}
+    return;
   }
   const rarMap={c:'common',u:'uncommon',r:'rare'};const rar=rarMap[tier];
   const pool=DB.filter(c=>c.rar===rar);
