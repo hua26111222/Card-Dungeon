@@ -1365,7 +1365,7 @@ function genCardInfo(step){
     const cardDmg=_cdPick(sb);
     const trait=Object.keys(TRAIT_DEFS)[0|Math.random()*Object.keys(TRAIT_DEFS).length];
     const td=TRAIT_DEFS[trait];
-    const col=TD_COL[combatPower]||'#aa2222';
+    const col=CP_COL[combatPower]||'#aa2222';
     const bg=isElite?'rgba(140,40,0,.35)':'rgba(80,20,20,.30)';
     return{type:tier,suit:'⚔',col,bg,_hasDims:true,
       combatPower,cardDmg,trait,
@@ -1444,13 +1444,15 @@ function renderMap(){
       </div>`;
     }
     if((card.type==='fight'||card.type==='elite')&&card.enemyArt){
-      const dtCol=card.deckType==='阴险'?'var(--violet)':card.deckType==='厚皮'?'var(--frost)':'var(--gore2)';
-      return`<div class="mcard${reachCls}${dimCls}${selCls}" ${click} style="border-color:${card.col};background:${card.bg}">
-        <div style="position:absolute;top:2px;left:2px;font-size:5.5px;color:${card.powerLevelCol||card.col};font-weight:700;letter-spacing:.3px">${card.powerLevel||''}</div>
+      const cpCol=CP_COL[card.combatPower]||card.col;
+      const cdCol=CD_COL[card.cardDmg]||'#6a6a4a';
+      const trCol=(TRAIT_DEFS[card.trait]||{}).col||'#6a6a6a';
+      return`<div class="mcard${reachCls}${dimCls}${selCls}" ${click} style="border-color:${cpCol};background:${card.bg}">
+        <div style="position:absolute;top:2px;left:2px;font-size:5px;color:${cpCol};font-weight:700">${card.combatPower||''}</div>
         ${card.type==='elite'?`<div style="position:absolute;top:2px;right:2px;font-size:5px;color:var(--amber)">精英</div>`:''}
-        <div class="mcicon" style="font-size:20px;text-shadow:0 0 10px ${card.col};margin-top:10px">${card.enemyArt}</div>
-        <div class="mctype" style="color:${card.col};font-size:6px">${card.enemyName}</div>
-        ${isActive&&isReach?`<div class="mchint" style="color:${dtCol}">${card.deckType}·${card.style}</div>`:''}
+        <div class="mcicon" style="font-size:20px;text-shadow:0 0 10px ${cpCol};margin-top:10px">${card.enemyArt}</div>
+        <div class="mctype" style="color:${cpCol};font-size:6px;letter-spacing:.3px">${card.enemyName}</div>
+        ${isActive&&isReach?`<div class="mchint" style="font-size:5px;letter-spacing:.2px"><span style="color:${cdCol}">${card.cardDmg}</span><span style="color:var(--ash3)">·</span><span style="color:${trCol}">${card.trait}</span></div>`:''}
       </div>`;
     }
     return`<div class="mcard${reachCls}${bossCls}${dimCls}${selCls}" ${click} style="border-color:${card.col};background:${card.bg}">
@@ -1472,18 +1474,51 @@ function renderMap(){
   document.getElementById('mchooser').style.flexDirection='column';
   document.getElementById('mchooser').innerHTML=gridHtml;
 
-  // 确认条
+  // ── 确认栏（内嵌战斗情报，取代独立战前界面）──
   const pending=window._mapPending;
   const confEl=document.getElementById('mwrap');
   let confBar=document.getElementById('mconfirm-bar');
   if(!confBar){confBar=document.createElement('div');confBar.id='mconfirm-bar';confEl.appendChild(confBar);}
   if(pending!==null&&pending!==undefined){
     const pcard=rows[step]?.[pending];const pti=TI[pcard?.type]||{ic:'?',nm:'?'};
-    confBar.style.cssText='display:flex;align-items:center;gap:8px;padding:6px 12px;border-top:1px solid var(--crack2);background:rgba(0,0,0,.5)';
-    confBar.innerHTML=`<span style="font-size:16px">${pti.ic}</span>
-      <span style="flex:1;font-size:11px;color:var(--bone);letter-spacing:1px">进入 <b>${pti.nm}</b>？</span>
-      <button onclick="pickMapCard(${pending})" style="padding:5px 16px;border:1px solid var(--bone2);background:rgba(200,169,110,.12);color:var(--bone);font-family:var(--fm);font-size:11px;cursor:pointer;letter-spacing:1px">确认 ▶</button>
-      <button onclick="window._mapPending=null;renderMap()" style="padding:5px 12px;border:1px solid var(--crack2);background:transparent;color:var(--text2);font-family:var(--fm);font-size:11px;cursor:pointer">✕</button>`;
+    const isFight=pcard?.type==='fight'||pcard?.type==='elite';
+    const isBlindCard=pcard?.isHidden&&!pcard?.revealed;
+    const isB=pcard?.type==='boss';
+    const btn=`<button onclick="pickMapCard(${pending})" style="padding:5px 16px;border:1px solid var(--bone2);background:rgba(200,169,110,.12);color:var(--bone);font-family:var(--fm);font-size:11px;cursor:pointer;letter-spacing:1px">${isFight?'⚔ 进入战斗':isB?'☠ 迎战首领':'▶ 进入'}</button>`;
+    const cancel=`<button onclick="window._mapPending=null;renderMap()" style="padding:5px 12px;border:1px solid var(--crack2);background:transparent;color:var(--text2);font-family:var(--fm);font-size:11px;cursor:pointer">✕</button>`;
+    let info='';
+    if(isBlindCard){
+      info=`<div style="flex:1;font-size:11px;color:var(--text3);letter-spacing:1px">🎴 <b>猜猜看</b> · 暗牌内容未知，效果 ×2</div>`;
+    }else if(isFight&&pcard._hasDims){
+      const cpCol=CP_COL[pcard.combatPower]||'#cc7020';
+      const cdCol=CD_COL[pcard.cardDmg]||'#8a5a2a';
+      const td=TRAIT_DEFS[pcard.trait]||{};
+      const trCol=td.col||'#6a6a6a';
+      const elBadge=pcard.type==='elite'?` <span style="color:var(--amber);font-size:9px">✦精英</span>`:'';
+      const fp=chapter.floor||1;const rank=window._mapRank||7;
+      const rankMult=rank<=4?.85:rank<=8?1.0:rank<=12?1.15:1.30;
+      const cs=CP_SCALE[pcard.combatPower]||CP_SCALE['健康'];
+      const isE=pcard.type==='elite';
+      const tierScale=(1+(fp-1)*.1)*rankMult;
+      const estHp=Math.round(player.maxHp*(isE?0.9:0.5)*cs.h*tierScale);
+      const estAtk=Math.round(player.maxHp*(isE?.14:.11)*cs.a*tierScale);
+      info=`<div style="flex:1;min-width:0">
+        <div style="font-size:10px;color:var(--bone);font-weight:700;letter-spacing:.5px">${pcard.enemyArt} ${pcard.enemyName}${elBadge}</div>
+        <div style="font-size:9px;margin-top:2px;display:flex;gap:6px;flex-wrap:wrap">
+          <span style="color:${cpCol}">⚡${pcard.combatPower}</span>
+          <span style="color:${cdCol}">📜${pcard.cardDmg}</span>
+          <span style="color:${trCol}">${td.art||''}${pcard.trait}</span>
+        </div>
+        <div style="font-size:8px;color:var(--text3);margin-top:2px">${td.desc||''}</div>
+        <div style="font-size:8px;color:var(--text2);margin-top:2px">HP≈${estHp} · 每回合≈${estAtk}</div>
+      </div>`;
+    }else if(isB){
+      info=`<div style="flex:1;font-size:11px;color:var(--gore2);letter-spacing:1px">☠ <b>首领降临</b> · 章节守卫，全力迎战</div>`;
+    }else{
+      info=`<div style="flex:1;font-size:11px;color:var(--bone);letter-spacing:1px">${pti.ic} 进入 <b>${pti.nm}</b>？</div>`;
+    }
+    confBar.style.cssText='display:flex;align-items:center;gap:8px;padding:6px 10px;border-top:1px solid var(--crack2);background:rgba(0,0,0,.55)';
+    confBar.innerHTML=info+btn+cancel;
   }else{confBar.style.display='none';confBar.innerHTML='';}
 
   const hist=document.getElementById('mhist');
@@ -1493,8 +1528,10 @@ function renderMap(){
 function toR(n){return['I','II','III','IV','V','VI','VII','VIII','IX','X'][n-1]||n;}
 function selectMapCard(ci){window._mapPending=ci;renderMap();}
 function pickMapCard(col){
+  if(phase!==PH.MAP)return; // 只在地图阶段允许操作，防止重复触发
   window._mapPending=null;
   const{rows,step,playerCol}=mapData;
+  if(step>18||!rows[step])return;
   let reach;
   if(step===18){const bmap=[[0,1],[0,1,2],[0,1,2,3],[1,2,3],[2,3]];reach=new Set(bmap[playerCol]||[0,1,2,3]);}
   else{reach=new Set([playerCol-1,playerCol,playerCol+1].filter(c=>c>=0&&c<5));}
@@ -1528,11 +1565,12 @@ function pickMapCard(col){
   mapData.step=step+1;
   player.steps=(player.steps||0)+1;
 
-  // 预分配敌人：存入全局供 startBattle 使用
-  window._preEnemy=(card._etIdx>=0&&ET[card._etIdx])?ET[card._etIdx]:null;
+  // 存储地图卡供战斗生成用
+  window._mapCard=card._hasDims?card:null;
+  window._preEnemy=null;
   switch(card.type){
-    case 'fight':     showPreBattle(false,false);break;
-    case 'elite':     showPreBattle(true,false);break;
+    case 'fight':     startBattle(false,false);break;
+    case 'elite':     startBattle(true,false);break;
     case 'boss':      showPreBattle(false,true);break;
     case 'event':     startEvent();break;
     case 'tavern':    startTavern();break;
@@ -1610,15 +1648,20 @@ function startBattle(isElite,isBoss){
   if(!chapter.usedEnemies)chapter.usedEnemies=new Set();
   const pm=isBoss?(window._bossPowerMult||1):1;
   const bossRef=isBoss?(window._bossRef||chapter.boss):null;
-  let pool=ET.filter(e=>isBoss?false:isElite?e.tier==='elite':e.tier==='fight');
-  if(!isBoss){
-    const fresh=pool.filter(e=>!chapter.usedEnemies.has(e.name));
-    if(fresh.length)pool=fresh; else chapter.usedEnemies.clear();
+  let en;
+  if(!isBoss&&window._mapCard?._hasDims){
+    // 新三维体系：动态生成敌人
+    en=buildEnemyFromDims(window._mapCard,isElite,calcPS());
+    chapter.usedEnemies.add(en.name);
+  }else{
+    // Boss 或 fallback：使用 ET 模板
+    let pool=ET.filter(e=>isBoss?e.tier==='boss':isElite?e.tier==='elite':e.tier==='fight');
+    if(!isBoss){const fresh=pool.filter(e=>!chapter.usedEnemies.has(e.name));if(fresh.length)pool=fresh;else chapter.usedEnemies.clear();}
+    const tmpl=isBoss?bossRef:(pool[0|Math.random()*pool.length]);
+    if(tmpl)chapter.usedEnemies.add(tmpl.name);
+    en=buildEnemy(tmpl,isElite,isBoss);
   }
-  const tmpl=isBoss?bossRef:(window._preEnemy&&!isBoss?window._preEnemy:pool[0|Math.random()*pool.length]);
-  window._preEnemy=null;
-  if(tmpl)chapter.usedEnemies.add(tmpl.name);
-  const en=buildEnemy(tmpl,isElite,isBoss);
+  window._mapCard=null;
   // Apply boss power multiplier
   if(isBoss&&pm!==1){en.hp=Math.round(en.hp*pm);en.actions=en.actions.map(a=>a.t==='a'?{...a,v:Math.max(3,Math.round(a.v*pm))}:a);}
   // Boss curse variant: add curse card after battle
