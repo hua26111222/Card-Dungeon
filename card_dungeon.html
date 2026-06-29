@@ -833,8 +833,8 @@ const DB=[
   {id:'strength',    name:'狂暴',    cost:1,kind:'skl',art:'💪',rar:'uncommon', desc:'【全场】攻击 <b>+{str}</b>',str:3,dur:999},
   {id:'warcry',      name:'战吼',    cost:1,kind:'skl',art:'📯',rar:'uncommon', desc:'【全场】攻击 <b>+{str}</b>，摸 1 张',str:2,draw:1,dur:999},
   {id:'jugg',        name:'势不可挡',cost:2,kind:'skl',art:'🔥',rar:'rare',     desc:'【全场】格挡时对敌造成等量伤害',special:'jugg',dur:999},
-  {id:'vampire_oath',name:'吸血誓约',cost:2,kind:'skl',art:'🧛',rar:'rare',     desc:'【全场】所有攻击吸取 <b>15%</b> 为HP',special:'vampire_oath',dur:999},
-  {id:'focus_stone', name:'聚焦之石',cost:1,kind:'skl',art:'💎',rar:'uncommon', desc:'获得 <b>2</b> AP，摸 <b>2</b> 张（消耗）',ap:2,draw:2,exhaust:true},
+  {id:'vampire_oath',name:'吸血誓约',cost:2,kind:'skl',art:'🧛',rar:'rare',     desc:'【全场】所有攻击吸取 <b>10%</b> 为HP',special:'vampire_oath',dur:999},
+  {id:'focus_stone', name:'聚焦之石',cost:1,kind:'skl',art:'💎',rar:'uncommon', desc:'获得 <b>1</b> AP，摸 <b>1</b> 张（消耗）',ap:1,draw:1,exhaust:true},
   {id:'guard_quick', name:'急盾',    cost:0,kind:'def',art:'🌊',rar:'common',   desc:'获得 <b>4</b> 格挡',blk:4},
   /* ── 扩展牌池 ── */
   {id:'heavy_blow',  name:'重击',   cost:2,kind:'atk',art:'🗡',rar:'common',   desc:'造成 <b>{atk}</b> 伤害',atk:22},
@@ -845,21 +845,21 @@ const DB=[
   {id:'regen',       name:'再生',   cost:1,kind:'def',art:'💊',rar:'rare',     desc:'获得 <b>{blk}</b> 格挡，恢复 <b>{heal}</b> HP',blk:8,heal:8},
   {id:'silence',     name:'沉默术', cost:1,kind:'skl',art:'🤫',rar:'uncommon', desc:'敌人 <b>虚弱3</b> 回合 + <b>易伤3</b> 回合',weak:3,vuln:3},
   {id:'blood_pact',  name:'血盟',   cost:0,kind:'skl',art:'🩸',rar:'rare',     desc:'失去 <b>10</b> HP，摸 <b>3</b> 张（消耗）',selfDmg:10,draw:3,exhaust:true},
-  {id:'battle_hymn', name:'战歌',   cost:2,kind:'skl',art:'🎵',rar:'rare',     desc:'【全场】攻击 <b>+{str}</b>，获得 <b>2</b> AP（消耗）',str:4,ap:2,dur:999,exhaust:true},
+  {id:'battle_hymn', name:'战歌',   cost:2,kind:'skl',art:'🎵',rar:'rare',     desc:'【全场】攻击 <b>+{str}</b>，获得 <b>1</b> AP（消耗）',str:2,ap:1,dur:999,exhaust:true},
   /* ── 诅咒 (crs) ── */
   {id:'regret',      name:'悔恨',    cost:0,kind:'crs',art:'💔',rar:'curse',    desc:'回合结束损失 1HP',curseTick:1},
   {id:'pain',        name:'剧痛',    cost:0,kind:'crs',art:'🩹',rar:'curse',    desc:'无法使用，占用手牌',unplayable:true},
   /* ── 奇异牌：特殊机制 ── */
-  {id:'soul_strike', name:'灵魂重击',cost:2,kind:'atk',art:'💫',rar:'rare',     desc:'造成敌人当前HP的 <b>25%</b> 伤害（无视格挡）',special:'soul_strike'},
+  {id:'soul_strike', name:'灵魂重击',cost:2,kind:'atk',art:'💫',rar:'rare',     desc:'造成敌人当前HP的 <b>18%</b> 伤害（无视格挡）',special:'soul_strike',soulPct:.18},
   {id:'chaos_shot',  name:'混沌弹',  cost:1,kind:'atk',art:'🎲',rar:'uncommon', desc:'造成 <b>8~45</b> 随机伤害',special:'chaos_shot'},
-  {id:'last_stand',  name:'绝地反击',cost:1,kind:'atk',art:'🔥',rar:'uncommon', desc:'HP≤30%时造成 <b>55</b> 伤，否则 <b>15</b> 伤',special:'last_stand'},
+  {id:'last_stand',  name:'绝地反击',cost:1,kind:'atk',art:'🔥',rar:'uncommon', desc:'HP≤30%时造成 <b>38</b> 伤，否则 <b>12</b> 伤',special:'last_stand',lsDmgHigh:38,lsDmgLow:12},
   {id:'martyr',      name:'殉道',    cost:0,kind:'atk',art:'☀',rar:'rare',     desc:'消耗当前HP仅剩1，造成等量无视格挡伤害（消耗）',special:'martyr',exhaust:true},
   {id:'catalyze',    name:'催化',    cost:0,kind:'skl',art:'⚗',rar:'uncommon', desc:'下张牌费用归零（消耗）',special:'catalyze',exhaust:true},
   {id:'phantom_hit', name:'幻影打击',cost:1,kind:'atk',art:'👻',rar:'rare',     desc:'造成等于当前格挡量的伤害（无视敌人格挡）',special:'phantom_hit'},
   {id:'heartbreak',  name:'心碎一击',cost:1,kind:'atk',art:'💥',rar:'uncommon', desc:'清除敌人所有格挡，造成 <b>14</b> 伤害',special:'heartbreak'},
   {id:'desperation', name:'绝望之力',cost:1,kind:'skl',art:'🩸',rar:'rare',     desc:'获得 力量 = 缺失HP÷15（最少1）（消耗）',special:'desperation',exhaust:true},
   {id:'stagger',     name:'震慑打击', cost:1,kind:'atk',art:'💫',rar:'uncommon', desc:'造成 <b>{atk}</b> 伤害，使敌人本回合跳过行动',atk:7,special:'stagger',stunCount:1},
-  {id:'lockdown',    name:'锁链禁锢', cost:1,kind:'skl',art:'⛓',rar:'rare',     desc:'使敌人眩晕 <b>2</b> 回合（消耗）',special:'lockdown',stunCount:2,exhaust:true},
+  {id:'lockdown',    name:'锁链禁锢', cost:1,kind:'skl',art:'⛓',rar:'rare',     desc:'使敌人眩晕 <b>1</b> 回合（消耗）',special:'lockdown',stunCount:1,exhaust:true},
 ];
 function gc(id){const c=DB.find(c=>c.id===id);return c?JSON.parse(JSON.stringify(c)):null;}
 function cardValue(c){
@@ -883,18 +883,18 @@ function upgradeCard(c){
   if(!c||c.rar==='curse')return;
   if(c.special){
     switch(c.special){
-      case 'soul_strike':  c.soulPct=(c.soulPct||.25)+.05; c.desc=`造成敌人当前HP的 <b>${Math.round(c.soulPct*100)}%</b> 伤害（无视格挡）`; break;
-      case 'chaos_shot':   c.chaosMin=(c.chaosMin||8)+4;c.chaosMax=(c.chaosMax||45)+15; c.desc=`造成 <b>${c.chaosMin}~${c.chaosMax}</b> 随机伤害`; break;
-      case 'last_stand':   c.lsDmgHigh=(c.lsDmgHigh||55)+20;c.lsDmgLow=(c.lsDmgLow||15)+7; c.desc=`HP≤30%时造成 <b>${c.lsDmgHigh}</b> 伤，否则 <b>${c.lsDmgLow}</b> 伤`; break;
+      case 'soul_strike':  c.soulPct=(c.soulPct||.18)+.03; c.desc=`造成敌人当前HP的 <b>${Math.round(c.soulPct*100)}%</b> 伤害（无视格挡）`; break;
+      case 'chaos_shot':   c.chaosMin=(c.chaosMin||8)+4;c.chaosMax=(c.chaosMax||45)+12; c.desc=`造成 <b>${c.chaosMin}~${c.chaosMax}</b> 随机伤害`; break;
+      case 'last_stand':   c.lsDmgHigh=(c.lsDmgHigh||38)+12;c.lsDmgLow=(c.lsDmgLow||12)+4; c.desc=`HP≤30%时造成 <b>${c.lsDmgHigh}</b> 伤，否则 <b>${c.lsDmgLow}</b> 伤`; break;
       case 'martyr':       c.exhaust=false; c.desc='消耗当前HP仅剩1，造成等量无视格挡伤害'; break;
       case 'catalyze':     c.catalyzeCount=(c.catalyzeCount||1)+1; c.desc=`下 <b>${c.catalyzeCount}</b> 张牌费用归零（消耗）`; break;
       case 'phantom_hit':  c.cost=Math.max(0,c.cost-1); c.desc='造成等于当前格挡量的伤害（无视敌人格挡）'; break;
       case 'heartbreak':   c.hbDmg=(c.hbDmg||14)+8; c.desc=`清除敌人所有格挡，造成 <b>${c.hbDmg}</b> 伤害`; break;
       case 'desperation':  c.despDiv=Math.max(5,(c.despDiv||15)-5); c.desc=`获得 力量 = 缺失HP÷${c.despDiv}（最少1）（消耗）`; break;
       case 'bloodrush':    c.cost=Math.max(0,c.cost-1); c.desc='造成等于 <b>缺失HP</b> 的伤害'; break;
-      case 'execute':      c.execThresh=(c.execThresh||.30)+.10;c.execDmg=(c.execDmg||18)+10; c.desc=`敌人HP＜${Math.round((c.execThresh)*100)}%时即死，否则造成 <b>${c.execDmg}</b> 伤`; break;
+      case 'execute':      c.execThresh=(c.execThresh||.22)+.08;c.execDmg=(c.execDmg||16)+8; c.desc=`敌人HP＜${Math.round((c.execThresh)*100)}%时即死，否则造成 <b>${c.execDmg}</b> 伤`; break;
       case 'stagger':      c.atk=(c.atk||7)+4;c.desc=`造成 <b>${c.atk}</b> 伤害，使敌人本回合跳过行动`; break;
-      case 'lockdown':     c.stunCount=(c.stunCount||2)+1;c.exhaust=false;c.desc=`使敌人眩晕 <b>${c.stunCount}</b> 回合`; break;
+      case 'lockdown':     c.stunCount=(c.stunCount||1)+1;c.desc=`使敌人眩晕 <b>${c.stunCount}</b> 回合（消耗）`; break;
     }
     c.upgraded=true;c.upgradeCount=(c.upgradeCount||0)+1;
     return;
@@ -1858,7 +1858,7 @@ function applySingleCard(c,mult){
       const hpRatio=battle.enemyHp/(battle.enemyMaxHp||1);
       if(totalDmg>=12&&Math.random()<.45)enemySpeech('hurt');
       else if(hpRatio<.28&&Math.random()<.55)enemySpeech('low_hp');
-      if(battle.lifestealMode){const hl=Math.max(1,Math.round(totalDmg*.15));player.hp=Math.min(player.maxHp,player.hp+hl);}
+      if(battle.lifestealMode){const hl=Math.max(1,Math.round(totalDmg*.10));player.hp=Math.min(player.maxHp,player.hp+hl);}
     }
   }
   const g=Math.round((c.blk||0)*mult);
@@ -1889,13 +1889,13 @@ function applySingleCard(c,mult){
   if(c.special==='soul_strike'){const p=c.soulPct||.25;const d=Math.floor((battle.enemyHp||0)*p);if(d>0){battle.enemyHp=Math.max(0,battle.enemyHp-d);rs.dmgDealt+=d;floatDmg(d,'#9a5abf');sfx(260,.18,'square',.1,120);}else toast('敌人HP太低','r');}
   if(c.special==='chaos_shot'){const mn=c.chaosMin||8,mx=c.chaosMax||45;const raw=mn+Math.floor(Math.random()*(mx-mn+1));let d=raw+(battle.str||0);if(battle.playerWeak>0)d=Math.floor(d*.75);if(battle.enemyVuln>0)d=Math.ceil(d*1.5);const pen=Math.max(0,d-(battle.enemyBlk||0));battle.enemyBlk=Math.max(0,(battle.enemyBlk||0)-d);battle.enemyHp=Math.max(0,battle.enemyHp-pen);rs.dmgDealt+=pen;if(pen>0){floatDmg(pen,'#c0392b');sfx(180+pen,.15,'sawtooth',.1,-60);}toast(`🎲 混沌：${raw}伤`);}
   if(c.special==='last_stand'){const isLow=player.hp/player.maxHp<=0.30;let d=((isLow?(c.lsDmgHigh||55):(c.lsDmgLow||15)))+(battle.str||0);if(battle.playerWeak>0)d=Math.floor(d*.75);if(battle.enemyVuln>0)d=Math.ceil(d*1.5);const pen=Math.max(0,d-(battle.enemyBlk||0));battle.enemyBlk=Math.max(0,(battle.enemyBlk||0)-d);battle.enemyHp=Math.max(0,battle.enemyHp-pen);rs.dmgDealt+=pen;if(pen>0){floatDmg(pen,isLow?'#c0392b':'#aa5040');sfx(180+pen,.15,'sawtooth',.1,-60);}if(isLow)toast(`🔥 绝地反击！${c.lsDmgHigh||55}伤！`,'g');}
-  if(c.special==='martyr'){const md=Math.max(0,player.hp-1);player.hp=1;if(md>0){battle.enemyHp=Math.max(0,battle.enemyHp-md);rs.dmgDealt+=md;floatDmg(md,'#c0392b');sfx(120+md,.2,'sawtooth',.15,-60);}toast(`☀ 殉道！${md}伤`,'g');}
+  if(c.special==='martyr'){const md=Math.min(Math.max(0,player.hp-1),Math.round(player.maxHp*.52));player.hp=Math.max(1,player.hp-md);if(md>0){battle.enemyHp=Math.max(0,battle.enemyHp-md);rs.dmgDealt+=md;floatDmg(md,'#c0392b');sfx(120+md,.2,'sawtooth',.15,-60);}toast(`☀ 殉道！${md}伤`,'g');}
   if(c.special==='catalyze'){const _cz=c.catalyzeCount||1;battle.nextFreeCount=_cz;toast(`⚗ 下${_cz>1?_cz+'张':'1张'}牌费用归零！`,'g');}
   if(c.special==='phantom_hit'){const d=battle.blk||0;if(d>0){battle.enemyHp=Math.max(0,battle.enemyHp-d);rs.dmgDealt+=d;floatDmg(d,'#9a6abf');sfx(240,.14,'square',.1,80);toast(`👻 幻影 ${d}伤`);}else toast('没有格挡可用','r');}
   if(c.special==='heartbreak'){const cleared=battle.enemyBlk||0;battle.enemyBlk=0;let d=(c.hbDmg||14)+(battle.str||0);if(battle.playerWeak>0)d=Math.floor(d*.75);if(battle.enemyVuln>0)d=Math.ceil(d*1.5);battle.enemyHp=Math.max(0,battle.enemyHp-d);rs.dmgDealt+=d;if(d>0){floatDmg(d,'#c0392b');sfx(200+d,.15,'sawtooth',.1,-60);}if(cleared>0)toast(`💥 粉碎 ${cleared} 格挡！`);}
   if(c.special==='desperation'){const missing=Math.max(0,player.maxHp-player.hp);const s=Math.max(1,Math.floor(missing/(c.despDiv||15)));battle.str+=s;toast(`🩸 绝望之力 +${s} 力量！`,'g');}
   if(c.special==='stagger'){const n=c.stunCount||1;battle.enemyStun=(battle.enemyStun||0)+n;toast(`💫 震慑！敌人本回合跳过行动`,'g');}
-  if(c.special==='lockdown'){const n=c.stunCount||2;battle.enemyStun=(battle.enemyStun||0)+n;toast(`⛓ 锁链禁锢！敌人眩晕 ${n} 回合！`,'g');}
+  if(c.special==='lockdown'){const n=c.stunCount||1;battle.enemyStun=(battle.enemyStun||0)+n;toast(`⛓ 锁链禁锢！敌人眩晕 ${n} 回合！`,'g');}
   return totalDmg;
 }
 function playSelectedCards(){
