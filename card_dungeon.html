@@ -1059,44 +1059,54 @@ function buildEnemyFromDims(card,isElite,ps){
     loot:{cards:['strike','defend','inspect']}};
 }
 const EVTS=[
-  {title:'血祭祭坛',tag:'☠ 神圣遗址',desc:'古老祭坛嗡嗡作响，仿佛渴望着鲜血。祭品越多，馈赠越重。',choices:[
+  {difficulty:'hard',title:'血祭祭坛',tag:'☠ 神圣遗址',desc:'古老祭坛嗡嗡作响，仿佛渴望着鲜血。祭品越多，馈赠越重。',choices:[
     {text:'献祭 25% HP',sub:'立即获得稀有卡牌',fn:(p,b)=>{const cost=Math.floor(p.maxHp*.25);if(p.hp>cost+5){p.hp-=cost;return'reward_rare'}return'HP不足'}},
     {text:'献祭 15% HP',sub:'获得 80 金币',fn:(p,b,ch)=>{const cost=Math.floor(p.maxHp*.15);if(p.hp>cost+5){const g=Math.floor(80*(1+ch.floor*.2));p.hp-=cost;p.gold+=g;return`+${g}金币`}return'HP不足'}},
     {text:'转身离去',sub:'什么都不发生',fn:()=>'pass'}]},
-  {title:'赌徒骰盅',tag:'♦ 命运一掷',desc:'"敢不敢赌？赢了翻倍，输了……哈！"矮个子商人嬉笑道。',choices:[
+  {difficulty:'hard',title:'赌徒骰盅',tag:'♦ 命运一掷',desc:'"敢不敢赌？赢了翻倍，输了……哈！"矮个子商人嬉笑道。',choices:[
     {text:'押 40 金币',sub:'50% → +80金 / 50% → 失去40金',fn:(p,b,ch)=>{if(p.gold<40){return'金币不足'}const win=Math.random()<.5;if(win){p.gold+=80;return'+80金币 赢了！'}else{p.gold-=40;return'-40金币 输了…'}}},
     {text:'押 HP 换金',sub:'失去20%HP，获得 60 金币',fn:(p,b,ch)=>{const cost=Math.floor(p.maxHp*.2);if(p.hp>cost+5){const g=Math.floor(60*(1+ch.floor*.15));p.hp-=cost;p.gold+=g;return`-${cost}HP +${g}金币`}return'HP不足'}},
     {text:'不赌',sub:'老老实实继续',fn:()=>'pass'}]},
-  {title:'命运岔路',tag:'✦ 随机事件',desc:'"旅行者，你走在刀锋上。选择一种命运。"',choices:[
+  {difficulty:'easy',title:'命运岔路',tag:'✦ 随机事件',desc:'"旅行者，你走在刀锋上。选择一种命运。"',choices:[
     {text:'强化之路',sub:'获得一张稀有卡牌',fn:()=>'reward_rare'},
     {text:'财富之路',sub:'获得 100 金币',fn:(p,b,ch)=>{const g=Math.floor(100*(1+ch.floor*.1));p.gold+=g;return`+${g}金币`}},
     {text:'力量之路',sub:'+20 最大HP 并恢复至满',fn:(p)=>{p.maxHp+=20;p.hp=p.maxHp;return'最大HP+20 已满血'}}]},
-  {title:'诅咒商人',tag:'☠ 危险遭遇',desc:'"出售力量，只需要一点代价……"黑袍下的手指向你的心脏。',choices:[
+  {difficulty:'hard',title:'诅咒商人',tag:'☠ 危险遭遇',desc:'"出售力量，只需要一点代价……"黑袍下的手指向你的心脏。',choices:[
     {text:'诅咒换力量',sub:'牌组加诅咒牌，最大HP+30，获得120金币',fn:(p,b)=>{b.deck.push(gc('regret'));p.maxHp+=30;p.hp=Math.min(p.maxHp,p.hp+30);p.gold+=120;return`+诅咒 +30maxHP +120金币`}},
     {text:'诅咒换金币',sub:'牌组加2张诅咒，获得 150 金币',fn:(p,b,ch)=>{const g=Math.floor(150*(1+ch.floor*.15));p.gold+=g;b.deck.push(gc('regret'));b.deck.push(gc('regret'));return`+${g}金币 +2诅咒`}},
     {text:'果断拒绝',sub:'逃离但失去 8 HP（踢伤了）',fn:(p)=>{p.hp=Math.max(1,p.hp-8);return'-8 HP 跑路成功'}}]},
-  {title:'虚空裂缝',tag:'✦ 维度异常',desc:'现实在你眼前撕裂。裂缝另一端……是未知的馈赠，还是诅咒？',choices:[
+  {difficulty:'neutral',title:'虚空裂缝',tag:'✦ 维度异常',desc:'现实在你眼前撕裂。裂缝另一端……是未知的馈赠，还是诅咒？',choices:[
     {text:'跳进去',sub:'随机：+大量HP / +大量金 / 失去30%HP',fn:(p,b,ch)=>{const r=Math.random();if(r<.35){const h=Math.floor(p.maxHp*.5);p.hp=Math.min(p.maxHp,p.hp+h);return`惊喜！+${h}HP`}if(r<.65){const g=Math.floor(90+ch.floor*15);p.gold+=g;return`惊喜！+${g}金币`}const d=Math.floor(p.maxHp*.3);p.hp=Math.max(1,p.hp-d);return`陷阱！-${d}HP`}},
     {text:'观察不进入',sub:'啥也没有',fn:()=>'pass'}]},
-  {title:'古龙残骸',tag:'✦ 史诗发现',desc:'一具巨龙的遗骸横陈于此。龙鳞与龙骨依然散发着威压。',choices:[
+  {difficulty:'hard',title:'古龙残骸',tag:'✦ 史诗发现',desc:'一具巨龙的遗骸横陈于此。龙鳞与龙骨依然散发着威压。',choices:[
     {text:'取走龙骸精华',sub:'失去 30% HP，获得 2 张随机稀有卡',fn:(p,b)=>{const cost=Math.floor(p.maxHp*.30);if(p.hp>cost+5){p.hp-=cost;return'reward_rare2'}return'HP不足'}},
     {text:'收集龙鳞',sub:'获得 120 金币',fn:(p,b,ch)=>{const g=Math.floor(120*(1+ch.floor*.12));p.gold+=g;return`+${g}金币`}},
     {text:'祭拜遗骸',sub:'最大HP +30，但本场景结束后扣 20HP',fn:(p)=>{p.maxHp+=30;p.hp=Math.max(1,p.hp-20);return'最大HP+30 -20HP'}}]},
-  {title:'流浪盗贼',tag:'⚔ 危险遭遇',desc:'"把钱袋交出来！"一个蒙面盗贼挡住去路，刀尖对准你的喉咙。',choices:[
+  {difficulty:'hard',title:'流浪盗贼',tag:'⚔ 危险遭遇',desc:'"把钱袋交出来！"一个蒙面盗贼挡住去路，刀尖对准你的喉咙。',choices:[
     {text:'正面迎击',sub:'失去20%HP，击败后获得120金币',fn:(p,b,ch)=>{const d=Math.floor(p.maxHp*.20);p.hp=Math.max(1,p.hp-d);const g=Math.floor(120*(1+ch.floor*.1));p.gold+=g;return`战胜盗贼！-${d}HP +${g}金`}},
     {text:'乖乖交钱',sub:'失去当前金币的30%',fn:(p)=>{const lost=Math.floor(p.gold*.30);p.gold=Math.max(0,p.gold-lost);return`交出 ${lost} 金币顺利通过`}},
     {text:'拔腿就跑',sub:'50%成功/50%被打-15HP',fn:(p)=>{if(Math.random()<.5)return'成功逃脱！';const d=15;p.hp=Math.max(1,p.hp-d);return`逃跑失败！-${d}HP`}}]},
-  {title:'流浪法师',tag:'✨ 神秘相遇',desc:'一位白发法师在路边闭目冥想，睁眼时目光深邃。"旅者，我能助你一臂之力。"',choices:[
+  {difficulty:'easy',title:'流浪法师',tag:'✨ 神秘相遇',desc:'一位白发法师在路边闭目冥想，睁眼时目光深邃。"旅者，我能助你一臂之力。"',choices:[
     {text:'拜师学艺',sub:'获得1张稀有卡，失去15HP',fn:(p,b)=>{const pool=DB.filter(c=>c.rar==='rare');const c=pool[0|Math.random()*pool.length];b.deck.push(gc(c.id));p.hp=Math.max(1,p.hp-15);return`学得 ${c.name}！-15HP`}},
     {text:'请他强化最弱的牌',sub:'自动强化费用最低的一张牌（免费）',fn:(p,b)=>{const up=b.deck.filter(c=>c.rar!=='curse');if(!up.length)return'没有可强化的牌';up.sort((a,z)=>a.cost-z.cost);upgradeCard(up[0]);return`强化了：${up[0].name}`}},
     {text:'礼貌离开',sub:'继续前行',fn:()=>'pass'}]},
-  {title:'受伤旅者',tag:'❤ 善意相遇',desc:'一位旅行者倒在路边，身上有伤。他用虚弱的眼神望向你。',choices:[
+  {difficulty:'easy',title:'受伤旅者',tag:'❤ 善意相遇',desc:'一位旅行者倒在路边，身上有伤。他用虚弱的眼神望向你。',choices:[
     {text:'出手救助（失去HP）',sub:'失去10%HP，获得1张罕见卡作为感谢',fn:(p,b)=>{const cost=Math.floor(p.maxHp*.10);if(p.hp<=cost+5)return'HP不足';p.hp-=cost;const pool=DB.filter(c=>c.rar==='uncommon');const c=pool[0|Math.random()*pool.length];b.deck.push(gc(c.id));return`救人！-${cost}HP 获得${c.name}`}},
     {text:'花钱雇人救他',sub:'花费50金，他事后报答你80金',fn:(p)=>{if(p.gold<50)return'金币不足';p.gold+=30;return'好人有好报！净得30金币'}},
     {text:'视而不见',sub:'继续前行',fn:()=>'pass'}]},
-  {title:'秘密房间',tag:'🔑 隐藏发现',desc:'墙壁上有一道细缝，仔细查看——竟是一扇暗门。里面漆黑一片……',choices:[
+  {difficulty:'neutral',title:'秘密房间',tag:'🔑 隐藏发现',desc:'墙壁上有一道细缝，仔细查看——竟是一扇暗门。里面漆黑一片……',choices:[
     {text:'进入探索',sub:'随机：金币+100~200 / 稀有卡 / 最大HP+15',fn:(p,b,ch)=>{const r=Math.random();if(r<.35){const g=Math.floor(100+ch.floor*15);p.gold+=g;return`发现宝藏！+${g}金币`}if(r<.65)return'reward_rare';p.maxHp+=15;p.hp=Math.min(p.maxHp,p.hp+15);return'发现古老遗物！最大HP+15'}},
     {text:'谨慎不进',sub:'未知风险，放弃可能的宝藏',fn:()=>'pass'}]},
+  {difficulty:'easy',title:'圣泉',tag:'💧 神圣甘泉',desc:'林间一汪清泉散发着柔和光芒，饮下去像是洗去了所有疲惫。',choices:[
+    {text:'痛饮圣水',sub:'恢复40%最大HP',fn:(p)=>{const h=Math.floor(p.maxHp*.4);p.hp=Math.min(p.maxHp,p.hp+h);return`+${h} HP！圣泉祝福`}},
+    {text:'净化诅咒',sub:'移除1张诅咒牌，恢复15HP',fn:(p,b)=>{const ci=b.deck.findIndex(c=>c.kind==='crs');if(ci>=0){b.deck.splice(ci,1);p.hp=Math.min(p.maxHp,p.hp+15);return'移除诅咒！+15HP'}p.hp=Math.min(p.maxHp,p.hp+30);return'无诅咒可除，额外回复30HP'}}]},
+  {difficulty:'hard',title:'暗影裂变',tag:'☠ 黑暗降临',desc:'黑暗从地缝中涌出，你感到某种邪恶力量正在渗入你的牌组……',choices:[
+    {text:'迎战（强制战斗）',sub:'战胜后获得2张稀有卡',fn:(p,b)=>{const cost=Math.floor(p.maxHp*.35);p.hp=Math.max(1,p.hp-cost);return'reward_rare2'}},
+    {text:'逃跑',sub:'失去 35% HP，诅咒牌进入牌组',fn:(p,b)=>{const cost=Math.floor(p.maxHp*.35);p.hp=Math.max(1,p.hp-cost);b.deck.push(gc('regret'));return`逃脱！-${cost}HP +诅咒`}}]},
+  {difficulty:'easy',title:'老商人',tag:'🛒 路边摊贩',desc:'"你看起来很需要帮助，孩子。"白胡子老人推开满载货物的推车，挑出几件好东西。',choices:[
+    {text:'升级最贵的牌（免费）',sub:'自动强化费用最高的攻击牌',fn:(p,b)=>{const up=b.deck.filter(c=>c.kind==='atk');if(!up.length)return'没有攻击牌';up.sort((a,z)=>z.cost-a.cost);upgradeCard(up[0]);return`强化了：${up[0].name}`}},
+    {text:'获得罕见卡（付15金）',sub:'花15金获得1张罕见卡',fn:(p,b)=>{if(p.gold<15)return'金币不足';p.gold-=15;const pool=DB.filter(c=>c.rar==='uncommon');const c=pool[0|Math.random()*pool.length];b.deck.push(gc(c.id));return`获得 ${c.name}`}},
+    {text:'拒绝',sub:'继续上路',fn:()=>'pass'}]},
 ];
 let phase=PH.INTRO;
 let player={hp:80,maxHp:80,gold:80,floor:1,kills:0,steps:0,drawCount:5,maxAp:3};
@@ -1377,11 +1387,11 @@ function genCardInfo(step){
       enemyArt:td.art,enemyName:td.names[0|Math.random()*td.names.length]};
   }
   const nr=Math.random();let type;
-  if(step<6)      type=nr<.22?'tavern':nr<.40?'event':nr<.55?'campfire':nr<.70?'blacksmith':nr<.85?'gamble':'altar';
-  else if(step<12)type=nr<.20?'tavern':nr<.38?'event':nr<.52?'campfire':nr<.68?'blacksmith':nr<.84?'gamble':'altar';
-  else            type=nr<.18?'tavern':nr<.36?'event':nr<.50?'campfire':nr<.66?'blacksmith':nr<.83?'gamble':'altar';
-  const NCOL={tavern:'#228833',blacksmith:'#607080',gamble:'#7755aa',altar:'#885522',event:'#2255aa',campfire:'#bb6010'};
-  const NBG= {tavern:'rgba(25,90,25,.30)',blacksmith:'rgba(50,65,80,.32)',gamble:'rgba(70,35,130,.32)',altar:'rgba(100,50,10,.32)',event:'rgba(30,60,150,.30)',campfire:'rgba(140,70,10,.30)'};
+  if(step<6)      type=nr<.18?'tavern':nr<.22?'blackmarket':nr<.40?'event':nr<.54?'campfire':nr<.68?'blacksmith':nr<.83?'gamble':'altar';
+  else if(step<12)type=nr<.16?'tavern':nr<.20?'blackmarket':nr<.37?'event':nr<.51?'campfire':nr<.66?'blacksmith':nr<.82?'gamble':'altar';
+  else            type=nr<.14?'tavern':nr<.18?'blackmarket':nr<.35?'event':nr<.49?'campfire':nr<.64?'blacksmith':nr<.81?'gamble':'altar';
+  const NCOL={tavern:'#228833',blackmarket:'#4a2266',blacksmith:'#607080',gamble:'#7755aa',altar:'#885522',event:'#2255aa',campfire:'#bb6010'};
+  const NBG= {tavern:'rgba(25,90,25,.30)',blackmarket:'rgba(40,10,70,.42)',blacksmith:'rgba(50,65,80,.32)',gamble:'rgba(70,35,130,.32)',altar:'rgba(100,50,10,.32)',event:'rgba(30,60,150,.30)',campfire:'rgba(140,70,10,.30)'};
   return{type,suit:'♦',col:NCOL[type]||'#4466cc',bg:NBG[type]||'rgba(30,60,150,.28)'};
 }
 function renderMap(){
@@ -1392,7 +1402,7 @@ function renderMap(){
   const dc=ps<20?'#5a7aaa':ps<40?'#4a7a3a':ps<65?'#aa7020':'#8b1a1a';
   const pb=document.getElementById('psb');pb.textContent=diff2;pb.style.color=dc;pb.style.borderColor=dc;
   document.getElementById('fpg').textContent=`第 ${step+1}/18 步`;
-  const TI={fight:{ic:'⚔',nm:'战斗'},elite:{ic:'💀',nm:'精英'},event:{ic:'✦',nm:'事件'},tavern:{ic:'🍺',nm:'商店'},campfire:{ic:'🔥',nm:'篝火'},blacksmith:{ic:'⚒',nm:'铁匠'},boss:{ic:'👁',nm:'首领'},gamble:{ic:'🎲',nm:'赌场'},altar:{ic:'🔱',nm:'祭坛'}};
+  const TI={fight:{ic:'⚔',nm:'战斗'},elite:{ic:'💀',nm:'精英'},event:{ic:'✦',nm:'事件'},tavern:{ic:'🛒',nm:'商店'},blackmarket:{ic:'🌑',nm:'黑市'},campfire:{ic:'🔥',nm:'篝火'},blacksmith:{ic:'⚒',nm:'铁匠'},boss:{ic:'👁',nm:'首领'},gamble:{ic:'🎲',nm:'赌场'},altar:{ic:'🔱',nm:'祭坛'}};
   const SC={'♠':'#cc3333','♥':'#ee4444','♦':'#4488cc','♣':'#336633','🃏':'#9944cc'};
   const isBossStep=step===18;
   const bossColCount=4;
@@ -1415,6 +1425,17 @@ function renderMap(){
 
   document.getElementById('mprompt').textContent=isBossStep?'☠ 首领降临，无路可退！':step>=16?`⚠ 首领将至，还有 ${18-step} 步`:'选择前进的路：';
 
+  // 5级价值系统
+  const VAL_T=[
+    {label:'贫瘠',col:'#5a6a5a',tip:'收益有限，是最普通的遭遇'},
+    {label:'平常',col:'#8a9a6a',tip:'标准遭遇，收益正常'},
+    {label:'丰厚',col:'#aa8020',tip:'收益不错，物有所值'},
+    {label:'珍贵',col:'#cc5510',tip:'高价值遭遇，值得冒险'},
+    {label:'传世',col:'#9a0a9a',tip:'极稀有！有机会获得传世级奖励'},
+  ];
+  const cpToValIdx={孱弱:0,健康:1,强壮:2,暴虐:3,恐怖:4};
+  const typeValIdx={campfire:1,event:2,tavern:1,blackmarket:3,blacksmith:2,gamble:3,altar:2};
+  function valBadge(vidx,stopProp){const vt=VAL_T[vidx]||VAL_T[1];return`<div style="position:absolute;top:2px;left:2px;font-size:5px;color:${vt.col};font-weight:700;cursor:help;z-index:2" onclick="event.stopPropagation();showValTip(${vidx})" title="${vt.tip}">${vt.label}</div>`;}
   function cardHTML(card,ci,mode,potReach){
     // mode: 'act'=active row, 'd1'=next, 'd2'=next-next
     const isActive=mode==='act';
@@ -1429,12 +1450,12 @@ function renderMap(){
     const selCls=isReach&&window._mapPending===ci?' mc-sel':'';
     const click=isReach?`onclick="selectMapCard(${ci})"`:'';
     if(isBlind){
-      const bHint=card.blindHint||'';const bTitle=card.blindTitle||'暗牌';
+      const bHint=card.blindHint||'';const bTitle=card.blindTitle||'未知路途';
       return`<div class="mcard${reachCls}${blindCls}${dimCls}${selCls}" ${click} style="border-color:${card.col||'#5a3a7a'};background:${card.bg||'rgba(40,20,70,.38)'}">
         <div class="mcsuit" style="color:#8a6aaa">?</div>
         <div class="mcicon" style="color:#5a3a8a;font-size:22px">🂠</div>
         <div class="mctype" style="color:#9a7abf;font-size:7px;letter-spacing:.5px">${bTitle}</div>
-        ${isReach?`<div class="mchint" style="color:var(--violet);font-size:6px">${bHint}</div>`:''}
+        ${isReach?`<div class="mchint" style="color:var(--violet);font-size:6px">路途未知</div>`:''}
       </div>`;
     }
     const rankHint=card.rank<=4?'初级':card.rank<=8?'中级':card.rank<=12?'高级':'精锐';
@@ -1442,7 +1463,7 @@ function renderMap(){
     if(card.type==='boss'&&card.epithet){
       const bIcon=card.art||ti.ic;
       return`<div class="mcard${reachCls}${bossCls}${dimCls}${selCls}" ${click} style="border-color:${card.col};background:${card.bg}">
-        <div style="position:absolute;top:2px;left:3px;right:3px;font-size:6px;color:${card.col};letter-spacing:.5px;text-align:center;font-weight:700">${card.label}</div>
+        ${valBadge(4)}
         <div class="mcicon" style="font-size:22px;text-shadow:0 0 14px ${card.col};margin-top:4px">${bIcon}</div>
         <div style="font-size:6.5px;color:${card.col};font-weight:700;letter-spacing:.5px;text-align:center;padding:0 2px;line-height:1.3">${card.epithet}</div>
         ${isActive&&isReach?`<div class="mchint" style="color:${card.col};font-size:5.5px">${card.epithetSub||''}</div>`:''}
@@ -1452,15 +1473,18 @@ function renderMap(){
       const cpCol=CP_COL[card.combatPower]||card.col;
       const cdCol=CD_COL[card.cardDmg]||'#6a6a4a';
       const trCol=(TRAIT_DEFS[card.trait]||{}).col||'#6a6a6a';
+      const vidx=card.type==='elite'?Math.min(4,(cpToValIdx[card.combatPower]||1)+1):cpToValIdx[card.combatPower]||1;
       return`<div class="mcard${reachCls}${dimCls}${selCls}" ${click} style="border-color:${cpCol};background:${card.bg}">
-        <div style="position:absolute;top:2px;left:2px;font-size:5px;color:${cpCol};font-weight:700">${card.combatPower||''}</div>
+        ${valBadge(vidx)}
         ${card.type==='elite'?`<div style="position:absolute;top:2px;right:2px;font-size:5px;color:var(--amber)">精英</div>`:''}
         <div class="mcicon" style="font-size:20px;text-shadow:0 0 10px ${cpCol};margin-top:10px">${card.enemyArt}</div>
         <div class="mctype" style="color:${cpCol};font-size:6px;letter-spacing:.3px">${card.enemyName}</div>
         ${isActive&&isReach?`<div class="mchint" style="font-size:5px;letter-spacing:.2px"><span style="color:${cdCol}">${card.cardDmg}</span><span style="color:var(--ash3)">·</span><span style="color:${trCol}">${card.trait}</span></div>`:''}
       </div>`;
     }
+    const vidx=typeValIdx[card.type]||1;
     return`<div class="mcard${reachCls}${bossCls}${dimCls}${selCls}" ${click} style="border-color:${card.col};background:${card.bg}">
+      ${valBadge(vidx)}
       <div class="mcicon" style="text-shadow:0 0 14px ${card.col};margin-top:6px">${ti.ic}</div>
       <div class="mctype" style="color:${card.col}">${ti.nm}</div>
       ${isActive&&isReach?`<div class="mchint" style="color:${card.col}">${rankHint}</div>`:''}
@@ -1581,8 +1605,9 @@ function pickMapCard(col){
     case 'tavern':    startTavern();break;
     case 'campfire':  startCampfire();break;
     case 'blacksmith':startBlacksmith();break;
-    case 'gamble':    startGamble();break;
-    case 'altar':     startAltar();break;
+    case 'gamble':      startGamble();break;
+    case 'altar':       startAltar();break;
+    case 'blackmarket': startBlackMarket();break;
   }
   if(phase===PH.MAP)renderMap();
   // 每步地图自动存档
@@ -2123,7 +2148,15 @@ function doAbsorb(type){
 function pickRewardCard(i){const c=window._rw[i];if(!c)return;battle.deck.push({...c});toast(`获得：${c.name}`,'g');backToMap();}
 function skipReward(){backToMap();}
 function startEvent(){
-  phase=PH.OV;const ev=EVTS[0|Math.random()*EVTS.length];window._ev=ev;
+  phase=PH.OV;
+  const ps=calcPS();const hpPct=player.hp/player.maxHp;
+  const curseCnt=battle.deck.filter(c=>c.kind==='crs').length;
+  let pool;
+  if(hpPct<0.28||curseCnt>=3){pool=EVTS.filter(e=>e.difficulty!=='hard');}
+  else if(ps>75){pool=EVTS.filter(e=>e.difficulty!=='easy');}
+  else{pool=EVTS;}
+  if(!pool.length)pool=EVTS;
+  const ev=pool[0|Math.random()*pool.length];window._ev=ev;
   const rots=ev.choices.length<=1?[0]:ev.choices.length===2?[-5,5]:[-7,0,7];
   const cards=ev.choices.map((c,i)=>{
     const rot=rots[Math.min(i,rots.length-1)]||0;const yOff=Math.abs(rot)*1.4;
@@ -2232,12 +2265,12 @@ function genTavernCards(){
 function startTavern(){
   phase=PH.OV;
   window._tavCards=genTavernCards();window._tavBought=new Set();window._tavRefreshCost=10;window._tavSel=null;
-  document.getElementById('ovtag').textContent='🍺  酒馆';
-  document.getElementById('ovtit').textContent='热闹的驿站';
-  let h=`<div class="ovd">嘈杂的酒馆里，商贩在角落摆着各色卡牌。</div>`;
-  h+=`<div class="tav-sec-title">☽  商贩  (金币：<b style="color:var(--amber)" id="tav-gold">${player.gold}</b>)&nbsp;&nbsp;<span id="tav-refresh-btn" onclick="tavernRefresh()" style="cursor:pointer;color:var(--text2);font-size:9px;border:1px solid var(--crack2);padding:2px 8px;border-radius:3px">🔄 刷新 10●</span></div>`;
+  document.getElementById('ovtag').textContent='🛒  商店';
+  document.getElementById('ovtit').textContent='路边商行';
+  let h=`<div class="ovd">行商在路旁摆开摊位，各式卡牌整齐排列。</div>`;
+  h+=`<div class="tav-sec-title">☽  商品  (金币：<b style="color:var(--amber)" id="tav-gold">${player.gold}</b>)&nbsp;&nbsp;<span id="tav-refresh-btn" onclick="tavernRefresh()" style="cursor:pointer;color:var(--text2);font-size:9px;border:1px solid var(--crack2);padding:2px 8px;border-radius:3px">🔄 刷新 10●</span></div>`;
   h+=`<div id="tav-shop"></div>`;
-  h+=`<button class="ovbtn" onclick="backToMap()">离开酒馆</button>`;
+  h+=`<button class="ovbtn" onclick="backToMap()">离开商店</button>`;
   document.getElementById('ovb').innerHTML=h;
   renderTavernShop();showView('ov');renderHud();renderTokens();
 }
@@ -2455,6 +2488,9 @@ function renderHud(){
   document.getElementById('h-ap').textContent=phase===PH.BATTLE?battle.apLeft:(battle.maxAp||3);
   document.getElementById('h-gd').textContent=player.gold;
   document.getElementById('h-dr').textContent=player.drawCount||5;
+  const ptit=getPlayerTitle();
+  const titEl=document.getElementById('hc2');
+  if(titEl){titEl.textContent=ptit.icon+' '+ptit.title;titEl.style.color=ptit.color||'var(--text2)';}
 }
 function renderTokens(){
   const mk=(n,cls,sym,max)=>{const s=Math.min(n,max);return Array(s).fill(`<span class="tok ${cls}">${sym}</span>`).join('')+(n>max?`<span class="tov">+${n-max}</span>`:'');};
@@ -2618,15 +2654,78 @@ function confirmPick(){
   renderHud();renderTokens();setTimeout(backToMap,600);
 }
 function showDeck(){
-  const kn=k=>k==='atk'?'攻击':k==='def'?'防御':k==='skl'?'技能':'诅咒';
-  const rt=r=>r==='rare'?'<span class="rwt ttr">稀有</span>':r==='uncommon'?'<span class="rwt ttu">罕见</span>':r==='curse'?'<span class="rwt" style="color:var(--ash);border-color:var(--ash2)">诅咒</span>':'<span class="rwt ttc">普通</span>';
   const sorted=[...battle.deck].sort((a,b)=>{const o={atk:0,def:1,skl:2,crs:3};return(o[a.kind]||0)-(o[b.kind]||0)||a.cost-b.cost;});
   const totalVal=sorted.reduce((s,c)=>s+cardValue(c),0);
-  document.getElementById('dm-count').textContent=`${battle.deck.length} 张 · 总价值 ${totalVal}g`;
-  document.getElementById('dm-cards').innerHTML=sorted.map(c=>{const d=(c.desc||'').replace('{atk}',c.atk||0).replace('{blk}',c.blk||0).replace('{heal}',c.heal||0).replace('{str}',c.str||0);const val=cardValue(c);return`<div class="rw"><div class="rwa">${c.art}</div><div class="rwi"><div class="rwn">${c.name}${c.upgradeCount?`<span style="color:var(--slime);font-size:9px;font-weight:700;margin-left:3px">+${c.upgradeCount}</span>`:''} <span style="font-size:8px;color:var(--amber);opacity:.8">≈${val}g</span></div><div class="rwd"><span style="color:var(--text3)">${kn(c.kind)} ◆${c.cost}</span> · ${d}</div></div>${rt(c.rar)}</div>`;}).join('');
+  const ptit=getPlayerTitle();
+  document.getElementById('dm-count').textContent=`${battle.deck.length}张`;
+  const secLabel={atk:'⚔ 攻击牌',def:'🛡 防御牌',skl:'✦ 技能牌',crs:'☠ 诅咒牌'};
+  let html=`<div style="text-align:center;padding:4px 0 10px;font-size:10px;color:${ptit.color||'var(--text2)'};letter-spacing:2px">${ptit.icon} ${ptit.title} &nbsp;·&nbsp; <span style="color:var(--amber)">价值≈${totalVal}</span></div>`;
+  ['atk','def','skl','crs'].forEach(k=>{
+    const kc=sorted.filter(c=>c.kind===k);if(!kc.length)return;
+    html+=`<div style="font-size:9px;color:var(--text2);letter-spacing:2px;padding:0 4px 4px">${secLabel[k]}</div>`;
+    html+=`<div class="tcards-table" style="padding:10px 4px 18px">${kc.map((c,i)=>renderPokerCard(c,'',{idx:i%4,total:Math.min(kc.length,4)})).join('')}</div>`;
+  });
+  document.getElementById('dm-cards').innerHTML=html;
   document.getElementById('deckmodal').style.display='block';
 }
 function closeDeck(){document.getElementById('deckmodal').style.display='none';}
+function showValTip(idx){
+  const tips=['贫瘠：收益有限，是最普通的遭遇','平常：标准遭遇，收益正常','丰厚：收益不错，物有所值','珍贵：高价值遭遇，值得冒险','传世：极稀有！有机会获得传世级奖励'];
+  toast(tips[idx]||'未知价值');
+}
+// ── 黑市 ──
+function startBlackMarket(){
+  phase=PH.OV;
+  const ps=calcPS();
+  const mkLot=()=>{
+    const r=Math.random();
+    if(r<.28){const c=shuf(DB.filter(x=>x.rar==='rare'))[0];return{price:Math.round(80+ps*1.8),reveal:()=>{battle.deck.push({...c});toast(`黑市惊喜！获得 ${c.name}`,'g');}};}
+    if(r<.52){const c=shuf(DB.filter(x=>x.rar==='uncommon'))[0];return{price:Math.round(45+ps),reveal:()=>{battle.deck.push({...c});toast(`获得 ${c.name}`,'g');}};}
+    if(r<.72){const h=Math.floor(35+ps*.4);return{price:Math.round(30+ps*.5),reveal:()=>{player.hp=Math.min(player.maxHp,player.hp+h);toast(`+${h} HP`,'g');}};}
+    if(r<.86){const g=Math.floor(40+ps*1.2);return{price:Math.round(25),reveal:()=>{player.gold+=g;toast(`+${g}金币`,'g');}};}
+    return{price:Math.round(20),reveal:()=>{battle.deck.push(gc('regret'));player.gold+=15;toast('骗局！诅咒牌 +补偿15金','r');}};
+  };
+  window._bmLots=[mkLot(),mkLot(),mkLot(),mkLot()];window._bmBought=new Set();window._bmSel=null;
+  document.getElementById('ovtag').textContent='🌑  黑市';
+  document.getElementById('ovtit').textContent='神秘商人';
+  renderBlackMarket();showView('ov');renderHud();renderTokens();
+}
+function renderBlackMarket(){
+  const lots=window._bmLots||[];const bought=window._bmBought||new Set();const sel=window._bmSel;
+  const rots=[-9,-3,3,9];const yOffs=[12,4,4,12];
+  let h=`<div class="ovd">蒙面商人低声说："货真价实……也可能不是。风险自负。"（金币：<b style="color:var(--amber)">${player.gold}</b>）</div>`;
+  h+=`<div class="tcards-table">${lots.map((lot,i)=>{
+    if(bought.has(i))return`<div class="tcard tc-bought" style="transform:rotate(${rots[i]}deg) translateY(${yOffs[i]}px);width:84px"><div class="tc-art">✓</div><div class="tc-info"><div class="tc-name" style="font-size:9px">已开箱</div></div></div>`;
+    const isSel=sel===i;
+    return`<div class="tcard${isSel?' tc-sel':''}" onclick="selectBMLot(${i})" style="transform:rotate(${rots[i]}deg) translateY(${yOffs[i]}px)">
+      <div class="tc-stripe" style="background:var(--violet)"></div>
+      <div class="tc-cost" style="background:rgba(60,10,80,.95);color:var(--ash)">?</div>
+      <div class="tc-rar" style="color:var(--violet);border-color:#5a2a8a">◈ 神秘</div>
+      <div class="tc-art" style="font-size:28px">📦</div>
+      <div class="tc-info"><div class="tc-name">神秘货物</div><div class="tc-desc" style="color:var(--text3);font-size:9px">内容不明，风险自负</div>
+      <div class="tc-foot tc-price">⬤ ${lot.price}</div></div></div>`;
+  }).join('')}</div>`;
+  if(sel!==null&&sel!==undefined&&!bought.has(sel)){
+    const lot=lots[sel];
+    h+=`<div style="margin:6px 0;padding:8px 10px;border:1px solid rgba(154,90,191,.4);font-size:11px;color:var(--bone);text-align:center;background:rgba(60,10,80,.08)">
+      开箱 — 消耗 <b style="color:var(--amber)">${lot.price} ●</b>？（内容随机，不退款）
+    </div><div style="display:flex;gap:8px;margin-bottom:8px">
+      <button class="ovbtn gd" style="flex:1;margin:0" onclick="confirmBMLot()">✓ 赌一把</button>
+      <button class="ovbtn" style="flex:1;margin:0" onclick="window._bmSel=null;renderBlackMarket()">✗ 取消</button>
+    </div>`;
+  }
+  h+=`<button class="ovbtn" onclick="backToMap()">离开黑市</button>`;
+  document.getElementById('ovb').innerHTML=h;
+}
+function selectBMLot(i){if((window._bmBought||new Set()).has(i))return;window._bmSel=i;renderBlackMarket();}
+function confirmBMLot(){
+  const i=window._bmSel;if(i===null||i===undefined)return;
+  const lot=(window._bmLots||[])[i];if(!lot)return;
+  if(player.gold<lot.price){toast('金币不足','r');window._bmSel=null;renderBlackMarket();return;}
+  player.gold-=lot.price;lot.reveal();
+  window._bmBought.add(i);window._bmSel=null;
+  renderBlackMarket();renderHud();renderTokens();
+}
 function renderRelics(){}// stub — relic system removed
 // ── 赌馆 ──
 function startGamble(){
