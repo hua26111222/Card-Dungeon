@@ -253,11 +253,20 @@ html,body{background:var(--void);color:var(--text);font-family:var(--fm);font-si
 /* ═══ 浮层 ═══ */
 #ov{display:none}
 .ovh{background:linear-gradient(180deg,var(--s2),var(--s1));border-bottom:1px solid var(--crack);
-  padding:14px 14px 12px;position:relative;box-shadow:0 2px 12px rgba(0,0,0,.6)}
+  padding:14px 14px 12px;position:relative;box-shadow:0 2px 12px rgba(0,0,0,.6);overflow:hidden}
+.ovh::before{content:'';position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(ellipse 80% 60% at 90% 50%,var(--_ov-glow,rgba(200,169,110,.06)),transparent)}
 .ovh::after{content:'── ✦ ──';position:absolute;bottom:5px;left:50%;transform:translateX(-50%);font-size:9px;color:var(--crack2);letter-spacing:4px}
 .ovtag{font-size:11px;color:var(--text2);letter-spacing:3px;margin-bottom:6px;font-style:italic}
+.ovh-row{display:flex;align-items:center;justify-content:space-between;gap:10px}
 .ovtit{font-family:var(--fs);font-size:18px;font-weight:900;color:var(--bone);letter-spacing:3px;
-  text-shadow:0 0 22px rgba(200,169,110,.35),1px 1px 0 #000}
+  text-shadow:0 0 22px rgba(200,169,110,.35),1px 1px 0 #000;flex:1;min-width:0}
+#ov-art{font-size:42px;line-height:1;flex-shrink:0;
+  filter:drop-shadow(0 0 12px var(--_ov-shadow,rgba(200,169,110,.5)));
+  animation:ov-art-in .3s ease;text-align:center}
+@keyframes ov-art-in{from{opacity:0;transform:scale(.7) translateX(10px)}to{opacity:1;transform:none}}
+.ov-story{font-size:11px;color:var(--text3);line-height:1.7;margin-top:8px;padding-top:8px;
+  border-top:1px solid var(--crack);font-style:italic;letter-spacing:.3px}
 .ovb{padding:14px 14px}
 .ovd{font-size:13px;color:var(--text2);line-height:1.9;margin-bottom:14px;
   border-left:2px solid var(--crack2);padding-left:10px;font-style:italic}
