@@ -832,6 +832,8 @@ const DB=[
   {id:'phantom_hit', name:'幻影打击',cost:1,kind:'atk',art:'👻',rar:'rare',     desc:'造成等于当前格挡量的伤害（无视敌人格挡）',special:'phantom_hit'},
   {id:'heartbreak',  name:'心碎一击',cost:1,kind:'atk',art:'💥',rar:'uncommon', desc:'清除敌人所有格挡，造成 <b>14</b> 伤害',special:'heartbreak'},
   {id:'desperation', name:'绝望之力',cost:1,kind:'skl',art:'🩸',rar:'rare',     desc:'获得 力量 = 缺失HP÷15（最少1）（消耗）',special:'desperation',exhaust:true},
+  {id:'stagger',     name:'震慑打击', cost:1,kind:'atk',art:'💫',rar:'uncommon', desc:'造成 <b>{atk}</b> 伤害，使敌人本回合跳过行动',atk:7,special:'stagger',stunCount:1},
+  {id:'lockdown',    name:'锁链禁锢', cost:1,kind:'skl',art:'⛓',rar:'rare',     desc:'使敌人眩晕 <b>2</b> 回合（消耗）',special:'lockdown',stunCount:2,exhaust:true},
 ];
 function gc(id){const c=DB.find(c=>c.id===id);return c?JSON.parse(JSON.stringify(c)):null;}
 function cardValue(c){
@@ -839,7 +841,8 @@ function cardValue(c){
   if(c.special){
     // Special cards: fixed base scores because their power isn't captured by numeric stat fields
     const sv={soul_strike:60,chaos_shot:40,last_stand:42,martyr:53,catalyze:29,
-               phantom_hit:40,heartbreak:27,desperation:37,bloodrush:40,execute:43};
+               phantom_hit:40,heartbreak:27,desperation:37,bloodrush:40,execute:43,
+               stagger:38,lockdown:52};
     const rm=c.rar==='rare'?1.5:c.rar==='uncommon'?1.2:1;
     return Math.round((sv[c.special]||40)*rm*(1+(c.upgradeCount||0)*.2));
   }
@@ -864,6 +867,8 @@ function upgradeCard(c){
       case 'desperation':  c.despDiv=Math.max(5,(c.despDiv||15)-5); c.desc=`获得 力量 = 缺失HP÷${c.despDiv}（最少1）（消耗）`; break;
       case 'bloodrush':    c.cost=Math.max(0,c.cost-1); c.desc='造成等于 <b>缺失HP</b> 的伤害'; break;
       case 'execute':      c.execThresh=(c.execThresh||.30)+.10;c.execDmg=(c.execDmg||18)+10; c.desc=`敌人HP＜${Math.round((c.execThresh)*100)}%时即死，否则造成 <b>${c.execDmg}</b> 伤`; break;
+      case 'stagger':      c.atk=(c.atk||7)+4;c.desc=`造成 <b>${c.atk}</b> 伤害，使敌人本回合跳过行动`; break;
+      case 'lockdown':     c.stunCount=(c.stunCount||2)+1;c.exhaust=false;c.desc=`使敌人眩晕 <b>${c.stunCount}</b> 回合`; break;
     }
     c.upgraded=true;c.upgradeCount=(c.upgradeCount||0)+1;
     return;
@@ -1775,6 +1780,8 @@ function applySingleCard(c,mult){
   if(c.special==='phantom_hit'){const d=battle.blk||0;if(d>0){battle.enemyHp=Math.max(0,battle.enemyHp-d);rs.dmgDealt+=d;floatDmg(d,'#9a6abf');sfx(240,.14,'square',.1,80);toast(`👻 幻影 ${d}伤`);}else toast('没有格挡可用','r');}
   if(c.special==='heartbreak'){const cleared=battle.enemyBlk||0;battle.enemyBlk=0;let d=(c.hbDmg||14)+(battle.str||0);if(battle.playerWeak>0)d=Math.floor(d*.75);if(battle.enemyVuln>0)d=Math.ceil(d*1.5);battle.enemyHp=Math.max(0,battle.enemyHp-d);rs.dmgDealt+=d;if(d>0){floatDmg(d,'#c0392b');sfx(200+d,.15,'sawtooth',.1,-60);}if(cleared>0)toast(`💥 粉碎 ${cleared} 格挡！`);}
   if(c.special==='desperation'){const missing=Math.max(0,player.maxHp-player.hp);const s=Math.max(1,Math.floor(missing/(c.despDiv||15)));battle.str+=s;toast(`🩸 绝望之力 +${s} 力量！`,'g');}
+  if(c.special==='stagger'){const n=c.stunCount||1;battle.enemyStun=(battle.enemyStun||0)+n;toast(`💫 震慑！敌人本回合跳过行动`,'g');}
+  if(c.special==='lockdown'){const n=c.stunCount||2;battle.enemyStun=(battle.enemyStun||0)+n;toast(`⛓ 锁链禁锢！敌人眩晕 ${n} 回合！`,'g');}
   return totalDmg;
 }
 function playSelectedCards(){
