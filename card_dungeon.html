@@ -1095,7 +1095,7 @@ function buildEnemyFromDims(card,isElite,ps){
   const baseActs=td.acts(finalAtk);
   const cdExtra=_cdActs(cardDmg,finalAtk);
   const actions=shuf([...baseActs,...cdExtra]);
-  const nm=td.names[0|Math.random()*td.names.length];
+  const nm=card.enemyName||td.names[0|Math.random()*td.names.length];
   const gMin=Math.round((8+fp*5)*(isElite?2:1));
   return{name:nm,art:td.art,tier:isElite?'elite':'fight',aiType:td.aiType,
     combatPower,cardDmg,trait,traitDesc:td.desc,
@@ -1388,10 +1388,21 @@ function generateChapter(){
   chapter.usedEnemies=new Set();
   return{theme,mod,boss,boss2,ps:calcPS(),floor:chapter.floor};
 }
+const _FLOOR_PERSONA=[
+  {key:'cunning',   title:'阴险之层',    lines:['这一层的敌人狡猾而阴险','陷阱隐藏在每一个角落','小心那些虚弱的假象'],    color:'#9a6020'},
+  {key:'poison',    title:'毒雾之层',    lines:['浓烈的毒气弥漫于空气中','每一口呼吸都是煎熬','强毒使这里的怪物更加凶残'],color:'#4a8a30'},
+  {key:'treasure',  title:'财富之层',    lines:['隐秘的财富就在此处','传说这里沉睡着古老的宝藏','黄金的气息令人心醉神迷'],  color:'#c0a020'},
+  {key:'darkness',  title:'黑暗之层',    lines:['极度的黑暗吞噬了一切','连影子都无处遁形','在黑暗中，敌人如鱼得水'],   color:'#5a3888'},
+  {key:'elite',     title:'强者之层',    lines:['只有强者才能在此生存','每一个敌人都身经百战','你的技巧将接受终极考验'],   color:'#cc2222'},
+  {key:'ancient',   title:'古老之层',    lines:['这里沉睡着亘古的秘密','古老的魔法渗透在石壁之中','传说此地埋藏着遗失的智慧'],color:'#4488aa'},
+  {key:'cursed',    title:'诅咒之层',    lines:['黑暗诅咒笼罩着这片土地','每走一步，都感受到恶意','诅咒的力量扭曲了现实'],   color:'#882288'},
+  {key:'fierce',    title:'猛兽之层',    lines:['野蛮的力量充斥着这里','敌人以蛮力为骄傲','只有更强的力量才能制衡它们'],color:'#aa4422'},
+];
 function buildMap(){
   const rows=[];
   for(let s=0;s<19;s++)rows.push(genMapRow(s));
-  mapData={rows,step:0,playerCol:2,history:[]};  // 5-col center = col 2
+  const persona=_FLOOR_PERSONA[0|Math.random()*_FLOOR_PERSONA.length];
+  mapData={rows,step:0,playerCol:2,history:[],persona};
   window._mapPending=null;
 }
 function genMapRow(step){
@@ -1429,9 +1440,9 @@ function genMapRow(step){
   // Prevent both blinds blocking same edge (0+1 or 3+4)
   if(blinds.has(0)&&blinds.has(1)){blinds.delete(1);blinds.add(2);}
   if(blinds.has(3)&&blinds.has(4)){blinds.delete(3);blinds.add(2);}
-  return[0,1,2,3,4].map(c=>({...genCardInfo(step),rank,label:lbl,isHidden:blinds.has(c),revealed:false}));
+  return[0,1,2,3,4].map(c=>({...genCardInfo(step,rank),rank,label:lbl,isHidden:blinds.has(c),revealed:false}));
 }
-function genCardInfo(step){
+function genCardInfo(step,nodeRank){
   const r=Math.random();
   const btlChance=step<6?0.42:step<12?0.52:0.62;
   if(r<btlChance){
@@ -1445,14 +1456,28 @@ function genCardInfo(step){
     const td=TRAIT_DEFS[trait];
     const col=CP_COL[combatPower]||'#aa2222';
     const bg=isElite?'rgba(140,40,0,.35)':'rgba(80,20,20,.30)';
+    const enemyName=td.names[0|Math.random()*td.names.length];
+    // 预演算：立即生成敌人实体，宿命已定
+    const savedRank=window._mapRank;
+    window._mapRank=nodeRank||7;
+    const preEnemy=buildEnemyFromDims({combatPower,cardDmg,trait,enemyName},isElite,calcPS());
+    window._mapRank=savedRank;
     return{type:tier,suit:'⚔',col,bg,_hasDims:true,
       combatPower,cardDmg,trait,
-      enemyArt:td.art,enemyName:td.names[0|Math.random()*td.names.length]};
+      enemyArt:td.art,enemyName,preEnemy};
   }
   const nr=Math.random();let type;
-  if(step<6)      type=nr<.18?'tavern':nr<.22?'blackmarket':nr<.40?'event':nr<.54?'campfire':nr<.68?'blacksmith':nr<.83?'gamble':'altar';
-  else if(step<12)type=nr<.16?'tavern':nr<.20?'blackmarket':nr<.37?'event':nr<.51?'campfire':nr<.66?'blacksmith':nr<.82?'gamble':'altar';
-  else            type=nr<.14?'tavern':nr<.18?'blackmarket':nr<.35?'event':nr<.49?'campfire':nr<.64?'blacksmith':nr<.81?'gamble':'altar';
+  if(step<6)      type=nr<.18?'tavern':nr<.22?'blackmarket':nr<.40?'event':nr<.54?'campfire':nr<.68?'blacksmith':nr<.83?'gamble':nr<.91?'altar':'chest';
+  else if(step<12)type=nr<.16?'tavern':nr<.20?'blackmarket':nr<.37?'event':nr<.51?'campfire':nr<.66?'blacksmith':nr<.82?'gamble':nr<.90?'altar':'chest';
+  else            type=nr<.14?'tavern':nr<.18?'blackmarket':nr<.35?'event':nr<.49?'campfire':nr<.64?'blacksmith':nr<.81?'gamble':nr<.89?'altar':'chest';
+  // 宝箱：预演算卡牌奖励
+  if(type==='chest'){
+    const ps=calcPS();
+    const dbPool=DB.filter(c=>c.rar!=='curse'&&c.rar!=='common');
+    const dbPick=dbPool[0|Math.random()*dbPool.length];
+    const preChestCards=shuf([CardGen.one(ps+6),CardGen.one(ps+6),dbPick?JSON.parse(JSON.stringify(dbPick)):CardGen.one(ps+8)]);
+    return{type:'chest',suit:'💎',col:'#c0a020',bg:'rgba(120,90,10,.38)',preChestCards};
+  }
   const NCOL={tavern:'#228833',blackmarket:'#4a2266',blacksmith:'#607080',gamble:'#7755aa',altar:'#885522',event:'#2255aa',campfire:'#bb6010'};
   const NBG= {tavern:'rgba(25,90,25,.30)',blackmarket:'rgba(40,10,70,.42)',blacksmith:'rgba(50,65,80,.32)',gamble:'rgba(70,35,130,.32)',altar:'rgba(100,50,10,.32)',event:'rgba(30,60,150,.30)',campfire:'rgba(140,70,10,.30)'};
   return{type,suit:'♦',col:NCOL[type]||'#4466cc',bg:NBG[type]||'rgba(30,60,150,.28)'};
@@ -1677,6 +1702,7 @@ function pickMapCard(col){
     case 'gamble':      startGamble();break;
     case 'altar':       startAltar();break;
     case 'blackmarket': startBlackMarket();break;
+    case 'chest':       startChest(card);break;
   }
   if(phase===PH.MAP)renderMap();
   // 每步地图自动存档
@@ -1756,7 +1782,11 @@ function startBattle(isElite,isBoss){
   battle.deck=battle.deck.filter(c=>!!c);
   let en;
   try{
-    if(!isBoss&&window._mapCard?._hasDims){
+    if(!isBoss&&window._mapCard?.preEnemy){
+      // 宿命已定：使用预演算的敌人
+      en=window._mapCard.preEnemy;
+      chapter.usedEnemies.add(en.name);
+    }else if(!isBoss&&window._mapCard?._hasDims){
       en=buildEnemyFromDims(window._mapCard,isElite,calcPS());
       chapter.usedEnemies.add(en.name);
     }else{
@@ -2160,7 +2190,25 @@ function pickBlessing(idx){
   showView('ov');renderHud();renderTokens();
 }
 function getDiff(ps){return ps<20?'🟢 平静':ps<40?'🟡 凶险':ps<65?'🟠 危机':ps<90?'🔴 绝境':'☠ 地狱';}
-function enterChapter(){phase=PH.MAP;buildMap();showView('mv');renderMap();renderHud();renderTokens();startBGM('map');}
+function actualEnterMap(){phase=PH.MAP;showView('mv');renderMap();renderHud();renderTokens();startBGM('map');}
+function showFloorIntro(){
+  const p=mapData.persona;
+  const ch=player.chapter||1;
+  const ov=document.getElementById('ov');
+  ov.innerHTML=`
+  <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;gap:18px;padding:24px;">
+    <div style="font-size:0.85em;color:#888;letter-spacing:2px;text-transform:uppercase;">第 ${ch} 章</div>
+    <div style="font-size:1.9em;font-weight:700;color:${p.color};text-shadow:0 0 20px ${p.color}88;">${p.title}</div>
+    <div style="width:60px;height:2px;background:${p.color};opacity:.5;border-radius:2px;"></div>
+    <div style="display:flex;flex-direction:column;gap:10px;max-width:300px;text-align:center;">
+      ${p.lines.map(l=>`<div style="color:#ccc;font-size:1em;line-height:1.6;">${l}</div>`).join('')}
+    </div>
+    <div style="margin-top:16px;width:60px;height:2px;background:${p.color};opacity:.3;border-radius:2px;"></div>
+    <button onclick="actualEnterMap()" style="margin-top:8px;padding:12px 36px;background:${p.color};color:#000;font-size:1.05em;font-weight:700;border:none;border-radius:8px;cursor:pointer;letter-spacing:1px;">踏入此层</button>
+  </div>`;
+  showView('ov');
+}
+function enterChapter(){buildMap();showFloorIntro();}
 function renderPokerCard(c,onclick,opts={}){
   const{price,bought=false,idx=0,total=1,sel=false}=opts;
   const d=(c.desc||'').replace('{atk}',c.atk||0).replace('{blk}',c.blk||0).replace('{heal}',c.heal||0).replace('{str}',c.str||0);
