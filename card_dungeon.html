@@ -329,7 +329,7 @@ html,body{background:var(--void);color:var(--text);font-family:var(--fm);font-si
 #ci::before{content:'';position:absolute;inset:0;
   background:repeating-linear-gradient(0deg,transparent 0,transparent 39px,rgba(255,255,255,.006) 39px,rgba(255,255,255,.006) 40px),
     repeating-linear-gradient(90deg,transparent 0,transparent 39px,rgba(255,255,255,.006) 39px,rgba(255,255,255,.006) 40px);pointer-events:none}
-.cid{font-size:13px;color:var(--blood2);letter-spacing:8px;margin-bottom:10px;opacity:.8}
+.cid{font-size:12px;color:var(--text2);letter-spacing:.5px;margin-bottom:10px;line-height:1.7;text-align:center;font-style:italic;padding:0 12px;opacity:.9}
 .cif{font-size:14px;color:var(--bone2);letter-spacing:5px;margin-bottom:10px;font-style:italic;font-family:var(--fs)}
 .cin{font-family:var(--fs);font-size:28px;font-weight:900;color:var(--bone);letter-spacing:4px;
   text-shadow:0 0 32px rgba(200,169,110,.4),0 0 64px rgba(139,26,26,.2),2px 2px 0 #000;
@@ -2155,37 +2155,29 @@ function endBattle(won){
     else{showReward(g);SM.auto();}
   }else{sfx(80,.4,'sawtooth',.15,-30);showGameOver();SM.clear();}
 }
+const _FLOOR_NARRATIVE=[
+  '黑暗的入口在背后轰然关闭。深渊不会放你离开——唯一的出路，是穿越它。',
+  '踩着第一层留下的战迹，你继续向下。空气更沉、更冷，危险也在随深度倍增。',
+  '这是最深处。光芒彻底消失，脚下是亘古的黑暗。你能感觉到——它也在等待你。',
+];
 function showChapterIntro(){
   const info=generateChapter();const mod=info.mod;
-  document.getElementById('cif').textContent=`第 ${toR(info.floor)} 章`;
+  const fl=info.floor;
+  const narrative=_FLOOR_NARRATIVE[fl-1]||`地下第 ${fl} 层——越往深处，现实越扭曲，退路早已封死。`;
+  document.getElementById('cid').textContent=narrative;
+  document.getElementById('cif').textContent=`地下 · 第 ${toR(fl)} 层`;
   document.getElementById('cin').textContent=info.theme.name;
   document.getElementById('cit').textContent=info.theme.sub;
   document.getElementById('cim').style.borderColor=mod.color;document.getElementById('cim').style.color=mod.color;
   document.getElementById('cimt').textContent=`${mod.icon}  ${mod.name}`;
   document.getElementById('cimd').textContent=mod.desc;
-  document.getElementById('cips').textContent=`${getDiff(info.ps)}${info.floor>=3?'  ·  ☠ 最终章节  · 击败首领，征服深渊':'  ·  第 '+toR(info.floor)+' 章'}`;
+  document.getElementById('cips').textContent=`${getDiff(info.ps)}${fl>=3?'  ·  ☠ 最终一层，击败守卫以逃出深渊':'  ·  第 '+toR(fl)+' 层'}`;
   document.getElementById('hc2').textContent=`${info.theme.name} · ${mod.name}`;
   document.getElementById('mb').style.display='none';
-  // Deck preview (all chapters — shows current deck composition)
-  const kBorderColor={atk:'var(--blood)',def:'var(--mold)',skl:'var(--ice)',pwr:'var(--soul)',crs:'var(--ash3)'};
-  const kTextColor={atk:'var(--gore2)',def:'var(--slime)',skl:'var(--frost)',pwr:'var(--violet)',crs:'var(--ash)'};
-  const ptit=getPlayerTitle();
-  const deckEl=document.getElementById('ci-deck');
-  let deckHeaderHtml='';
-  if(chapter.floor===1&&window._starterRandom){
-    const sr=window._starterRandom;
-    const allRand=[...sr.atk,...sr.def,...sr.skl];
-    const legacy=battle.deck.filter(c=>c.isLegacy);
-    deckHeaderHtml=`<div style="width:100%;background:rgba(0,0,0,.35);border:1px solid var(--crack2);padding:8px 10px;margin-bottom:8px">
-      <div style="font-size:9px;color:var(--bone2);letter-spacing:3px;margin-bottom:6px;text-align:center">✦ 开局随机获得的卡牌</div>
-      <div style="display:flex;flex-wrap:wrap;gap:4px;justify-content:center">
-        ${allRand.map(c=>`<div style="display:flex;align-items:center;gap:4px;background:rgba(0,0,0,.3);border:1px solid ${kBorderColor[c.kind]||'var(--crack)'};padding:3px 7px;font-size:11px"><span>${c.art}</span><span style="color:${kTextColor[c.kind]||'var(--text3)'}">${c.name}</span></div>`).join('')}
-      </div>
-      ${legacy.length?`<div style="font-size:9px;color:var(--amber);margin-top:6px;text-align:center">⬡ 传承卡牌：${legacy.map(c=>c.name).join('、')}</div>`:''}
-    </div>`;
-  }
-  deckEl.innerHTML=deckHeaderHtml+`<div class="ci-dtag">${ptit.icon} ${ptit.title} · 牌组 ${battle.deck.length} 张</div>`+
-    battle.deck.map(c=>`<div class="ci-dcard${c.isLegacy?' legacy':''}" style="border-color:${c.isLegacy?'var(--amber)':kBorderColor[c.kind]||'var(--crack)'}"><span>${c.art}</span><span class="ci-dtitle" style="color:${kTextColor[c.kind]||'var(--text3)'}">${c.name}</span>${c.isLegacy?'<span style="position:absolute;top:1px;right:2px;font-size:7px;color:var(--amber);z-index:3">⬡</span>':''}</div>`).join('');
+  const legacy=battle.deck.filter(c=>c.isLegacy);
+  const legacyHtml=legacy.length?`<div style="font-size:10px;color:var(--amber);text-align:center;margin-bottom:8px">⬡ 传承卡牌：${legacy.map(c=>c.name).join('、')}</div>`:'';
+  document.getElementById('ci-deck').innerHTML=legacyHtml+
+    `<button class="ovbtn" style="width:100%;margin:0 0 4px" onclick="showDeck()">📋 查看牌组（${battle.deck.length} 张）</button>`;
   if(mod.onChapterStart)mod.onChapterStart(player);
   // Generate 3 blessings
   const ALL_BLESS=[
@@ -2217,7 +2209,7 @@ function pickBlessing(idx){
       <div style="font-size:16px;font-weight:700;color:var(--amber);letter-spacing:2px;margin-bottom:6px">${b.name}</div>
       <div style="font-size:11px;color:var(--text2);line-height:1.7">${b.desc}</div>
     </div>
-    <button class="ovbtn gd" onclick="enterChapter()">▶ 进入这一章</button>`;
+    <button class="ovbtn gd" onclick="enterChapter()">▶ 踏入这一层</button>`;
   showView('ov');renderHud();renderTokens();
 }
 function getDiff(ps){return ps<20?'🟢 平静':ps<40?'🟡 凶险':ps<65?'🟠 危机':ps<90?'🔴 绝境':'☠ 地狱';}
@@ -2225,7 +2217,7 @@ function actualEnterMap(){phase=PH.MAP;showView('mv');renderMap();renderHud();re
 function showFloorIntro(){
   const p=mapData.persona;
   const ch=player.chapter||1;
-  document.getElementById('ovtag').textContent='第 '+ch+' 章';
+  document.getElementById('ovtag').textContent='第 '+ch+' 层';
   document.getElementById('ovtit').textContent='';
   document.getElementById('ovtit').style.color='';
   const artEl=document.getElementById('ov-art');if(artEl)artEl.textContent='';
