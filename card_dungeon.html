@@ -980,6 +980,79 @@ const ET=[
    actions:[{t:'p',v:2,n:'深海毒素'},{t:'z',v:1,n:'触手缠绕·眩晕'},{t:'steal',v:1,n:'触手攫取'},{t:'a',v:12,n:'吞噬'},{t:'h',v:6,n:'深海复原'},{t:'a',v:10,n:'恐怖触手'}],
    loot:{cards:['corruption','barrier','sacrifice','poison_flask','vampire_oath']}},
 ];
+// ── 敌人三维体系 ──
+const CP_SCALE={孱弱:{h:.30,a:.50},健康:{h:.55,a:.80},强壮:{h:.80,a:1.10},暴虐:{h:1.10,a:1.40},恐怖:{h:1.50,a:1.80}};
+const CP_COL={孱弱:'#5a8a5a',健康:'#7a8a5a',强壮:'#cc7020',暴虐:'#cc3020',恐怖:'#8a0a8a'};
+const CD_DESC={磨损:'偶尔磨损你的卡牌数值',折痕:'持续折损多张卡牌',撕裂:'从手牌撕走卡牌',破碎:'破碎牌组中的卡牌',焚毁:'彻底焚毁卡牌并投入诅咒'};
+const CD_COL={磨损:'#6a6a4a',折痕:'#8a6a2a',撕裂:'#aa4a2a',破碎:'#cc2a0a',焚毁:'#8a0a0a'};
+const TRAIT_DEFS={
+  '流浪者':{art:'🧟',col:'#6a5a3a',desc:'无特殊技能，凭蛮力战斗',
+    names:['游荡蛮夫','荒野流浪者','失落野人','蹒跚亡命徒'],aiType:'power',
+    acts(atk){return[{t:'a',v:atk,n:'野蛮扑击'},{t:'a',v:atk,n:'猛力撞击'},{t:'d',v:Math.round(atk*.5),n:'疲惫喘息'}];}},
+  '小偷':{art:'🎭',col:'#2a5a3a',desc:'偷走你的手牌，打死可找回，但若干回合后会逃跑',
+    names:['影夜扒手','月影窃贼','暗幕盗牌人','幻影掠夺者'],aiType:'skill',escapeRound:6,returnOnKill:true,
+    acts(atk){return[{t:'steal',v:1,n:'扒窃手牌'},{t:'a',v:atk,n:'匕首刺喉'},{t:'steal',v:1,n:'再次扒窃'},{t:'a',v:atk,n:'烟幕踢打'},{t:'x',v:1,n:'缴械搜身'}];}},
+  '强盗':{art:'💢',col:'#8a3a1a',desc:'抢走并摧毁卡牌，永远找不回',
+    names:['猩红强盗','暴虐掠夺者','怒火劫匪','铁手破坏者'],aiType:'power',destroyStolen:true,
+    acts(atk){return[{t:'a',v:atk,n:'重棍猛击'},{t:'steal',v:1,n:'抢夺撕毁'},{t:'a',v:Math.round(atk*1.2),n:'粉碎重压'},{t:'steal',v:1,n:'残忍摧毁'}];}},
+  '吸血鬼':{art:'🦇',col:'#5a0a7a',desc:'吸取你的生命补充自身，甚至侵蚀最大HP',
+    names:['夜族血爵','嗜血贵族','暗影血魔','永恒血渴者'],aiType:'skill',lifesteal:true,
+    acts(atk){return[{t:'a',v:atk,n:'吸血啃噬'},{t:'h',v:Math.round(atk*.65),n:'血液汲取'},{t:'steal',v:1,n:'记忆掠食'},{t:'a',v:Math.round(atk*1.1),n:'死亡之噬'}];}},
+  '魅魔':{art:'💜',col:'#7a0a6a',desc:'消耗你的行动力，让你无法出牌',
+    names:['腐化魅魔','惑术妖姬','迷幻诱惑者','深渊魅惑使'],aiType:'skill',
+    acts(atk){return[{t:'x',v:1,n:'魅惑缴械'},{t:'drain_ap',v:1,n:'吸取行动力'},{t:'a',v:atk,n:'妖力侵蚀'},{t:'z',v:1,n:'魅惑眩晕'},{t:'drain_ap',v:1,n:'再度吸能'}];}},
+  '疯狂科学家':{art:'🧪',col:'#1a7a2a',desc:'施加毒素和虚弱，制造持续伤害',
+    names:['疯狂炼金师','毒物痴迷者','腐蚀实验者','混沌药剂师'],aiType:'skill',
+    acts(atk){return[{t:'p',v:3,n:'剧毒喷射'},{t:'w',v:2,n:'虚弱毒素'},{t:'a',v:atk,n:'玻璃瓶投掷'},{t:'p',v:2,n:'毒雾弥漫'}];}},
+  '游荡者':{art:'👻',col:'#3a3a6a',desc:'虚空触碰造成恐惧与中毒，难以捉摸',
+    names:['迷途幽灵','怨念游魂','诅咒鬼影','虚空游荡者'],aiType:'skill',
+    acts(atk){return[{t:'z',v:1,n:'恐惧凝视'},{t:'a',v:atk,n:'虚空触碰'},{t:'steal',v:1,n:'记忆侵蚀'},{t:'p',v:2,n:'灵能腐蚀'}];}},
+  '控制师':{art:'⛓',col:'#1a5a8a',desc:'眩晕和缴械，让你束手无策',
+    names:['铁链缴械师','枷锁束缚者','压制镇守者','禁锢守卫'],aiType:'skill',
+    acts(atk){return[{t:'z',v:2,n:'眩晕重击'},{t:'x',v:2,n:'铁链缴械'},{t:'a',v:atk,n:'震慑冲击'},{t:'z',v:1,n:'再度眩晕'}];}},
+  '暴君':{art:'💀',col:'#8a1a1a',desc:'纯粹的毁灭性打击，以绝对力量碾压',
+    names:['暴怒霸主','嗜杀暴君','血腥屠夫','无情蛮王'],aiType:'power',
+    acts(atk){return[{t:'a',v:atk,n:'猛力斩击'},{t:'a',v:Math.round(atk*1.1),n:'愤怒猛冲'},{t:'s',v:2,n:'暴怒涌现'},{t:'a',v:Math.round(atk*1.3),n:'毁灭重压'}];}},
+  '掠夺者':{art:'⚔',col:'#6a4a0a',desc:'强化自身力量，以优势碾压',
+    names:['铁甲掠夺者','战场武装狂','狂热战士','铁血战狂'],aiType:'power',
+    acts(atk){return[{t:'s',v:1,n:'战意强化'},{t:'a',v:atk,n:'猛力冲击'},{t:'d',v:Math.round(atk*.4),n:'铁甲格挡'},{t:'a',v:Math.round(atk*1.2),n:'重甲碾压'}];}},
+};
+// 卡牌破坏附加行动
+function _cdActs(cardDmg,atk){
+  const v={磨损:[{t:'wear_card',v:1,n:'磨损'}],折痕:[{t:'wear_card',v:2,n:'折痕撕裂'}],撕裂:[{t:'steal',v:1,n:'撕裂夺牌'}],破碎:[{t:'exile_card',v:1,n:'破碎封印'}],焚毁:[{t:'burn_card',v:1,n:'焚毁腐化'}]};
+  return(v[cardDmg]||[]).map(a=>a.t==='a'?{...a,v:atk}:{...a});
+}
+function _cpPick(stepBand){
+  const w={0:[[30,'孱弱'],[45,'健康'],[20,'强壮'],[5,'暴虐'],[0,'恐怖']],1:[[10,'孱弱'],[30,'健康'],[35,'强壮'],[20,'暴虐'],[5,'恐怖']],2:[[2,'孱弱'],[12,'健康'],[30,'强壮'],[35,'暴虐'],[21,'恐怖']]}[stepBand]||[];
+  let r=Math.random()*100;for(const[p,n]of w){r-=p;if(r<=0)return n;}return'健康';
+}
+function _cdPick(stepBand){
+  const w={0:[[45,'磨损'],[35,'折痕'],[15,'撕裂'],[4,'破碎'],[1,'焚毁']],1:[[20,'磨损'],[30,'折痕'],[30,'撕裂'],[15,'破碎'],[5,'焚毁']],2:[[5,'磨损'],[15,'折痕'],[30,'撕裂'],[30,'破碎'],[20,'焚毁']]}[stepBand]||[];
+  let r=Math.random()*100;for(const[p,n]of w){r-=p;if(r<=0)return n;}return'磨损';
+}
+function buildEnemyFromDims(card,isElite,ps){
+  const {combatPower='健康',cardDmg='磨损',trait='流浪者'}=card;
+  const td=TRAIT_DEFS[trait]||TRAIT_DEFS['流浪者'];
+  const cs=CP_SCALE[combatPower]||CP_SCALE['健康'];
+  const fp=chapter.floor||1;const rank=window._mapRank||7;
+  const rankMult=rank<=4?.85:rank<=8?1.0:rank<=12?1.15:1.30;
+  const tierScale=(1+(fp-1)*.1)*rankMult;const em=window._mapEffectMult||1;
+  const hp=Math.round(player.maxHp*(isElite?0.9:0.5)*cs.h*tierScale*(em>1&&!isElite?em:1));
+  const atk=Math.round(player.maxHp*(isElite?.14:.11)*cs.a*tierScale);
+  const atkCap=player.maxHp*(isElite?.28:.22);
+  const finalAtk=Math.round(Math.min(Math.max(3,atk),atkCap));
+  const baseActs=td.acts(finalAtk);
+  const cdExtra=_cdActs(cardDmg,finalAtk);
+  const actions=shuf([...baseActs,...cdExtra]);
+  const nm=td.names[0|Math.random()*td.names.length];
+  const gMin=Math.round((8+fp*5)*(isElite?2:1));
+  return{name:nm,art:td.art,tier:isElite?'elite':'fight',aiType:td.aiType,
+    combatPower,cardDmg,trait,traitDesc:td.desc,
+    hp,atk:finalAtk,actions,block:0,str:0,poison:0,
+    goldMin:gMin,goldMax:Math.round(gMin*1.6),
+    escapeRound:td.escapeRound,returnOnKill:td.returnOnKill,destroyStolen:td.destroyStolen,lifesteal:td.lifesteal,
+    loot:{cards:['strike','defend','inspect']}};
+}
 const EVTS=[
   {title:'血祭祭坛',tag:'☠ 神圣遗址',desc:'古老祭坛嗡嗡作响，仿佛渴望着鲜血。祭品越多，馈赠越重。',choices:[
     {text:'献祭 25% HP',sub:'立即获得稀有卡牌',fn:(p,b)=>{const cost=Math.floor(p.maxHp*.25);if(p.hp>cost+5){p.hp-=cost;return'reward_rare'}return'HP不足'}},
@@ -1286,17 +1359,17 @@ function genCardInfo(step){
   if(r<btlChance){
     const er=Math.random();
     const isElite=step<6?er<0.12:step<12?er<0.30:er<0.44;
-    const suits=['♠','♠','♣','♥'];
-    const suit=suits[0|Math.random()*suits.length];
-    const col=suit==='♥'?'#cc3333':suit==='♣'?'#337733':'#aa2222';
     const tier=isElite?'elite':'fight';
-    const pool=ET.filter(e=>e.tier===tier);
-    const en=pool[0|Math.random()*pool.length];
-    const plCol=en?.powerLevel==='弱鸡'?'#5a8a5a':en?.powerLevel==='普通'?'#8a8a5a':en?.powerLevel==='危险'?'#cc7020':'#aa3010';
-    return{type:tier,suit,col,bg:isElite?'rgba(140,40,0,.35)':'rgba(80,20,20,.30)',
-      enemyArt:en?.art,enemyName:en?.name,
-      powerLevel:en?.powerLevel,powerLevelCol:plCol,
-      deckType:en?.deckType,style:en?.style,_etIdx:en?ET.indexOf(en):-1};
+    const sb=step<6?0:step<12?1:2;
+    const combatPower=_cpPick(sb);
+    const cardDmg=_cdPick(sb);
+    const trait=Object.keys(TRAIT_DEFS)[0|Math.random()*Object.keys(TRAIT_DEFS).length];
+    const td=TRAIT_DEFS[trait];
+    const col=TD_COL[combatPower]||'#aa2222';
+    const bg=isElite?'rgba(140,40,0,.35)':'rgba(80,20,20,.30)';
+    return{type:tier,suit:'⚔',col,bg,_hasDims:true,
+      combatPower,cardDmg,trait,
+      enemyArt:td.art,enemyName:td.names[0|Math.random()*td.names.length]};
   }
   const nr=Math.random();let type;
   if(step<6)      type=nr<.22?'tavern':nr<.40?'event':nr<.55?'campfire':nr<.70?'blacksmith':nr<.85?'gamble':'altar';
