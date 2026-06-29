@@ -2190,6 +2190,11 @@ function showReward(gold){
     while(picked.length<3){const c=randCard(used);if(!c)break;picked.push(c);used.add(c.id);}
   }
   window._rw=picked;window._rwSel=null;window._rwGold=gold;window._rwLabel=isBoss?`☠ 击败 ${enemy.name}`:isElite?`✦ 掠夺 ${enemy.name}`:forceRare?'✦ 事件奖励':'⚔ 战斗奖励';window._rwBoss=isBoss;window._rwElite=isElite;window._rwForce=forceRare;window._rwEnemy=enemy.name;
+  document.getElementById('ovtag').textContent=isBoss?'☠  战利品':isElite?'✦  精英战利品':'⚔  战斗奖励';
+  document.getElementById('ovtit').textContent='选择奖励';
+  const rwArt=isBoss?'🏆':isElite?'💎':'🎴';
+  const rwStory=isBoss?`击败了 ${enemy.name}，胜利的滋味令人振奋——选择你最需要的力量。`:isElite?`强敌落败。从它的遗物中选择一张卡牌。`:gold>0?`战斗结束，${gold}枚金币散落一地。选一张牌带走。`:'战斗结束。选一张牌吧。';
+  setSceneArt(rwArt,rwStory);
   showView('ov');renderHud();renderTokens();
   renderRewardUI();
 }
@@ -2811,7 +2816,7 @@ function _bmMakeLot(ps){
   const rarPick=()=>{const r=Math.random();return r<.3?'rare':r<.7?'uncommon':'common';};
   // 真实牌
   let realCard;
-  if(isScam){realCard=gc('regret');}
+  if(isScam){const scamIds=['regret','pain'];realCard=gc(scamIds[0|Math.random()*scamIds.length]);}
   else{const rar=rarPick();const pool=DB.filter(c=>c.rar===rar&&c.kind!=='crs');realCard=pool[0|Math.random()*pool.length]||DB[0];}
   // 表面描述（骗局时用好听词，真实时略夸大）
   const kinds={atk:'攻击',def:'防御',skl:'技能'};
