@@ -1831,14 +1831,69 @@ function endTurn(){
       battle.playerStun=Math.min(3,(battle.playerStun||0)+act.v);toast(`${act.n}！你被眩晕 ${act.v} 回合！`,'r');sfx(130,.2,'square',.1,-30);
     }else if(act.t==='x'){// 缴械玩家
       battle.playerDisarm=Math.min(3,(battle.playerDisarm||0)+act.v);toast(`${act.n}！你被缴械 ${act.v} 回合！`,'r');sfx(160,.15,'square',.1,-20);
-    }else if(act.t==='steal'){// 偷牌
-      const pool=battle.hand.length?battle.hand:battle.drawPile;
+    }else if(act.t==='steal'){// 偷牌（小偷：击杀可找回；强盗：永久失去）
+      const fromHand=battle.hand.length>0;
+      const pool=fromHand?battle.hand:battle.drawPile;
       if(pool.length>0){
         const si=0|Math.random()*pool.length;const stolen=pool.splice(si,1)[0];
-        battle.discardPile.push(stolen);
-        toast(`🤚 ${act.n}！「${stolen.name}」被偷走了！`,'r');
-        if(battle.hand===pool)updatePlayButton();
+        if(!battle.stolenCards)battle.stolenCards=[];
+        if(battle.enemy?.trait==='强盗'){
+          toast(`💢 ${act.n}！「${stolen.name}」被强盗摧毁，永久失去！`,'r');
+          // 强盗摧毁牌：不放入战斗任何牌堆（永久消失）
+        }else{
+          battle.stolenCards.push(stolen);
+          toast(`🎭 ${act.n}！「${stolen.name}」被偷走！击杀可找回`,'r');
+        }
+        if(fromHand)updatePlayButton();
       }else toast(`🤚 ${act.n}！你没有可偷的牌`,'r');
+    }else if(act.t==='wear_card'){// 磨损/折痕：降低卡牌数值
+      const allCards=[...battle.hand,...battle.drawPile,...battle.discardPile];
+      if(allCards.length>0){
+        const cnt=Math.min(act.v,allCards.length);
+        const targets=allCards.slice().sort(()=>Math.random()-.5).slice(0,cnt);
+        targets.forEach(c=>{
+          if(c.rar==='curse'||c.special)return;
+          if(c.atk&&c.atk>1)c.atk=Math.max(1,c.atk-Math.ceil(c.atk*.15));
+          if(c.blk&&c.blk>1)c.blk=Math.max(1,c.blk-Math.ceil(c.blk*.15));
+          if(c.heal&&c.heal>1)c.heal=Math.max(1,c.heal-Math.ceil(c.heal*.15));
+          c._worn=(c._worn||0)+1;
+          toast(`🔧 ${act.n}！「${c.name}」被磨损，能力下降`,'r');
+        });
+      }
+    }else if(act.t==='exile_card'){// 破碎：本场战斗封印一张牌（移出牌堆）
+      const pool2=battle.hand.length?battle.hand:battle.drawPile;
+      if(pool2.length>0){
+        const si=0|Math.random()*pool2.length;const exiled=pool2.splice(si,1)[0];
+        if(!battle.exiledCards)battle.exiledCards=[];
+        battle.exiledCards.push(exiled);
+        toast(`💀 ${act.n}！「${exiled.name}」被封印，本场战斗无法使用！`,'r');
+        if(pool2===battle.hand)updatePlayButton();
+      }
+    }else if(act.t==='burn_card'){// 焚毁：永久摧毁一张牌并投入诅咒
+      const pool3=[...battle.hand,...battle.drawPile];
+      if(pool3.length>0){
+        const si=0|Math.random()*pool3.length;const card=pool3[si];
+        // 从实际所在位置移除
+        const hi=battle.hand.indexOf(card);const di=battle.drawPile.indexOf(card);
+        if(hi>=0)battle.hand.splice(hi,1);else if(di>=0)battle.drawPile.splice(di,1);
+        // 从持久牌组中永久移除
+        const pi=battle.deck.indexOf(card);if(pi>=0)battle.deck.splice(pi,1);
+        // 投入诅咒
+        const curse=gc('regret');battle.drawPile.push(curse);battle.deck.push(gc('regret'));
+        toast(`🔥 ${act.n}！「${card.name}」被焚毁，获得一张诅咒牌！`,'r');
+        if(hi>=0)updatePlayButton();
+      }
+    }else if(act.t==='drain_ap'){// 吸取能量（魅魔）
+      const drained=Math.min(act.v,battle.apLeft);
+      battle.apLeft=Math.max(0,battle.apLeft-drained);
+      if(drained>0)toast(`💜 ${act.n}！你的行动力被吸取 -${drained}！`,'r');
+      else toast(`💜 ${act.n}！你的能量已空，无效`,'r');
+    }
+    // 吸血鬼生命偷取：攻击造成伤害时回复
+    if(_eDidAtk&&_eDmg>0&&battle.enemy?.lifesteal){
+      const ls=Math.floor(_eDmg*.5);
+      battle.enemyHp=Math.min(battle.enemyMaxHp,battle.enemyHp+ls);
+      if(ls>0)toast(`🦇 ${battle.enemy.name} 吸血回复 ${ls} HP`,'r');
     }
   }else{
     _eDidAtk=true;
@@ -1848,6 +1903,13 @@ function endTurn(){
     if(dmg>0){floatDmg(dmg,'#8b1a1a',true);sfx(100+dmg,.2,'sawtooth',.12,-40);}
   }
   battle.blk=0;
+  // 小偷逃跑检测（带着偷来的牌逃跑，不触发游戏结束）
+  if(battle.enemy?.escapeRound&&battle.turn>=battle.enemy.escapeRound){
+    toast(`🎭 ${battle.enemy.name} 带着战利品逃跑了！`,'r');
+    stopBGM();phase=PH.MAP;saveGame();
+    setTimeout(()=>{mapData.step++;renderMap();},800);
+    return;
+  }
   if(chapter.modifier?.onTurnStart)chapter.modifier.onTurnStart(battle,player);
   if(battle.enemyWeak>0)battle.enemyWeak--;if(battle.enemyVuln>0)battle.enemyVuln--;
   // 玩家中毒（叠加递增，每回合+1）
@@ -1868,6 +1930,13 @@ function endBattle(won){
   stopBGM();
   if(won){
     sfx(440,.1,'square',.1,220);setTimeout(()=>sfx(660,.2,'square',.1,110),120);
+    // 击杀小偷后找回被偷的牌（强盗偷的已永久销毁，不找回）
+    if(battle.stolenCards?.length&&battle.enemy?.trait==='小偷'){
+      battle.stolenCards.forEach(c=>battle.discardPile.push(c));
+      toast(`🎭 击杀小偷！找回 ${battle.stolenCards.length} 张被偷的牌！`,'g');
+    }
+    // 战斗结束，归还封印牌
+    if(battle.exiledCards?.length){battle.exiledCards.forEach(c=>battle.discardPile.push(c));}
     player.kills++;
     const em=window._mapEffectMult||1;
     const gm=(chapter.modifier?.goldMult||1)*em;
@@ -2310,8 +2379,15 @@ function renderBattle(){
     else if(na.t==='w')intent=`💀 虚弱${na.v}回合（${na.n}）`;
     else if(na.t==='z')intent=`🌀 眩晕你${na.v}回合（${na.n}）`;
     else if(na.t==='x')intent=`⛓ 缴械你${na.v}回合（${na.n}）`;
-    else if(na.t==='steal')intent=`🤚 偷你手牌（${na.n}）`;
+    else if(na.t==='steal'){const et=b.enemy?.trait;intent=et==='强盗'?`💢 抢夺并摧毁手牌（${na.n}）`:`🎭 偷你手牌（${na.n}）`;}
+    else if(na.t==='wear_card')intent=`🔧 磨损你的卡牌（${na.n}）`;
+    else if(na.t==='exile_card')intent=`💀 封印你的卡牌（${na.n}）`;
+    else if(na.t==='burn_card')intent=`🔥 焚毁你的卡牌（${na.n}）`;
+    else if(na.t==='drain_ap')intent=`💜 吸取你的行动力（${na.n}）`;
     if(b.enemyBlk>0)intent+=`  🛡${b.enemyBlk}`;
+    // 小偷逃跑倒计时提示
+    if(b.enemy?.escapeRound){const remaining=b.enemy.escapeRound-b.turn;if(remaining<=3&&remaining>0)intent+=`  ⚠逃跑倒计时${remaining}回合`;}
+    if(b.stolenCards?.length>0)intent+=`  📦已偷${b.stolenCards.length}张`;
   }else{let av=(e.atk||0)+(b.enemyStr||0);if(b.enemyWeak>0)av=Math.floor(av*.75);intent=`⚔ ${av}`;if(b.enemyBlk>0)intent+=`  🛡${b.enemyBlk}`;}
   document.getElementById('ibt').textContent=intent;
   let es='';if(b.enemyWeak>0)es+=`<div class="sb sw">虚弱 ${b.enemyWeak}</div>`;if(b.enemyVuln>0)es+=`<div class="sb sv">易伤 ${b.enemyVuln}</div>`;if(b.enemyStr>0)es+=`<div class="sb ss">力量 +${b.enemyStr}</div>`;if(b.enemyPoison>0)es+=`<div class="sb sp">中毒↑ ${b.enemyPoison}</div>`;if(b.enemyBleed>0)es+=`<div class="sb" style="color:var(--blood);border-color:var(--blood2)">流血 ${b.enemyBleed}</div>`;if(b.enemyStun>0)es+=`<div class="sb" style="color:var(--amber);border-color:var(--bone2)">眩晕 ${b.enemyStun}</div>`;
