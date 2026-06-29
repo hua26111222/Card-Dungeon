@@ -1490,7 +1490,7 @@ function renderMap(){
   const dc=ps<20?'#5a7aaa':ps<40?'#4a7a3a':ps<65?'#aa7020':'#8b1a1a';
   const pb=document.getElementById('psb');pb.textContent=diff2;pb.style.color=dc;pb.style.borderColor=dc;
   document.getElementById('fpg').textContent=`第 ${step+1}/18 步`;
-  const TI={fight:{ic:'⚔',nm:'战斗'},elite:{ic:'💀',nm:'精英'},event:{ic:'✦',nm:'事件'},tavern:{ic:'🛒',nm:'商店'},blackmarket:{ic:'🌑',nm:'黑市'},campfire:{ic:'🔥',nm:'篝火'},blacksmith:{ic:'⚒',nm:'铁匠'},boss:{ic:'👁',nm:'首领'},gamble:{ic:'🎲',nm:'赌场'},altar:{ic:'🔱',nm:'祭坛'}};
+  const TI={fight:{ic:'⚔',nm:'战斗'},elite:{ic:'💀',nm:'精英'},event:{ic:'✦',nm:'事件'},tavern:{ic:'🛒',nm:'商店'},blackmarket:{ic:'🌑',nm:'黑市'},campfire:{ic:'🔥',nm:'篝火'},blacksmith:{ic:'⚒',nm:'铁匠'},boss:{ic:'👁',nm:'首领'},gamble:{ic:'🎲',nm:'赌场'},altar:{ic:'🔱',nm:'祭坛'},chest:{ic:'💎',nm:'宝箱'}};
   const SC={'♠':'#cc3333','♥':'#ee4444','♦':'#4488cc','♣':'#336633','🃏':'#9944cc'};
   const isBossStep=step===18;
   const bossColCount=4;
@@ -1522,7 +1522,7 @@ function renderMap(){
     {label:'传说',col:'#ffaa20',border:'rgba(220,150,10,.95)',tip:'传说遭遇！极高价值，可能改变游戏走向'},
   ];
   const cpToValIdx={孱弱:0,健康:1,强壮:2,暴虐:3,恐怖:4};
-  const typeValIdx={campfire:0,event:2,tavern:1,blackmarket:3,blacksmith:2,gamble:2,altar:2};
+  const typeValIdx={campfire:0,event:2,tavern:1,blackmarket:3,blacksmith:2,gamble:2,altar:2,chest:3};
   function valBadge(vidx){const vt=VAL_T[vidx]||VAL_T[1];return`<div style="position:absolute;top:2px;left:2px;font-size:5px;color:${vt.col};font-weight:700;cursor:help;z-index:2;text-shadow:0 0 4px ${vt.col}" onclick="event.stopPropagation();showValTip(${vidx})" title="${vt.tip}">${vt.label}</div>`;}
   function cardHTML(card,ci,mode,potReach){
     // mode: 'act'=active row, 'd1'=next, 'd2'=next-next
@@ -2194,16 +2194,17 @@ function actualEnterMap(){phase=PH.MAP;showView('mv');renderMap();renderHud();re
 function showFloorIntro(){
   const p=mapData.persona;
   const ch=player.chapter||1;
-  const ov=document.getElementById('ov');
-  ov.innerHTML=`
-  <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;gap:18px;padding:24px;">
-    <div style="font-size:0.85em;color:#888;letter-spacing:2px;text-transform:uppercase;">第 ${ch} 章</div>
-    <div style="font-size:1.9em;font-weight:700;color:${p.color};text-shadow:0 0 20px ${p.color}88;">${p.title}</div>
-    <div style="width:60px;height:2px;background:${p.color};opacity:.5;border-radius:2px;"></div>
-    <div style="display:flex;flex-direction:column;gap:10px;max-width:300px;text-align:center;">
-      ${p.lines.map(l=>`<div style="color:#ccc;font-size:1em;line-height:1.6;">${l}</div>`).join('')}
-    </div>
-    <div style="margin-top:16px;width:60px;height:2px;background:${p.color};opacity:.3;border-radius:2px;"></div>
+  document.getElementById('ovtag').textContent='第 '+ch+' 章';
+  document.getElementById('ovtit').textContent='';
+  document.getElementById('ovtit').style.color='';
+  const artEl=document.getElementById('ov-art');if(artEl)artEl.textContent='';
+  const stEl=document.getElementById('ov-story');if(stEl)stEl.style.display='none';
+  document.getElementById('ovb').innerHTML=`
+  <div style="display:flex;flex-direction:column;align-items:center;gap:14px;padding:4px 0 6px;">
+    <div style="font-size:1.55em;font-weight:900;color:${p.color};text-shadow:0 0 18px ${p.color}99;letter-spacing:3px;">${p.title}</div>
+    <div style="width:50px;height:2px;background:${p.color};opacity:.5;border-radius:2px;"></div>
+    ${p.lines.map(l=>`<div style="color:#ccc;font-size:0.95em;line-height:1.7;text-align:center;">${l}</div>`).join('')}
+    <div style="width:50px;height:2px;background:${p.color};opacity:.3;border-radius:2px;margin-top:4px;"></div>
     <button onclick="actualEnterMap()" style="margin-top:8px;padding:12px 36px;background:${p.color};color:#000;font-size:1.05em;font-weight:700;border:none;border-radius:8px;cursor:pointer;letter-spacing:1px;">踏入此层</button>
   </div>`;
   showView('ov');
@@ -3224,6 +3225,33 @@ function confirmGamble(){
   setTimeout(startGamble,400);
 }
 // ── 祭坛 ──
+function startChest(card){
+  phase=PH.OV;
+  window._chestCards=(card?.preChestCards)||[];
+  document.getElementById('ovtag').textContent='💎  宝箱';
+  document.getElementById('ovtit').textContent='神秘宝箱';
+  document.getElementById('ovtit').style.color='';
+  const artEl=document.getElementById('ov-art');if(artEl)artEl.textContent='';
+  const stEl=document.getElementById('ov-story');if(stEl)stEl.style.display='none';
+  document.getElementById('ovb').innerHTML=`
+  <div class="ovd">宝箱中沉睡着三张强力卡牌，选择一张带走。</div>
+  <div class="tcards-table">${(window._chestCards||[]).map((c,i)=>renderPokerCard(c,`pickChestCard(${i})`,{idx:i,total:3})).join('')}</div>
+  <button class="ovbtn" style="margin-top:8px;" onclick="skipChest()">放弃宝箱</button>`;
+  showView('ov');renderHud();renderTokens();
+}
+function pickChestCard(i){
+  const c=window._chestCards&&window._chestCards[i];
+  if(!c)return;
+  battle.deck.push(JSON.parse(JSON.stringify(c)));
+  window._chestCards=null;
+  toast('💎 获得：'+c.name,'g');
+  SM.auto();
+  backToMap();
+}
+function skipChest(){
+  window._chestCards=null;
+  backToMap();
+}
 function startAltar(){
   phase=PH.OV;window._altarSel=null;
   document.getElementById('ovtag').textContent='🔱  祭坛';
