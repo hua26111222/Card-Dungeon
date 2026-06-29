@@ -732,7 +732,7 @@ html,body{background:var(--void);color:var(--text);font-family:var(--fm);font-si
     </div>
   </div>
   <div id="ov">
-    <div class="ovh"><div class="ovtag" id="ovtag">—</div><div class="ovtit" id="ovtit">—</div></div>
+    <div class="ovh"><div class="ovtag" id="ovtag">—</div><div class="ovh-row"><div class="ovtit" id="ovtit">—</div><div id="ov-art"></div></div><div class="ov-story" id="ov-story" style="display:none"></div></div>
     <div class="ovb" id="ovb"></div>
   </div>
   <div id="gov">
@@ -1068,7 +1068,7 @@ function buildEnemyFromDims(card,isElite,ps){
     loot:{cards:['strike','defend','inspect']}};
 }
 const EVTS=[
-  {difficulty:'hard',title:'血祭祭坛',tag:'☠ 神圣遗址',desc:'古老祭坛嗡嗡作响，仿佛渴望着鲜血。祭品越多，馈赠越重。',choices:[
+  {difficulty:'hard',art:'🗿',title:'血祭祭坛',tag:'☠ 神圣遗址',desc:'古老祭坛嗡嗡作响，仿佛渴望着鲜血。祭品越多，馈赠越重。',choices:[
     {text:'献祭 25% HP',sub:'立即获得稀有卡牌',fn:(p,b)=>{const cost=Math.floor(p.maxHp*.25);if(p.hp>cost+5){p.hp-=cost;return'reward_rare'}return'HP不足'}},
     {text:'献祭 15% HP',sub:'获得 80 金币',fn:(p,b,ch)=>{const cost=Math.floor(p.maxHp*.15);if(p.hp>cost+5){const g=Math.floor(80*(1+ch.floor*.2));p.hp-=cost;p.gold+=g;return`+${g}金币`}return'HP不足'}},
     {text:'转身离去',sub:'什么都不发生',fn:()=>'pass'}]},
