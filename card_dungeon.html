@@ -1068,6 +1068,19 @@ const TRAIT_DEFS={
     names:['铁甲掠夺者','战场武装狂','狂热战士','铁血战狂'],aiType:'power',
     acts(atk){return[{t:'s',v:1,n:'战意强化'},{t:'a',v:atk,n:'猛力冲击'},{t:'d',v:Math.round(atk*.5),n:'铁甲格挡'},{t:'a',v:Math.round(atk*1.2),n:'重甲碾压'},{t:'s',v:2,n:'战场磨砺'}];}},
 };
+// 每种 trait 对应的战利品牌池（5张，战后随机取3张展示）
+const _TRAIT_LOOT={
+  '流浪者': ['strike','slam','heavy_blow','last_stand','double'],
+  '小偷':   ['discard','inspect','catalyze','chain_slash','chaos_shot'],
+  '强盗':   ['heartbreak','stagger','heavy_blow','slam','shieldsmash'],
+  '吸血鬼': ['vampire_oath','regen','blood_pact','sacrifice','meditate'],
+  '魅魔':   ['lockdown','silence','weaken','catalyze','focus_stone'],
+  '疯狂科学家':['weaken','silence','meditate','desperation','last_stand'],
+  '游荡者': ['stagger','lockdown','phantom_hit','weaken','inspect'],
+  '控制师': ['lockdown','stagger','fortify','barrier','silence'],
+  '暴君':   ['strength','warcry','battle_hymn','berserker','whirl'],
+  '掠夺者': ['strength','fortify','heavy_guard','jugg','chain_slash'],
+};
 // 卡牌破坏附加行动
 function _cdActs(cardDmg,atk){
   const v={磨损:[{t:'wear_card',v:1,n:'磨损'}],折痕:[{t:'wear_card',v:2,n:'折痕撕裂'}],撕裂:[{t:'steal',v:1,n:'撕裂夺牌'}],破碎:[{t:'exile_card',v:1,n:'破碎封印'}],焚毁:[{t:'burn_card',v:1,n:'焚毁腐化'}]};
@@ -1102,7 +1115,7 @@ function buildEnemyFromDims(card,isElite,ps){
     hp,atk:finalAtk,actions,block:0,str:0,poison:0,
     goldMin:gMin,goldMax:Math.round(gMin*1.6),
     escapeRound:td.escapeRound,returnOnKill:td.returnOnKill,destroyStolen:td.destroyStolen,lifesteal:td.lifesteal,
-    loot:{cards:['strike','defend','inspect']}};
+    loot:{cards:(_TRAIT_LOOT[trait]||['strike','slam','defend','inspect','weaken'])}};
 }
 const EVTS=[
   {difficulty:'hard',art:'🗿',title:'血祭祭坛',tag:'☠ 神圣遗址',desc:'古老祭坛嗡嗡作响，仿佛渴望着鲜血。祭品越多，馈赠越重。',choices:[
@@ -1774,6 +1787,23 @@ function showPreBattle(isElite,isBoss){
   setSceneArt(_art,_intro);
   showView('ov');renderHud();renderTokens();
 }
+// 战前强度评估：预生成敌人若相对当前玩家明显太弱，自动增援
+function _maybeReinforce(en,isElite){
+  if(!en||!en.combatPower)return en;
+  const fp=chapter.floor||1;
+  const rank=window._mapRank||7;
+  const rankMult=rank<=4?.85:rank<=8?1.0:rank<=12?1.15:1.30;
+  const tierScale=(1+(fp-1)*.1)*rankMult;
+  const cs=CP_SCALE[en.combatPower]||CP_SCALE['健康'];
+  const shouldHp=Math.round(player.maxHp*(isElite?0.9:0.5)*cs.h*tierScale);
+  // 若实际HP不足期望的65%，认定太弱，增援至期望的85%
+  if(en.hp>=shouldHp*.65)return en;
+  const targetHp=Math.round(shouldHp*.85);
+  const atkRatio=Math.sqrt(targetHp/en.hp);
+  const atkCap=player.maxHp*(isElite?.28:.22);
+  return{...en,hp:targetHp,
+    actions:en.actions.map(a=>a.t==='a'?{...a,v:Math.round(Math.min(a.v*atkRatio,atkCap))}:a)};
+}
 function startBattle(isElite,isBoss){
   if(!chapter.usedEnemies)chapter.usedEnemies=new Set();
   const pm=isBoss?(window._bossPowerMult||1):1;
@@ -1783,8 +1813,8 @@ function startBattle(isElite,isBoss){
   let en;
   try{
     if(!isBoss&&window._mapCard?.preEnemy){
-      // 宿命已定：使用预演算的敌人
-      en=window._mapCard.preEnemy;
+      // 宿命已定：使用预演算的敌人，但战前评估是否需要增援
+      en=_maybeReinforce(window._mapCard.preEnemy,isElite);
       chapter.usedEnemies.add(en.name);
     }else if(!isBoss&&window._mapCard?._hasDims){
       en=buildEnemyFromDims(window._mapCard,isElite,calcPS());
@@ -2278,7 +2308,7 @@ function showReward(gold){
     else picked[picked.length-1]=genCard;
     while(picked.length<3){const c=randCard(used);if(!c)break;picked.push(c);used.add(c.id);}
   }
-  window._rw=picked;window._rwSel=null;window._rwGold=gold;window._rwLabel=isBoss?`☠ 击败 ${enemy.name}`:isElite?`✦ 掠夺 ${enemy.name}`:forceRare?'✦ 事件奖励':'⚔ 战斗奖励';window._rwBoss=isBoss;window._rwElite=isElite;window._rwForce=forceRare;window._rwEnemy=enemy.name;
+  window._rw=shuf(picked);window._rwSel=null;window._rwGold=gold;window._rwLabel=isBoss?`☠ 击败 ${enemy.name}`:isElite?`✦ 掠夺 ${enemy.name}`:forceRare?'✦ 事件奖励':'⚔ 战斗奖励';window._rwBoss=isBoss;window._rwElite=isElite;window._rwForce=forceRare;window._rwEnemy=enemy.name;
   document.getElementById('ovtag').textContent=isBoss?'☠  战利品':isElite?'✦  精英战利品':'⚔  战斗奖励';
   document.getElementById('ovtit').textContent='选择奖励';
   const rwArt=isBoss?'🏆':isElite?'💎':'🎴';
