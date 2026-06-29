@@ -610,7 +610,7 @@ html,body{background:var(--void);color:var(--text);font-family:var(--fm);font-si
 <div id="app">
 <div id="hud">
   <div class="hl">
-    <div class="gn">卡牌地牢</div>
+    <div class="gn" onclick="cheatClick()" style="cursor:default" id="gn-logo">卡牌地牢</div>
     <div class="gc" id="hc2">血与黑暗的试炼</div>
   </div>
   <div class="hs">
@@ -1109,6 +1109,22 @@ const EVTS=[
     {text:'拒绝',sub:'继续上路',fn:()=>'pass'}]},
 ];
 let phase=PH.INTRO;
+// 测试模式（连点左上角logo 5次激活）
+let _cheatMode=false,_cheatClicks=0,_cheatTimer=null;
+function cheatClick(){
+  _cheatClicks++;clearTimeout(_cheatTimer);
+  _cheatTimer=setTimeout(()=>{_cheatClicks=0;},1800);
+  if(_cheatClicks>=5){
+    _cheatClicks=0;clearTimeout(_cheatTimer);
+    _cheatMode=!_cheatMode;
+    const logo=document.getElementById('gn-logo');
+    if(logo)logo.style.color=_cheatMode?'#ffaa20':'';
+    if(_cheatMode){player.gold=9999;player.hp=player.maxHp;}
+    toast(_cheatMode?'🔓 测试模式 ON  金币/HP无限':'🔒 测试模式 OFF','g');
+    renderHud();renderTokens();
+    if(phase===PH.BATTLE)renderBattle();
+  }
+}
 let player={hp:80,maxHp:80,gold:80,floor:1,kills:0,steps:0,drawCount:5,maxAp:3};
 let chapter={floor:1,theme:null,modifier:null,boss:null};
 let battle={enemy:null,enemyHp:0,enemyMaxHp:0,enemyBlk:0,enemyStr:0,enemyWeak:0,enemyVuln:0,enemyPoison:0,enemyBleed:0,enemyStun:0,enemyActions:[],enemyActionIdx:0,nextEnemyAction:null,deck:[],drawPile:[],hand:[],discardPile:[],exhPile:[],apLeft:3,maxAp:3,blk:0,str:0,jugg:false,lifestealMode:false,fortified:0,playerPoison:0,playerWeak:0,playerStun:0,playerDisarm:0,turn:1,selectedCards:[],firstCard:true,nextFreeCount:0};
@@ -1425,17 +1441,17 @@ function renderMap(){
 
   document.getElementById('mprompt').textContent=isBossStep?'☠ 首领降临，无路可退！':step>=16?`⚠ 首领将至，还有 ${18-step} 步`:'选择前进的路：';
 
-  // 5级价值系统
+  // 5级稀有度系统（颜色决定卡牌边框）
   const VAL_T=[
-    {label:'贫瘠',col:'#5a6a5a',tip:'收益有限，是最普通的遭遇'},
-    {label:'平常',col:'#8a9a6a',tip:'标准遭遇，收益正常'},
-    {label:'丰厚',col:'#aa8020',tip:'收益不错，物有所值'},
-    {label:'珍贵',col:'#cc5510',tip:'高价值遭遇，值得冒险'},
-    {label:'传世',col:'#9a0a9a',tip:'极稀有！有机会获得传世级奖励'},
+    {label:'普通',col:'#9a9a9a',border:'rgba(120,120,130,.7)',tip:'普通遭遇，标准收益'},
+    {label:'罕见',col:'#4aaa6a',border:'rgba(40,140,80,.8)',tip:'罕见遭遇，收益较好'},
+    {label:'稀有',col:'#5599ee',border:'rgba(50,110,220,.85)',tip:'稀有遭遇，物有所值'},
+    {label:'史诗',col:'#cc44ee',border:'rgba(160,40,200,.85)',tip:'史诗遭遇，高风险高收益'},
+    {label:'传说',col:'#ffaa20',border:'rgba(220,150,10,.95)',tip:'传说遭遇！极高价值，可能改变游戏走向'},
   ];
   const cpToValIdx={孱弱:0,健康:1,强壮:2,暴虐:3,恐怖:4};
-  const typeValIdx={campfire:1,event:2,tavern:1,blackmarket:3,blacksmith:2,gamble:3,altar:2};
-  function valBadge(vidx,stopProp){const vt=VAL_T[vidx]||VAL_T[1];return`<div style="position:absolute;top:2px;left:2px;font-size:5px;color:${vt.col};font-weight:700;cursor:help;z-index:2" onclick="event.stopPropagation();showValTip(${vidx})" title="${vt.tip}">${vt.label}</div>`;}
+  const typeValIdx={campfire:0,event:2,tavern:1,blackmarket:3,blacksmith:2,gamble:2,altar:2};
+  function valBadge(vidx){const vt=VAL_T[vidx]||VAL_T[1];return`<div style="position:absolute;top:2px;left:2px;font-size:5px;color:${vt.col};font-weight:700;cursor:help;z-index:2;text-shadow:0 0 4px ${vt.col}" onclick="event.stopPropagation();showValTip(${vidx})" title="${vt.tip}">${vt.label}</div>`;}
   function cardHTML(card,ci,mode,potReach){
     // mode: 'act'=active row, 'd1'=next, 'd2'=next-next
     const isActive=mode==='act';
@@ -1461,8 +1477,8 @@ function renderMap(){
     const rankHint=card.rank<=4?'初级':card.rank<=8?'中级':card.rank<=12?'高级':'精锐';
     // Boss cards with epithet
     if(card.type==='boss'&&card.epithet){
-      const bIcon=card.art||ti.ic;
-      return`<div class="mcard${reachCls}${bossCls}${dimCls}${selCls}" ${click} style="border-color:${card.col};background:${card.bg}">
+      const bIcon=card.art||ti.ic;const bvt=VAL_T[4];
+      return`<div class="mcard${reachCls}${bossCls}${dimCls}${selCls}" ${click} style="border-color:${bvt.border};background:${card.bg};box-shadow:0 0 8px ${bvt.border}">
         ${valBadge(4)}
         <div class="mcicon" style="font-size:22px;text-shadow:0 0 14px ${card.col};margin-top:4px">${bIcon}</div>
         <div style="font-size:6.5px;color:${card.col};font-weight:700;letter-spacing:.5px;text-align:center;padding:0 2px;line-height:1.3">${card.epithet}</div>
@@ -1474,7 +1490,8 @@ function renderMap(){
       const cdCol=CD_COL[card.cardDmg]||'#6a6a4a';
       const trCol=(TRAIT_DEFS[card.trait]||{}).col||'#6a6a6a';
       const vidx=card.type==='elite'?Math.min(4,(cpToValIdx[card.combatPower]||1)+1):cpToValIdx[card.combatPower]||1;
-      return`<div class="mcard${reachCls}${dimCls}${selCls}" ${click} style="border-color:${cpCol};background:${card.bg}">
+      const vt=VAL_T[vidx]||VAL_T[1];
+      return`<div class="mcard${reachCls}${dimCls}${selCls}" ${click} style="border-color:${vt.border};background:${card.bg};box-shadow:0 0 6px ${vt.border}">
         ${valBadge(vidx)}
         ${card.type==='elite'?`<div style="position:absolute;top:2px;right:2px;font-size:5px;color:var(--amber)">精英</div>`:''}
         <div class="mcicon" style="font-size:20px;text-shadow:0 0 10px ${cpCol};margin-top:10px">${card.enemyArt}</div>
@@ -1482,8 +1499,8 @@ function renderMap(){
         ${isActive&&isReach?`<div class="mchint" style="font-size:5px;letter-spacing:.2px"><span style="color:${cdCol}">${card.cardDmg}</span><span style="color:var(--ash3)">·</span><span style="color:${trCol}">${card.trait}</span></div>`:''}
       </div>`;
     }
-    const vidx=typeValIdx[card.type]||1;
-    return`<div class="mcard${reachCls}${bossCls}${dimCls}${selCls}" ${click} style="border-color:${card.col};background:${card.bg}">
+    const vidx=typeValIdx[card.type]??1;const vt2=VAL_T[vidx]||VAL_T[1];
+    return`<div class="mcard${reachCls}${bossCls}${dimCls}${selCls}" ${click} style="border-color:${vt2.border};background:${card.bg};box-shadow:0 0 5px ${vt2.border}">
       ${valBadge(vidx)}
       <div class="mcicon" style="text-shadow:0 0 14px ${card.col};margin-top:6px">${ti.ic}</div>
       <div class="mctype" style="color:${card.col}">${ti.nm}</div>
@@ -2455,6 +2472,13 @@ function renderBattle(){
   document.getElementById('app2').innerHTML=pips;document.getElementById('apt').textContent=`${b.apLeft}/${b.maxAp}`;
   document.getElementById('ddr').textContent=b.drawPile.length;document.getElementById('ddc').textContent=b.discardPile.length;document.getElementById('dex').textContent=b.exhPile.length;document.getElementById('dtn').textContent=b.turn;
   renderHand();renderHud();renderTokens();
+  // 测试模式：一键胜利按钮
+  let cwb=document.getElementById('cheat-win-btn');
+  if(_cheatMode){
+    if(!cwb){cwb=document.createElement('button');cwb.id='cheat-win-btn';cwb.textContent='⚡ 测试胜利';
+      cwb.style.cssText='position:fixed;bottom:78px;right:8px;z-index:600;background:rgba(255,170,0,.92);color:#000;font-weight:700;font-size:10px;padding:5px 12px;border:none;border-radius:4px;cursor:pointer;letter-spacing:1px;box-shadow:0 2px 8px rgba(0,0,0,.6)';
+      cwb.onclick=()=>endBattle(true);document.body.appendChild(cwb);}
+  }else if(cwb){cwb.remove();}
 }
 function renderHand(){
   const b=battle;
@@ -2484,9 +2508,10 @@ function renderHand(){
   updatePlayButton();
 }
 function renderHud(){
+  if(_cheatMode){player.gold=9999;player.hp=player.maxHp;if(phase===PH.BATTLE)battle.apLeft=battle.maxAp;}
   document.getElementById('h-hp').textContent=player.hp;
   document.getElementById('h-ap').textContent=phase===PH.BATTLE?battle.apLeft:(battle.maxAp||3);
-  document.getElementById('h-gd').textContent=player.gold;
+  document.getElementById('h-gd').textContent=_cheatMode?'∞':player.gold;
   document.getElementById('h-dr').textContent=player.drawCount||5;
   const ptit=getPlayerTitle();
   const titEl=document.getElementById('hc2');
@@ -2670,8 +2695,8 @@ function showDeck(){
 }
 function closeDeck(){document.getElementById('deckmodal').style.display='none';}
 function showValTip(idx){
-  const tips=['贫瘠：收益有限，是最普通的遭遇','平常：标准遭遇，收益正常','丰厚：收益不错，物有所值','珍贵：高价值遭遇，值得冒险','传世：极稀有！有机会获得传世级奖励'];
-  toast(tips[idx]||'未知价值');
+  const tips=['普通：标准遭遇，收益有限','罕见：遭遇偏好，收益较普通更佳','稀有：值得优先选择的路线','史诗：高风险高收益，有机会获得强力卡牌','传说：极稀有！可能获得改变局面的道具或卡牌'];
+  toast(tips[idx]||'未知稀有度');
 }
 // ── 黑市 ──
 function startBlackMarket(){
