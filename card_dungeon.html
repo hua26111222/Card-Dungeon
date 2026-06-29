@@ -516,6 +516,21 @@ html,body{background:var(--void);color:var(--text);font-family:var(--fm);font-si
 .pav.a-hit{animation:p-hit .38s ease-out forwards!important}
 .ep-inner.a-hit{animation:e-hit .40s ease-out forwards!important}
 .ep-inner.a-atk{animation:e-atk .58s ease-out forwards!important}
+/* ── 受击/格挡视觉反馈 ── */
+@keyframes dmg-shake{0%,100%{transform:scaleX(-1) translateX(0)}15%{transform:scaleX(-1) translateX(14px) rotate(4deg) scale(1.07)}35%{transform:scaleX(-1) translateX(-10px) rotate(-3deg)}55%{transform:scaleX(-1) translateX(7px)}75%{transform:scaleX(-1) translateX(-4px)}}
+@keyframes dmg-flash{0%{filter:brightness(1) drop-shadow(0 0 0 transparent)}30%{filter:brightness(5) saturate(0) drop-shadow(0 0 20px #fff)}100%{filter:brightness(1) drop-shadow(0 4px 12px rgba(0,0,0,.9))}}
+@keyframes blk-pop{0%,100%{transform:scale(1)}40%{transform:scale(1.55);filter:drop-shadow(0 0 10px rgba(100,200,255,.95))}}
+@keyframes btxt-in{0%{opacity:0;transform:translateX(-50%) scale(.3) skewX(-5deg)}55%{opacity:1;transform:translateX(-50%) scale(1.15) skewX(-5deg)}100%{opacity:1;transform:translateX(-50%) scale(1) skewX(-5deg)}}
+@keyframes speech-pop{0%{opacity:0;transform:scale(.7) translateY(5px)}70%{transform:scale(1.06)}100%{opacity:1;transform:none}}
+.ep-inner.dmg-hit{animation:dmg-shake .4s cubic-bezier(.36,.07,.19,.97) forwards!important}
+.ep-inner.dmg-flash{animation:dmg-flash .32s ease forwards!important}
+.pav.a-hit-p{animation:p-hit .3s ease-out forwards!important}
+#bbd.blk-pop{animation:blk-pop .32s ease forwards}
+#btxt{position:absolute;left:50%;top:34%;transform:translateX(-50%) skewX(-5deg);pointer-events:none;font-family:var(--fs);font-size:22px;font-weight:700;letter-spacing:4px;text-shadow:0 2px 12px rgba(0,0,0,.95),0 0 30px currentColor;z-index:20;white-space:nowrap;display:none;opacity:0}
+#btxt.show{display:block;opacity:1;animation:btxt-in .26s cubic-bezier(.23,1,.32,1) forwards}
+#enemy-speech{position:absolute;right:8px;top:16px;max-width:108px;background:rgba(12,6,22,.94);border:1px solid rgba(154,90,191,.55);border-radius:8px 8px 0 8px;padding:6px 8px;font-size:9px;color:var(--bone);z-index:16;pointer-events:none;line-height:1.65;display:none;word-break:break-all;transition:opacity .3s}
+#enemy-speech.show{display:block;animation:speech-pop .18s ease forwards}
+#enemy-speech::after{content:'';position:absolute;bottom:-7px;right:10px;border-width:7px 7px 0;border-style:solid;border-color:rgba(154,90,191,.55) transparent transparent}
 /* 地图节点选中高亮 */
 .mcard.mc-sel{border-width:2px!important;
   transform:translateY(-10px) scale(1.1)!important;
@@ -688,6 +703,8 @@ html,body{background:var(--void);color:var(--text);font-family:var(--fm);font-si
   <div id="bv">
     <div class="bscene">
       <div class="etag" id="etag">战斗遭遇</div>
+      <div id="btxt"></div>
+      <div id="enemy-speech"></div>
       <div class="bchar-p">
         <div class="pav" id="pav">🗡</div>
         <div class="binfo-p">
@@ -1827,12 +1844,19 @@ function applySingleCard(c,mult){
     }
     if(totalDmg>0){
       floatDmg(totalDmg,'#c0392b');sfx(180+totalDmg*1.2,.15,'sawtooth',.1,-60);
+      hitFX(true);
+      if(totalDmg>=20)showBatText('暴击！','#ffcc44');
+      else if(times>1)showBatText('连击！','#ff8844');
+      const hpRatio=battle.enemyHp/(battle.enemyMaxHp||1);
+      if(totalDmg>=12&&Math.random()<.45)enemySpeech('hurt');
+      else if(hpRatio<.28&&Math.random()<.55)enemySpeech('low_hp');
       if(battle.lifestealMode){const hl=Math.max(1,Math.round(totalDmg*.15));player.hp=Math.min(player.maxHp,player.hp+hl);}
     }
   }
   const g=Math.round((c.blk||0)*mult);
   if(g>0){
     battle.blk+=g;sfx(380,.08,'square',.08,40);
+    if(g>=12)showBatText('格挡！','#4aeeaa');
     if(battle.jugg){const pen=Math.max(0,g-(battle.enemyBlk||0));battle.enemyBlk=Math.max(0,(battle.enemyBlk||0)-g);battle.enemyHp=Math.max(0,battle.enemyHp-pen);if(pen>0){rs.dmgDealt+=pen;floatDmg(pen,'#3a5a8a');}}
     toast(`+${g} 格挡`+(mult>1?` ×${mult.toFixed(1)}`:''));
   }
@@ -1917,10 +1941,13 @@ function endTurn(){
     const act=battle.nextEnemyAction||acts[0];battle.nextEnemyAction=_enemyPickAction();
     if(act.t==='a'){
       _eDidAtk=true;
+      if(Math.random()<.32)enemySpeech('taunt');
       let eatk=act.v+(battle.enemyStr||0);if(battle.enemyWeak>0)eatk=Math.floor(eatk*.75);
       if(battle.fortified>0){eatk=Math.floor(eatk*.5);battle.fortified--;toast('🛡 坚固减伤');}
+      const hadBlk=battle.blk>0;
       const dmg=Math.max(0,eatk-battle.blk);player.hp=Math.max(0,player.hp-dmg);battle.blk=Math.max(0,battle.blk-eatk);rs.dmgTaken+=dmg;_eDmg=dmg;
-      if(dmg>0){floatDmg(dmg,'#8b1a1a',true);sfx(100+dmg,.2,'sawtooth',.12,-40);}
+      if(dmg>0){floatDmg(dmg,'#8b1a1a',true);sfx(100+dmg,.2,'sawtooth',.12,-40);hitFX(false);if(dmg>=18)showBatText('重伤！','#ff4444');if(dmg>=18&&Math.random()<.4)enemySpeech('win');}
+      else if(hadBlk){blockFX();showBatText('完美防御','#44ddaa');}
     }else if(act.t==='d'){battle.enemyBlk=(battle.enemyBlk||0)+act.v;toast(`${battle.enemy.name} 获得 ${act.v} 格挡`);
     }else if(act.t==='s'){battle.enemyStr=Math.min((battle.enemyStr||0)+act.v,3);toast(`${battle.enemy.name} 力量 +${act.v}`);
     }else if(act.t==='h'){const healed=Math.min(act.v,battle.enemyMaxHp-battle.enemyHp);battle.enemyHp=Math.min(battle.enemyMaxHp,battle.enemyHp+act.v);if(healed>0)toast(`${battle.enemy.name} 回复 ${healed} HP`);
@@ -2606,6 +2633,56 @@ function showView(name){
 function backToMap(){phase=PH.MAP;showView('mv');renderMap();renderHud();renderTokens();saveGame();startBGM('map');}
 function toast(msg,type=''){const el=document.getElementById('toast');el.textContent=msg;el.className='toast on'+(type?' '+type:'');clearTimeout(window._tt);window._tt=setTimeout(()=>el.className='toast',2200);}
 function floatDmg(n,color,isPlayer=false){const el=document.createElement('div');el.className='df';el.style.color=color;el.textContent='-'+n;const b=document.getElementById('app').getBoundingClientRect();el.style.left=(b.left+b.width*.5)+'px';el.style.top=(isPlayer?b.top+b.height*.6:b.top+b.height*.22)+'px';document.body.appendChild(el);setTimeout(()=>el.remove(),950);}
+// ── KOF战斗特效 ──
+function hitFX(isEnemy){
+  if(isEnemy){
+    const ei=document.querySelector('.ep-inner');if(!ei)return;
+    ei.classList.remove('dmg-hit','dmg-flash','a-hit','a-atk');void ei.offsetWidth;
+    ei.classList.add('dmg-hit','dmg-flash');
+    setTimeout(()=>ei.classList.remove('dmg-hit','dmg-flash'),450);
+  }else{
+    const el=document.getElementById('pav');if(!el)return;
+    el.classList.remove('a-hit-p');void el.offsetWidth;
+    el.classList.add('a-hit-p');
+    setTimeout(()=>el.classList.remove('a-hit-p'),350);
+  }
+}
+function blockFX(){
+  const el=document.getElementById('bbd');if(!el||el.style.display==='none')return;
+  el.classList.remove('blk-pop');void el.offsetWidth;
+  el.classList.add('blk-pop');
+  setTimeout(()=>el.classList.remove('blk-pop'),380);
+}
+function showBatText(text,col){
+  const el=document.getElementById('btxt');if(!el)return;
+  clearTimeout(window._btxtT);
+  el.style.color=col||'#fff';el.textContent=text;
+  el.classList.remove('show');void el.offsetWidth;el.classList.add('show');
+  window._btxtT=setTimeout(()=>{el.classList.remove('show');},900);
+}
+function enemySpeech(type){
+  const el=document.getElementById('enemy-speech');if(!el)return;
+  const trait=battle?.enemy?.trait;
+  const td=(trait&&TRAIT_DEFS&&TRAIT_DEFS[trait])||{};
+  const H={'流浪者':['嗷——！','哇啊！','呜！'],'骑士':['荣耀……未灭！','这点伤……！'],'强盗':['哎哟！','老子吃亏了！'],'暴君':['你敢伤朕！','混账！'],'吸血鬼':['痛……真美妙……','血……溢出来了……'],'魅魔':['呀……','别……伤我……'],'疯狂科学家':['数据偏差！','样本反击！'],'骷髅':['咔哒……','骨头碎了……'],'小偷':['别追！','哎！不值！']};
+  const L={'流浪者':['呜……跑不动……','哇……倒下了……'],'骑士':['骑士……不屈！','荣……耀……'],'强盗':['等等……我有钱！','别……可以谈？'],'暴君':['朕绝……不认输！','不可能……！'],'吸血鬼':['血……不够……','再……给我血……'],'魅魔':['放……过我……','我能……补偿你……'],'疯狂科学家':['实验……失败……','最后……数据……'],'骷髅':['咔……哒……散了……','已……经……'],'小偷':['该早点跑的！','我溜了！']};
+  const pools={
+    taunt: td.quote||['……','哼！','就这？'],
+    hurt: H[trait]||['啊！','该死！','呜——！'],
+    low_hp: L[trait]||['求……放过我……','不……要……'],
+    win: td.quote||['太弱了……','倒下吧。'],
+    heal: ['哈哈，死不了！','又满血了！','再来！'],
+  };
+  const pool=pools[type]||pools.taunt;
+  const line=pool[0|Math.random()*pool.length];
+  clearTimeout(window._spT);
+  el.style.opacity='';el.style.transition='';
+  el.textContent=line;el.classList.remove('show');void el.offsetWidth;el.classList.add('show');
+  window._spT=setTimeout(()=>{
+    el.style.transition='opacity .35s';el.style.opacity='0';
+    setTimeout(()=>{el.classList.remove('show');el.style.opacity='';el.style.transition='';},350);
+  },2000);
+}
 function previewUpgrade(c){
   const copy=JSON.parse(JSON.stringify(c));upgradeCard(copy);
   const diff=[];
