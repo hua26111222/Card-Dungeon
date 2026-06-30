@@ -249,6 +249,11 @@ html,body{background:var(--void);color:var(--text);font-family:var(--fm);font-si
 .be{border-color:var(--ice);color:var(--frost)}
 .dst{grid-area:stats;background:var(--void);border-top:1px solid var(--crack);padding:5px 12px;display:flex;gap:16px;font-size:11px;color:var(--text3);font-style:italic}
 .dst b{color:var(--text);font-size:11px;font-style:normal}
+.blog-row{display:flex;gap:8px;padding:7px 10px;border-bottom:1px solid var(--crack);font-size:12px;line-height:1.5}
+.blog-row .blog-t{flex:none;color:var(--text3);font-size:10px;padding-top:1px;min-width:34px}
+.blog-row.blog-pl{color:var(--frost)}
+.blog-row.blog-en{color:#e08a8a}
+.blog-row.blog-sys{color:var(--text2)}
 
 /* ═══ 浮层 ═══ */
 #ov{display:none}
@@ -747,6 +752,7 @@ html,body{background:var(--void);color:var(--text);font-family:var(--fm);font-si
       <span onclick="showDeck()" style="cursor:pointer;color:var(--frost);text-decoration:underline;text-underline-offset:2px;text-decoration-color:rgba(122,170,191,.4)">牌库 <b id="ddr">0</b></span>
       <span>弃牌 <b id="ddc">0</b></span>
       <span>消耗 <b id="dex">0</b></span>
+      <span onclick="showBattleLog()" style="cursor:pointer;color:var(--frost);text-decoration:underline;text-underline-offset:2px;text-decoration-color:rgba(122,170,191,.4)">📜 战斗日志</span>
       <span style="margin-left:auto;color:var(--text3)">回合 <b id="dtn" style="color:var(--text2)">1</b></span>
     </div>
   </div>
@@ -802,6 +808,15 @@ html,body{background:var(--void);color:var(--text);font-family:var(--fm);font-si
       <button class="btn" style="flex:none;padding:5px 16px;font-size:10px" onclick="closeDeck()">✕ 关闭</button>
     </div>
     <div id="dm-cards"></div>
+  </div>
+</div>
+<div id="blogmodal" style="display:none;position:fixed;inset:0;z-index:9000;background:rgba(7,5,10,.96);overflow-y:auto;padding:16px 12px">
+  <div style="max-width:420px;margin:0 auto">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--crack)">
+      <div style="font-family:var(--fs);color:var(--bone);font-size:14px;letter-spacing:3px;text-shadow:0 0 12px rgba(200,169,110,.3)">📜 战斗日志</div>
+      <button class="btn" style="flex:none;padding:5px 16px;font-size:10px" onclick="closeBattleLog()">✕ 关闭</button>
+    </div>
+    <div id="blog-list"></div>
   </div>
 </div>
 <div id="relicmodal" style="display:none"></div>
@@ -1855,7 +1870,7 @@ function startBattle(isElite,isBoss){
   const normalCards=battle.deck.filter(c=>!c.innate);
   battle.drawPile=shuf([...normalCards]);battle.hand=innateCards.slice(0,2);battle.discardPile=[];battle.exhPile=[];
   const startAp=player.maxAp||3;
-  battle.blk=0;battle.str=0;battle.jugg=false;battle.lifestealMode=false;battle.playerPoison=0;battle.playerWeak=0;battle.playerStun=0;battle.playerDisarm=0;battle.enemyBleed=0;battle.enemyStun=0;battle.fortified=0;battle.apLeft=startAp;battle.maxAp=startAp;battle.apLockAmt=0;battle.apLockRounds=0;battle.turn=1;battle.selectedCards=[];battle.firstCard=true;battle.nextFreeCount=0;battle.stolenCards=[];battle.exiledCards=[];
+  battle.blk=0;battle.str=0;battle.jugg=false;battle.lifestealMode=false;battle.playerPoison=0;battle.playerWeak=0;battle.playerStun=0;battle.playerDisarm=0;battle.enemyBleed=0;battle.enemyStun=0;battle.fortified=0;battle.apLeft=startAp;battle.maxAp=startAp;battle.apLockAmt=0;battle.apLockRounds=0;battle.turn=1;battle.selectedCards=[];battle.firstCard=true;battle.nextFreeCount=0;battle.stolenCards=[];battle.exiledCards=[];battle.log=[];
   if(chapter.modifier?.onBattleStart)chapter.modifier.onBattleStart(battle,player);
   applyRelicHooks('onBattleStart',battle,player);
   const ep=document.getElementById('ep');
@@ -1984,7 +1999,16 @@ function playSelectedCards(){
   if(c.exhaust)battle.exhPile.push(c);else battle.discardPile.push(c);
   battle.selectedCards=[];
   const prevEHp=battle.enemyHp;
-  applySingleCard(c,1);
+  const prevBlk=battle.blk;
+  const prevHp=player.hp;
+  const totalDmg=applySingleCard(c,1);
+  {
+    const parts=[];
+    if(totalDmg>0)parts.push(`造成 ${totalDmg} 伤害`);
+    if(battle.blk>prevBlk)parts.push(`获得 ${battle.blk-prevBlk} 格挡`);
+    if(player.hp>prevHp)parts.push(`回复 ${player.hp-prevHp} HP`);
+    logBattle(`🗡 你打出【${c.name}】${parts.length?'，'+parts.join('，'):''}`,'pl');
+  }
   if(battle.enemyHp<=0){endBattle(true);return;}
   renderBattle();
   if(c.kind==='atk'&&battle.enemyHp<prevEHp){setTimeout(()=>triggerEAnim('a-hit'),180);}
@@ -2812,7 +2836,23 @@ function showView(name){
   Object.entries(map).forEach(([k,sel])=>{const el=document.querySelector(sel);if(!el)return;const show=k===name;el.style.display=show?(k==='bv'?'grid':flex.has(k)?'flex':'block'):'none';if(show)el.classList.add('vi');});
 }
 function backToMap(){phase=PH.MAP;showView('mv');renderMap();renderHud();renderTokens();saveGame();startBGM('map');}
-function toast(msg,type=''){const el=document.getElementById('toast');el.textContent=msg;el.className='toast on'+(type?' '+type:'');clearTimeout(window._tt);window._tt=setTimeout(()=>el.className='toast',2200);}
+function toast(msg,type=''){const el=document.getElementById('toast');el.textContent=msg;el.className='toast on'+(type?' '+type:'');clearTimeout(window._tt);window._tt=setTimeout(()=>el.className='toast',2200);if(phase===PH.BATTLE)logBattle(msg,type==='r'?'en':'sys');}
+function logBattle(msg,who='sys'){
+  if(!battle.log)battle.log=[];
+  battle.log.push({msg,who,t:battle.turn||1});
+  if(battle.log.length>60)battle.log.shift();
+}
+function showBattleLog(){
+  const wrap=document.getElementById('blog-list');
+  if(!battle.log||!battle.log.length){wrap.innerHTML=`<div style="text-align:center;padding:30px 0;color:var(--text3);font-size:12px">本场战斗暂无记录</div>`;}
+  else{
+    wrap.innerHTML=[...battle.log].reverse().map(e=>
+      `<div class="blog-row blog-${e.who}"><span class="blog-t">回合${e.t}</span><span>${e.msg}</span></div>`
+    ).join('');
+  }
+  document.getElementById('blogmodal').style.display='block';
+}
+function closeBattleLog(){document.getElementById('blogmodal').style.display='none';}
 function floatDmg(n,color,isPlayer=false){const el=document.createElement('div');el.className='df';el.style.color=color;el.textContent='-'+n;const b=document.getElementById('app').getBoundingClientRect();el.style.left=(b.left+b.width*.5)+'px';el.style.top=(isPlayer?b.top+b.height*.6:b.top+b.height*.22)+'px';document.body.appendChild(el);setTimeout(()=>el.remove(),950);}
 // ── KOF战斗特效 ──
 function hitFX(isEnemy){
