@@ -188,7 +188,7 @@ html,body{background:var(--void);color:var(--text);font-family:var(--fm);font-si
 .pht{font-size:13px;letter-spacing:1px;color:var(--gore2);font-style:italic;font-weight:700}
 .bb{display:inline-flex;align-items:center;gap:3px;background:rgba(58,90,138,.25);border:1px solid var(--ice);
   padding:2px 6px;font-size:11px;color:var(--frost);box-shadow:0 0 8px rgba(58,90,138,.3);font-weight:700}
-.hz{grid-area:hand;padding:10px 0 6px;background:linear-gradient(180deg,#090711,var(--s1));border-bottom:1px solid var(--crack);overflow:visible;display:flex;flex-direction:column}
+.hz{flex:1;min-height:0;padding:10px 0 6px;background:linear-gradient(180deg,#090711,var(--s1));overflow:visible;display:flex;flex-direction:column}
 .hh{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;padding:0 14px}
 .hlb{font-size:12px;color:var(--text2);letter-spacing:3px;font-style:italic}
 .hlb::before{content:'✦ ';color:var(--blood2);font-size:7px}
@@ -240,7 +240,7 @@ html,body{background:var(--void);color:var(--text);font-family:var(--fm);font-si
 .rr{background:linear-gradient(90deg,var(--bone3),var(--bone),var(--bone3))}.rcu{background:linear-gradient(90deg,var(--soul),var(--violet),var(--soul))}
 
 /* 战斗按钮 */
-.bac{grid-area:buttons;background:linear-gradient(180deg,var(--s2),var(--void));border-top:1px solid var(--crack);
+.bac{background:linear-gradient(180deg,var(--s2),var(--void));border-top:1px solid var(--crack);
   padding:10px 16px;display:flex;gap:14px;justify-content:center;align-items:center;flex-shrink:0;box-shadow:0 -2px 12px rgba(0,0,0,.6)}
 .btn{padding:12px 28px;background:linear-gradient(180deg,var(--s3),var(--s4));border:1px solid var(--crack2);
   box-shadow:inset 0 1px 0 rgba(255,255,255,.03),0 2px 0 var(--void),2px 2px 0 var(--void);
@@ -249,7 +249,7 @@ html,body{background:var(--void);color:var(--text);font-family:var(--fm);font-si
 .btn:disabled{opacity:.22;pointer-events:none;box-shadow:none}
 .bu{border-color:var(--bone2);color:var(--bone);box-shadow:inset 0 1px 0 rgba(200,169,110,.06),0 2px 0 var(--void),2px 2px 0 var(--void),0 0 10px rgba(200,169,110,.08)}
 .be{border-color:var(--ice);color:var(--frost)}
-.dst{grid-area:stats;background:var(--void);border-top:1px solid var(--crack);padding:5px 12px;display:flex;gap:16px;font-size:11px;color:var(--text3);font-style:italic}
+.dst{flex-shrink:0;background:var(--void);border-bottom:1px solid var(--crack);padding:5px 12px;display:flex;gap:16px;font-size:11px;color:var(--text3);font-style:italic}
 .dst b{color:var(--text);font-size:11px;font-style:normal}
 .blog-row{display:flex;gap:8px;padding:7px 10px;border-bottom:1px solid var(--crack);font-size:12px;line-height:1.5}
 .blog-row .blog-t{flex:none;color:var(--text3);font-size:10px;padding-top:1px;min-width:34px}
@@ -712,53 +712,57 @@ html,body{background:var(--void);color:var(--text);font-family:var(--fm);font-si
     </div>
   </div>
   <div id="bv">
-    <div class="bscene">
-      <div class="etag" id="etag">战斗遭遇</div>
-      <div id="btxt"></div>
-      <div id="enemy-speech"></div>
-      <div class="bchar-p">
-        <div class="pav" id="pav">🗡</div>
-        <div class="binfo-p">
-          <div class="pn" id="pn">无名旅者</div>
-          <div class="hbg" style="max-width:88px"><div class="hf pf" id="phb" style="width:100%"></div></div>
-          <div class="pst">
-            <span class="pht" id="pht">50/50</span>
-            <div class="bb" id="bbd" style="display:none">🛡<span id="bbv">0</span></div>
-            <div class="bb" id="pod" style="display:none;color:#2d7a27;border-color:#2d7a27">☠<span id="pov">0</span></div>
+    <div class="bv-top">
+      <div class="dst">
+        <span onclick="showDeck()" style="cursor:pointer;color:var(--frost);text-decoration:underline;text-underline-offset:2px;text-decoration-color:rgba(122,170,191,.4)">牌库 <b id="ddr">0</b></span>
+        <span>弃牌 <b id="ddc">0</b></span>
+        <span>消耗 <b id="dex">0</b></span>
+        <span onclick="showBattleLog()" style="cursor:pointer;color:var(--frost);text-decoration:underline;text-underline-offset:2px;text-decoration-color:rgba(122,170,191,.4)">📜 战斗日志</span>
+        <span style="margin-left:auto;color:var(--text3)">回合 <b id="dtn" style="color:var(--text2)">1</b></span>
+      </div>
+      <div class="bscene">
+        <div class="etag" id="etag">战斗遭遇</div>
+        <div id="btxt"></div>
+        <div id="enemy-speech"></div>
+        <div class="bchar-p">
+          <div class="pav" id="pav">🗡</div>
+          <div class="binfo-p">
+            <div class="pn" id="pn">无名旅者</div>
+            <div class="hbg" style="max-width:88px"><div class="hf pf" id="phb" style="width:100%"></div></div>
+            <div class="pst">
+              <span class="pht" id="pht">50/50</span>
+              <div class="bb" id="bbd" style="display:none">🛡<span id="bbv">0</span></div>
+              <div class="bb" id="pod" style="display:none;color:#2d7a27;border-color:#2d7a27">☠<span id="pov">0</span></div>
+            </div>
+            <div class="pap"><span id="app2"></span><span class="papt">AP</span><span id="apt" style="font-size:11px;color:var(--frost);font-weight:700">3/3</span></div>
+            <div class="sr" id="ps2"></div>
           </div>
-          <div class="pap"><span id="app2"></span><span class="papt">AP</span><span id="apt" style="font-size:11px;color:var(--frost);font-weight:700">3/3</span></div>
-          <div class="sr" id="ps2"></div>
+          <div class="rz" id="rz" style="display:none"></div>
         </div>
-        <div class="rz" id="rz" style="display:none"></div>
-      </div>
-      <div class="bchar-e">
-        <div class="ep" id="ep">?</div>
-        <div class="binfo-e">
-          <div class="en" id="en">—</div>
-          <div class="hlt" id="eht">0/0</div>
-          <div class="hbg" style="max-width:108px"><div class="hf ef" id="ehb" style="width:100%"></div></div>
-          <div class="etk" id="etk"></div>
-          <div class="ibox" id="ib"><span>⚔</span><span id="ibt">意图未知</span></div>
-          <div class="sr" id="es"></div>
+        <div class="bchar-e">
+          <div class="ep" id="ep">?</div>
+          <div class="binfo-e">
+            <div class="en" id="en">—</div>
+            <div class="hlt" id="eht">0/0</div>
+            <div class="hbg" style="max-width:108px"><div class="hf ef" id="ehb" style="width:100%"></div></div>
+            <div class="etk" id="etk"></div>
+            <div class="ibox" id="ib"><span>⚔</span><span id="ibt">意图未知</span></div>
+            <div class="sr" id="es"></div>
+          </div>
         </div>
       </div>
     </div>
-    <div class="hz">
-      <div class="hh">
-        <div class="hlb">手中之牌</div>
+    <div class="bv-bottom">
+      <div class="hz">
+        <div class="hh">
+          <div class="hlb">手中之牌</div>
+        </div>
+        <div class="hcs" id="hcs"></div>
       </div>
-      <div class="hcs" id="hcs"></div>
-    </div>
-    <div class="bac">
-      <button class="btn bu" id="btu" disabled onclick="playSelectedCards()">出牌</button>
-      <button class="btn be" id="bte" onclick="endTurn()">结束回合</button>
-    </div>
-    <div class="dst">
-      <span onclick="showDeck()" style="cursor:pointer;color:var(--frost);text-decoration:underline;text-underline-offset:2px;text-decoration-color:rgba(122,170,191,.4)">牌库 <b id="ddr">0</b></span>
-      <span>弃牌 <b id="ddc">0</b></span>
-      <span>消耗 <b id="dex">0</b></span>
-      <span onclick="showBattleLog()" style="cursor:pointer;color:var(--frost);text-decoration:underline;text-underline-offset:2px;text-decoration-color:rgba(122,170,191,.4)">📜 战斗日志</span>
-      <span style="margin-left:auto;color:var(--text3)">回合 <b id="dtn" style="color:var(--text2)">1</b></span>
+      <div class="bac">
+        <button class="btn bu" id="btu" disabled onclick="playSelectedCards()">出牌</button>
+        <button class="btn be" id="bte" onclick="endTurn()">结束回合</button>
+      </div>
     </div>
   </div>
   <div id="ov">
@@ -3096,7 +3100,7 @@ function showView(name){
   if(name!=='bv'){const bl=document.getElementById('blogmodal');if(bl)bl.style.display='none';}
   const map={hv:'#hv',ci:'#ci',mv:'#mv',bv:'#bv',ov:'#ov',gov:'#gov',lbv:'#lbv'};
   const flex=new Set(['hv','ci','gov','lbv']);
-  Object.entries(map).forEach(([k,sel])=>{const el=document.querySelector(sel);if(!el)return;const show=k===name;el.style.display=show?(k==='bv'?'grid':flex.has(k)?'flex':'block'):'none';if(show)el.classList.add('vi');});
+  Object.entries(map).forEach(([k,sel])=>{const el=document.querySelector(sel);if(!el)return;const show=k===name;el.style.display=show?(k==='bv'?'flex':flex.has(k)?'flex':'block'):'none';if(show)el.classList.add('vi');});
 }
 function backToMap(){phase=PH.MAP;showView('mv');renderMap();renderHud();renderTokens();saveGame();startBGM('map');}
 function toast(msg,type=''){const el=document.getElementById('toast');el.textContent=msg;el.className='toast on'+(type?' '+type:'');clearTimeout(window._tt);window._tt=setTimeout(()=>el.className='toast',2200);if(phase===PH.BATTLE)logBattle(msg,type==='r'?'en':'sys');}
