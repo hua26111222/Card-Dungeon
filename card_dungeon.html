@@ -1557,8 +1557,9 @@ function renderMap(){
     const selCls=isReach&&window._mapPending===ci?' mc-sel':'';
     const click=isReach?`onclick="selectMapCard(${ci})"`:'';
     if(isBlind){
-      const bHint=card.blindHint||'';const bTitle=card.blindTitle||'未知路途';
-      return`<div class="mcard${reachCls}${blindCls}${dimCls}${selCls}" ${click} style="border-color:${card.col||'#5a3a7a'};background:${card.bg||'rgba(40,20,70,.38)'}">
+      // 暗牌统一使用固定的中性紫色样式，绝不能用 card.col/bg（那是真实类型的颜色，会泄露内容）
+      const bTitle=card.type==='boss'?(card.blindTitle||'未知路途'):'未知路途';
+      return`<div class="mcard${reachCls}${blindCls}${dimCls}${selCls}" ${click} style="border-color:#5a3a7a;background:rgba(40,20,70,.38)">
         <div class="mcsuit" style="color:#8a6aaa">?</div>
         <div class="mcicon" style="color:#5a3a8a;font-size:22px">🂠</div>
         <div class="mctype" style="color:#9a7abf;font-size:7px;letter-spacing:.5px">${bTitle}</div>
@@ -1617,10 +1618,10 @@ function renderMap(){
   if(!confBar){confBar=document.createElement('div');confBar.id='mconfirm-bar';confEl.appendChild(confBar);}
   if(pending!==null&&pending!==undefined){
     const pcard=rows[step]?.[pending];const pti=TI[pcard?.type]||{ic:'?',nm:'?'};
-    const isFight=pcard?.type==='fight'||pcard?.type==='elite';
     const isBlindCard=pcard?.isHidden&&!pcard?.revealed;
-    const isB=pcard?.type==='boss';
-    const btn=`<button onclick="pickMapCard(${pending})" style="padding:5px 16px;border:1px solid var(--bone2);background:rgba(200,169,110,.12);color:var(--bone);font-family:var(--fm);font-size:11px;cursor:pointer;letter-spacing:1px">${isFight?'⚔ 进入战斗':isB?'☠ 迎战首领':'▶ 进入'}</button>`;
+    const isFight=!isBlindCard&&(pcard?.type==='fight'||pcard?.type==='elite');
+    const isB=!isBlindCard&&pcard?.type==='boss';
+    const btn=`<button onclick="pickMapCard(${pending})" style="padding:5px 16px;border:1px solid var(--bone2);background:rgba(200,169,110,.12);color:var(--bone);font-family:var(--fm);font-size:11px;cursor:pointer;letter-spacing:1px">${isFight?'⚔ 进入战斗':isB?'☠ 迎战首领':isBlindCard?'🎴 揭开暗牌':'▶ 进入'}</button>`;
     const cancel=`<button onclick="window._mapPending=null;renderMap()" style="padding:5px 12px;border:1px solid var(--crack2);background:transparent;color:var(--text2);font-family:var(--fm);font-size:11px;cursor:pointer">✕</button>`;
     let info='';
     if(isBlindCard){
@@ -2359,6 +2360,24 @@ function showReward(gold){
   }
   function randCard(ex){const av=fillPool.filter(c=>!ex.has(c.id));const w=av.map(c=>(c.rar==='rare'?rc*3:c.rar==='uncommon'?uc*2:1)*kindW(c));const tot=w.reduce((s,x)=>s+x,0);let r=Math.random()*tot;for(let i=0;i<av.length;i++){r-=w[i];if(r<=0)return av[i];}return av[av.length-1];}
   const forceRare=window._eventRareCount||0;window._eventRareCount=0;
+  if(forceRare>=2){
+    // 明确数量的固定奖励（如"获得2张稀有卡"）：直接全部发放，不能再做"三选一"——
+    // 否则承诺2张实际只能拿到1张，是个真实存在的bug
+    const rarePool=DB.filter(c=>c.rar==='rare');
+    const usedR=new Set();const granted=[];
+    shuf(rarePool).forEach(c=>{if(granted.length<forceRare&&!usedR.has(c.id)){granted.push(c);usedR.add(c.id);}});
+    while(granted.length<forceRare){const c=randCard(usedR);if(!c)break;granted.push(c);usedR.add(c.id);}
+    granted.forEach(c=>battle.deck.push({...c}));
+    document.getElementById('ovtag').textContent='✦  事件奖励';
+    document.getElementById('ovtit').textContent='满载而归';
+    setSceneArt('🎁',`命运眷顾，你直接获得了 ${granted.length} 张稀有卡牌！`);
+    const cardsHtml=granted.map((c,i)=>renderPokerCard(c,null,{idx:i,total:granted.length})).join('');
+    document.getElementById('ovb').innerHTML=`<div class="ovd" style="color:var(--amber)">🎉 获得以下 ${granted.length} 张牌：</div>
+      <div class="tcards-table">${cardsHtml}</div>
+      <button class="ovbtn gd" style="margin-top:8px" onclick="backToMap()">✓ 收下，继续</button>`;
+    showView('ov');renderHud();renderTokens();
+    return;
+  }
   let picked=[];const used=new Set();
   if(forceRare>0){
     const rarePool=DB.filter(c=>c.rar==='rare');
