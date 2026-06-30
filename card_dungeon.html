@@ -348,6 +348,8 @@ html,body{background:var(--void);color:var(--text);font-family:var(--fm);font-si
 .cimt{font-size:14px;font-weight:700;letter-spacing:2px;margin-bottom:6px;font-family:var(--fs)}
 .cimd{font-size:13px;opacity:.85;line-height:1.7;font-style:italic}
 .cips{font-size:12px;color:var(--text2);letter-spacing:2px;margin-bottom:12px;font-style:italic}
+.ci-title{margin:0 12px 14px;padding:9px 14px;border:1px solid rgba(200,169,110,.4);background:rgba(200,169,110,.08);border-radius:4px;text-align:center;font-size:12px;letter-spacing:1px;animation:titleGlow 1.8s ease-in-out}
+@keyframes titleGlow{0%{box-shadow:0 0 0 rgba(200,169,110,0)}30%{box-shadow:0 0 16px rgba(200,169,110,.55)}100%{box-shadow:0 0 0 rgba(200,169,110,0)}}
 .ci-deck{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;padding:0 14px 16px;max-width:480px;margin:0 auto}
 .ci-dtag{font-size:10px;text-align:center;margin-bottom:6px;color:var(--text3);letter-spacing:3px;width:100%;font-style:italic}
 .ci-dcard{width:40px;height:50px;border-radius:4px;border:1px solid;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:16px;background:linear-gradient(160deg,#1a1525,#0d0a14);position:relative;overflow:hidden}
@@ -684,6 +686,7 @@ html,body{background:var(--void);color:var(--text);font-family:var(--fm);font-si
     <div class="cdiv"></div>
     <div class="cim" id="cim"><div class="cimt" id="cimt">词缀</div><div class="cimd" id="cimd"></div></div>
     <div class="cips" id="cips"></div>
+    <div class="ci-title" id="ci-title" style="display:none"></div>
     <div class="ci-deck" id="ci-deck"></div>
     <div id="ci-bless-wrap" style="padding:0 10px 10px">
       <div style="text-align:center;font-size:10px;color:var(--text3);letter-spacing:3px;margin-bottom:10px">✦ 出发前，选择一项祝福 ✦</div>
@@ -1308,6 +1311,46 @@ const _TRAIT_LOOT={
   '控制师': ['lockdown','stagger','fortify','barrier','silence'],
   '暴君':   ['strength','warcry','battle_hymn','berserker','whirl'],
   '掠夺者': ['strength','fortify','heavy_guard','jugg','chain_slash'],
+  '骷髅兵': ['strike','slam','defend','guard_quick','heavy_blow'],
+  '火焰术士': ['poison_flask','venom_blade','soul_strike','chaos_shot','corruption'],
+  '冰霜巫婆': ['weaken','lockdown','stagger','silence','chaos_shot'],
+  '蛛后': ['poison_flask','venom_blade','discard','chain_slash','corruption'],
+  '食人花': ['regen','poison_flask','sacrifice','venom_blade','meditate'],
+  '石像鬼': ['defend','fortify','barrier','guard_quick','heavy_guard'],
+  '暗影刺客': ['heavy_blow','chain_slash','stagger','phantom_hit','soul_strike'],
+  '雷霆战士': ['strength','warcry','adrenaline','heavy_blow','multishot'],
+  '沼泽巨怪': ['regen','defend','heavy_guard','last_stand','martyr'],
+  '骸骨法师': ['corruption','weaken','poison_flask','silence','chaos_shot'],
+  '渡鸦巫医': ['regen','meditate','focus_stone','silence','sacrifice'],
+  '钢铁守卫': ['fortify','strength','barrier','guard_quick','jugg'],
+  '嗜魂怪': ['execute','soul_strike','strength','heavy_blow','desperation'],
+  '毒蜂群': ['multishot','poison_flask','venom_blade','chain_slash','whirl'],
+  '暴风掠夺者': ['multishot','discard','chain_slash','adrenaline','phantom_hit'],
+  '镜像诈骗师': ['catalyze','weaken','phantom_hit','corruption','chaos_shot'],
+  '食梦者': ['silence','lockdown','weaken','meditate','phantom_hit'],
+  '腐烂巨人': ['poison_flask','venom_blade','heavy_blow','corruption','jugg'],
+  '影子双子': ['multishot','defend','chain_slash','guard_quick','phantom_hit'],
+  '寒冰领主': ['lockdown','defend','barrier','stagger','silence'],
+  '熔岩傀儡': ['strength','warcry','battle_hymn','heavy_blow','jugg'],
+  '荆棘女巫': ['poison_flask','weaken','venom_blade','corruption','stagger'],
+  '暗影潜行者': ['discard','phantom_hit','stagger','chain_slash','chaos_shot'],
+  '锈蚀机兵': ['catalyze','defend','heavy_blow','fortify','guard_quick'],
+  '焚书者': ['corruption','soul_strike','heavy_blow','chaos_shot','desperation'],
+  '灰烬死灵': ['lockdown','weaken','silence','phantom_hit','soul_strike'],
+  '深渊触手': ['multishot','chain_slash','stagger','whirl','phantom_hit'],
+  '利爪猎手': ['strength','warcry','adrenaline','heavy_blow','berserker'],
+  '巨蟒': ['poison_flask','lockdown','venom_blade','stagger','chaos_shot'],
+  '走私贩': ['discard','phantom_hit','chain_slash','corruption','desperation'],
+  '噬法者': ['silence','lockdown','weaken','meditate','focus_stone'],
+  '墓地守卫': ['regen','defend','heavy_guard','martyr','last_stand'],
+  '渴血狼人': ['multishot','vampire_oath','bloodrush','berserker','adrenaline'],
+  '双刃剑客': ['multishot','chain_slash','heavy_blow','guard_quick','counter'],
+  '镣铐看守': ['stagger','lockdown','silence','weaken','phantom_hit'],
+  '瘟疫法师': ['poison_flask','corruption','venom_blade','weaken','chaos_shot'],
+  '幽灵骑士': ['defend','strength','heavy_blow','guard_quick','warcry'],
+  '沙漠盗匪': ['discard','chain_slash','phantom_hit','stagger','chaos_shot'],
+  '雪原狼王': ['strength','warcry','multishot','berserker','battle_hymn'],
+  '深渊主教': ['lockdown','regen','corruption','silence','soul_strike'],
 };
 // 卡牌破坏附加行动
 function _cdActs(cardDmg,atk){
@@ -2426,6 +2469,8 @@ function endBattle(won){
     // 战斗结束，归还封印牌
     if(battle.exiledCards?.length){battle.exiledCards.forEach(c=>battle.discardPile.push(c));}
     player.kills++;
+    const kt=battle.enemy?.trait;
+    if(kt){if(!rs.killsByTrait)rs.killsByTrait={};rs.killsByTrait[kt]=(rs.killsByTrait[kt]||0)+1;}
     const em=window._mapEffectMult||1;
     const gm=(chapter.modifier?.goldMult||1)*em;
     const g=Math.round((battle.enemy.goldMin+Math.random()*(battle.enemy.goldMax-battle.enemy.goldMin))*gm);
@@ -2462,6 +2507,14 @@ function showChapterIntro(){
   document.getElementById('cimd').textContent=mod.desc;
   document.getElementById('cips').textContent=`${getDiff(info.ps)}  ·  第 ${toR(fl)} 层`;
   document.getElementById('hc2').textContent=`${info.theme.name} · ${mod.name}`;
+  const ctEl=document.getElementById('ci-title');
+  const curTit=getPlayerTitle(battle.deck);
+  if(window._lastShownTitle&&window._lastShownTitle!==curTit.title){
+    ctEl.style.display='block';
+    ctEl.style.borderColor=curTit.color||'rgba(200,169,110,.4)';
+    ctEl.innerHTML=`<div style="color:var(--text3);font-size:10px;letter-spacing:2px;margin-bottom:4px">✦ 称号已晋升 ✦</div><div style="color:${curTit.color||'var(--bone)'};font-weight:700">${curTit.icon} ${curTit.title}</div>`;
+  }else{ctEl.style.display='none';}
+  window._lastShownTitle=curTit.title;
   document.getElementById('mb').style.display='none';
   const legacy=battle.deck.filter(c=>c.isLegacy);
   const legacyHtml=legacy.length?`<div style="font-size:10px;color:var(--amber);text-align:center;margin-bottom:8px">⬡ 传承卡牌：${legacy.map(c=>c.name).join('、')}</div>`:'';
@@ -2913,6 +2966,12 @@ function getPlayerTitle(dk){
     {title:'凶悍的血与火斗士',icon:'🗡',color:'var(--amber)'},
     {title:'无情的双面猎手',icon:'🗡',color:'var(--amber)'},
     {title:'残忍的赌命战士',icon:'⚔',color:'var(--bone)'} ]);
+  // 击败敌人类型偏好（专门猎杀某一种特性的敌人）
+  const ktEntries=Object.entries(rs?.killsByTrait||{}).sort((a,b)=>b[1]-a[1]);
+  if(ktEntries.length&&ktEntries[0][1]>=4){
+    const[topTrait]=ktEntries[0];
+    return{title:`${topTrait}的克星`,icon:'🏹',color:'var(--gore2)'};
+  }
   // 基于击杀数
   if(kills>=15)return{title:'冷血的大量屠夫',icon:'💀',color:'var(--bone2)'};
   // 按层数fallback
@@ -4220,8 +4279,9 @@ function initGame(){
   clearLegacy();
   window._playerSeed=null;window._playerAppear=null;
   battle={enemy:null,enemyHp:0,enemyMaxHp:0,enemyBlk:0,enemyStr:0,enemyWeak:0,enemyVuln:0,enemyPoison:0,enemyBleed:0,enemyStun:0,enemyActions:[],enemyActionIdx:0,nextEnemyAction:null,deck:startDeck,drawPile:[],hand:[],discardPile:[],exhPile:[],apLeft:3,maxAp:3,blk:0,str:0,jugg:false,lifestealMode:false,playerPoison:0,playerWeak:0,playerStun:0,playerDisarm:0,fortified:0,turn:1,selectedCards:[],firstCard:true,nextFreeCount:0};
-  rs={dmgDealt:0,dmgTaken:0,cardsPlayed:0,turns:0,chaptersCleared:0};
+  rs={dmgDealt:0,dmgTaken:0,cardsPlayed:0,turns:0,chaptersCleared:0,killsByTrait:{}};
   window._mapRank=7;
+  window._lastShownTitle=null;
   document.getElementById('mb').style.display='none';
   showCutscene('intro',showChapterIntro);
 }
