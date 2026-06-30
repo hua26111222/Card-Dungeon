@@ -1528,13 +1528,13 @@ function renderMap(){
 
   document.getElementById('mprompt').textContent=isBossStep?'☠ 首领降临，无路可退！':step>=16?`⚠ 首领将至，还有 ${18-step} 步`:'选择前进的路：';
 
-  // 5级稀有度系统（颜色决定卡牌边框）
+  // 5级稀有度系统（颜色决定卡牌边框，标签直接显示遇到概率，而非文字等级）
   const VAL_T=[
-    {label:'普通',col:'#9a9a9a',border:'rgba(120,120,130,.7)',tip:'普通遭遇，标准收益'},
-    {label:'罕见',col:'#4aaa6a',border:'rgba(40,140,80,.8)',tip:'罕见遭遇，收益较好'},
-    {label:'稀有',col:'#5599ee',border:'rgba(50,110,220,.85)',tip:'稀有遭遇，物有所值'},
-    {label:'史诗',col:'#cc44ee',border:'rgba(160,40,200,.85)',tip:'史诗遭遇，高风险高收益'},
-    {label:'传说',col:'#ffaa20',border:'rgba(220,150,10,.95)',tip:'传说遭遇！极高价值，可能改变游戏走向'},
+    {label:'45%',col:'#9a9a9a',border:'rgba(120,120,130,.7)',tip:'约45%几率遇到：标准收益'},
+    {label:'28%',col:'#4aaa6a',border:'rgba(40,140,80,.8)',tip:'约28%几率遇到：收益较好'},
+    {label:'15%',col:'#5599ee',border:'rgba(50,110,220,.85)',tip:'约15%几率遇到：物有所值'},
+    {label:'8%',col:'#cc44ee',border:'rgba(160,40,200,.85)',tip:'约8%几率遇到：高风险高收益'},
+    {label:'4%',col:'#ffaa20',border:'rgba(220,150,10,.95)',tip:'约4%几率遇到！极高价值，可能改变游戏走向'},
   ];
   const cpToValIdx={孱弱:0,健康:1,强壮:2,暴虐:3,恐怖:4};
   const typeValIdx={campfire:0,event:2,tavern:1,blackmarket:3,blacksmith:2,gamble:2,altar:2,chest:3};
@@ -3052,8 +3052,8 @@ function showDeck(){
 }
 function closeDeck(){document.getElementById('deckmodal').style.display='none';}
 function showValTip(idx){
-  const tips=['普通：标准遭遇，收益有限','罕见：遭遇偏好，收益较普通更佳','稀有：值得优先选择的路线','史诗：高风险高收益，有机会获得强力卡牌','传说：极稀有！可能获得改变局面的道具或卡牌'];
-  toast(tips[idx]||'未知稀有度');
+  const tips=['约45%几率：标准遭遇，收益有限','约28%几率：遭遇偏好，收益较普通更佳','约15%几率：值得优先选择的路线','约8%几率：高风险高收益，有机会获得强力卡牌','约4%几率：极稀有！可能获得改变局面的道具或卡牌'];
+  toast(tips[idx]||'未知概率');
 }
 // ── 黑市（只卖牌，模糊描述，骗率显示）──
 // 每张牌有"表面描述"和"真实牌"，35%概率是骗局
