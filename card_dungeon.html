@@ -1038,7 +1038,7 @@ const TRAIT_DEFS={
   '小偷':{art:'🎭',col:'#2a5a3a',desc:'偷走你的手牌，若干回合后逃跑；击杀可找回',
     intro:'对方眯起眼睛，手指在裤缝上轻点——你注意到他的视线一直盯着你的腰包。',
     quote:['嘿嘿，借我用用~','你先别动……','反应挺快嘛，可惜没用。'],
-    names:['影夜扒手','月影窃贼','暗幕盗牌人','幻影掠夺者'],aiType:'skill',escapeRound:6,returnOnKill:true,
+    names:['影夜扒手','月影窃贼','暗幕盗牌人','幻影掠夺者'],aiType:'skill',escapeRound:6,escapeHpPct:.25,returnOnKill:true,
     acts(atk){return[{t:'steal',v:1,n:'扒窃手牌'},{t:'a',v:atk,n:'匕首刺喉'},{t:'steal',v:1,n:'再次扒窃'},{t:'a',v:Math.round(atk*.9),n:'烟幕踢打'},{t:'x',v:1,n:'缴械搜身'}];}},
   '强盗':{art:'💢',col:'#8a3a1a',desc:'抢走并永久摧毁卡牌，无法找回',
     intro:'对方手持大棍，嘴角带着残忍的笑——他不只要你的钱，他要把你的东西砸个粉碎。',
@@ -1127,7 +1127,7 @@ function buildEnemyFromDims(card,isElite,ps){
     combatPower,cardDmg,trait,traitDesc:td.desc,
     hp,atk:finalAtk,actions,block:0,str:0,poison:0,
     goldMin:gMin,goldMax:Math.round(gMin*1.6),
-    escapeRound:td.escapeRound,returnOnKill:td.returnOnKill,destroyStolen:td.destroyStolen,lifesteal:td.lifesteal,
+    escapeRound:td.escapeRound,escapeHpPct:td.escapeHpPct,returnOnKill:td.returnOnKill,destroyStolen:td.destroyStolen,lifesteal:td.lifesteal,
     loot:{cards:(_TRAIT_LOOT[trait]||['strike','slam','defend','inspect','weaken'])}};
 }
 const EVTS=[
@@ -2162,9 +2162,10 @@ function endTurn(){
     else if(hadBlk2){blockFX();showBatText('完美防御','#44ddaa');}
   }
   battle.blk=0;
-  // 小偷逃跑检测（带着偷来的牌逃跑，不触发游戏结束）
-  if(battle.enemy?.escapeRound&&battle.turn>=battle.enemy.escapeRound){
-    toast(`🎭 ${battle.enemy.name} 带着战利品逃跑了！`,'r');
+  // 小偷逃跑检测（带着偷来的牌逃跑，不触发游戏结束）：回合数超限 或 血量低于阈值，必定逃跑
+  const _thiefLowHp=battle.enemy?.escapeHpPct&&battle.enemyHp<=battle.enemyMaxHp*battle.enemy.escapeHpPct;
+  if(battle.enemy?.escapeRound&&(battle.turn>=battle.enemy.escapeRound||_thiefLowHp)){
+    toast(_thiefLowHp?`🎭 ${battle.enemy.name} 见势不妙，带着战利品逃跑了！`:`🎭 ${battle.enemy.name} 带着战利品逃跑了！`,'r');
     stopBGM();phase=PH.MAP;saveGame();
     setTimeout(()=>renderMap(),800);
     return;
@@ -2411,7 +2412,7 @@ function renderRewardUI(){
   let h=`<div class="ovd">${gold>0?`掠夺 <b>${gold}</b> 金币。`:''}选择一张卡牌：</div>
   <div class="tcards-table">${tableHtml}</div>
   ${confirmHtml}`;
-  if(isElite||isBoss){
+  if(isBoss){
     h+=`<div style="margin:8px 0 4px;font-size:9px;color:var(--text3);letter-spacing:2px;text-align:center">— 或 吸收属性 —</div>`;
     h+=`<div style="display:flex;gap:6px;flex-wrap:wrap">`;
     h+=`<button class="ovbtn" style="flex:1;margin:0;padding:5px 8px;font-size:10px" onclick="doAbsorb('hp')"><span>🩸 生命力</span><span class="sub">最大HP+20，回复20</span></button>`;
@@ -2730,8 +2731,9 @@ function renderBattle(){
     else if(na.t==='execute')intent=`💀 你残血时将遭受处决级打击（${na.n}）· 残血时极度危险`;
     else if(na.t==='multi_a')intent=`⚔ 连续攻击 ${na.hits||2} 次（${na.n}）`;
     if(b.enemyBlk>0)intent+=`  🛡${b.enemyBlk}`;
-    // 小偷逃跑倒计时提示
+    // 小偷逃跑倒计时/残血提示
     if(b.enemy?.escapeRound){const remaining=b.enemy.escapeRound-b.turn;if(remaining<=3&&remaining>0)intent+=`  ⚠逃跑倒计时${remaining}回合`;}
+    if(b.enemy?.escapeHpPct&&b.enemyHp>b.enemyMaxHp*b.enemy.escapeHpPct&&b.enemyHp<=b.enemyMaxHp*(b.enemy.escapeHpPct+.12))intent+=`  ⚠残血将逃跑`;
     if(b.stolenCards?.length>0)intent+=`  📦已偷${b.stolenCards.length}张`;
   }else{let av=(e.atk||0)+(b.enemyStr||0);if(b.enemyWeak>0)av=Math.floor(av*.75);intent=`⚔ ${av}`;if(b.enemyBlk>0)intent+=`  🛡${b.enemyBlk}`;}
   document.getElementById('ibt').textContent=intent;
