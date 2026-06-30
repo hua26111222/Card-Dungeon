@@ -714,6 +714,7 @@ html,body{background:var(--void);color:var(--text);font-family:var(--fm);font-si
           <div class="pst">
             <span class="pht" id="pht">80/80</span>
             <div class="bb" id="bbd" style="display:none">🛡<span id="bbv">0</span></div>
+            <div class="bb" id="pod" style="display:none;color:#2d7a27;border-color:#2d7a27">☠<span id="pov">0</span></div>
           </div>
           <div class="pap"><span id="app2"></span><span class="papt">AP</span><span id="apt" style="font-size:11px;color:var(--frost);font-weight:700">3/3</span></div>
           <div class="sr" id="ps2"></div>
@@ -1922,7 +1923,6 @@ function applySingleCard(c,mult){
       floatDmg(totalDmg,'#c0392b');sfx(180+totalDmg*1.2,.15,'sawtooth',.1,-60);
       hitFX(true);
       if(totalDmg>=20)showBatText('暴击！','#ffcc44');
-      else if(times>1)showBatText('连击！','#ff8844');
       const hpRatio=battle.enemyHp/(battle.enemyMaxHp||1);
       if(totalDmg>=12&&Math.random()<.45)enemySpeech('hurt');
       else if(hpRatio<.28&&Math.random()<.55)enemySpeech('low_hp');
@@ -1932,7 +1932,7 @@ function applySingleCard(c,mult){
   const g=Math.round((c.blk||0)*mult);
   if(g>0){
     battle.blk+=g;sfx(380,.08,'square',.08,40);
-    blockFX();if(g>=12)showBatText('格挡！','#4aeeaa');
+    blockFX();
     if(battle.jugg){const pen=Math.max(0,g-(battle.enemyBlk||0));battle.enemyBlk=Math.max(0,(battle.enemyBlk||0)-g);battle.enemyHp=Math.max(0,battle.enemyHp-pen);if(pen>0){rs.dmgDealt+=pen;floatDmg(pen,'#3a5a8a');}}
     toast(`+${g} 格挡`+(mult>1?` ×${mult.toFixed(1)}`:''));
   }
@@ -2743,7 +2743,8 @@ function renderBattle(){
   document.getElementById('pht').textContent=`${p.hp}/${p.maxHp}`;
   const pb=document.getElementById('phb');pb.style.width=pp+'%';pb.className='hf pf'+(pp<30?' cr':pp<50?' lw':'');
   const bd=document.getElementById('bbd');if(b.blk>0){bd.style.display='flex';document.getElementById('bbv').textContent=b.blk;}else bd.style.display='none';
-  let ps2='';if(b.str>0)ps2+=`<div class="sb ss">力量 +${b.str}</div>`;if(b.jugg)ps2+=`<div class="sb sbk">势不可挡</div>`;if(b.lifestealMode)ps2+=`<div class="sb" style="color:var(--blood);border-color:var(--blood2)">吸血</div>`;if(b.fortified>0)ps2+=`<div class="sb" style="color:var(--slime);border-color:var(--mold)">坚固 ${b.fortified}</div>`;if(b.playerWeak>0)ps2+=`<div class="sb sw">虚弱 ${b.playerWeak}</div>`;if(b.playerPoison>0)ps2+=`<div class="sb sp">中毒↑ ${b.playerPoison}</div>`;if(b.playerStun>0)ps2+=`<div class="sb" style="color:var(--amber);border-color:var(--bone2)">眩晕 ${b.playerStun}</div>`;if(b.playerDisarm>0)ps2+=`<div class="sb" style="color:var(--ash);border-color:var(--ash2)">缴械 ${b.playerDisarm}</div>`;if(b.apLockAmt>0)ps2+=`<div class="sb" style="color:var(--violet);border-color:var(--soul)">能量封锁 -${b.apLockAmt}（${b.apLockRounds}）</div>`;
+  const pod=document.getElementById('pod');if(b.playerPoison>0){pod.style.display='flex';document.getElementById('pov').textContent=b.playerPoison;}else pod.style.display='none';
+  let ps2='';if(b.str>0)ps2+=`<div class="sb ss">力量 +${b.str}</div>`;if(b.jugg)ps2+=`<div class="sb sbk">势不可挡</div>`;if(b.lifestealMode)ps2+=`<div class="sb" style="color:var(--blood);border-color:var(--blood2)">吸血</div>`;if(b.fortified>0)ps2+=`<div class="sb" style="color:var(--slime);border-color:var(--mold)">坚固 ${b.fortified}</div>`;if(b.playerWeak>0)ps2+=`<div class="sb sw">虚弱 ${b.playerWeak}</div>`;if(b.playerStun>0)ps2+=`<div class="sb" style="color:var(--amber);border-color:var(--bone2)">眩晕 ${b.playerStun}</div>`;if(b.playerDisarm>0)ps2+=`<div class="sb" style="color:var(--ash);border-color:var(--ash2)">缴械 ${b.playerDisarm}</div>`;if(b.apLockAmt>0)ps2+=`<div class="sb" style="color:var(--violet);border-color:var(--soul)">能量封锁 -${b.apLockAmt}（${b.apLockRounds}）</div>`;
   document.getElementById('ps2').innerHTML=ps2;
   const ptit=getPlayerTitle();const pnEl=document.getElementById('pn');pnEl.textContent=ptit.icon+' '+ptit.title;pnEl.style.color=ptit.color||'var(--text)';
   const pips=Array(b.maxAp).fill(0).map((_,i)=>`<span class="app${i<b.apLeft?' on':''}"></span>`).join('');
