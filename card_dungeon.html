@@ -1043,7 +1043,7 @@ const TRAIT_DEFS={
     intro:'对方的声音如同蜜糖，眼中有某种说不清的东西在流动——你感到头脑一阵发沉。',
     quote:['乖乖站着别动……','你的力气，都是我的。','放松……放松……'],
     names:['腐化魅魔','惑术妖姬','迷幻诱惑者','深渊魅惑使'],aiType:'skill',
-    acts(atk){return[{t:'drain_ap',v:1,n:'吸取行动力'},{t:'x',v:1,n:'魅惑缴械'},{t:'a',v:atk,n:'妖力侵蚀'},{t:'z',v:1,n:'魅惑眩晕'},{t:'drain_ap',v:2,n:'精神汲取'}];}},
+    acts(atk){return[{t:'lock_ap',v:1,n:'噬力枷锁',dur:2},{t:'x',v:1,n:'魅惑缴械'},{t:'a',v:atk,n:'妖力侵蚀'},{t:'z',v:1,n:'魅惑眩晕'},{t:'lock_ap',v:2,n:'灵魂禁锢',dur:3}];}},
   '疯狂科学家':{art:'🧪',col:'#1a7a2a',desc:'毒素+虚弱叠加，把你慢慢耗死',
     intro:'试管里的液体咕嘟咕嘟冒着泡，对方对你露出异样的笑容："有趣的样本……"',
     quote:['样本请保持静止！','毒素浓度……完美！','数据，需要更多数据！'],
@@ -1850,7 +1850,7 @@ function startBattle(isElite,isBoss){
   const normalCards=battle.deck.filter(c=>!c.innate);
   battle.drawPile=shuf([...normalCards]);battle.hand=innateCards.slice(0,2);battle.discardPile=[];battle.exhPile=[];
   const startAp=player.maxAp||3;
-  battle.blk=0;battle.str=0;battle.jugg=false;battle.lifestealMode=false;battle.playerPoison=0;battle.playerWeak=0;battle.playerStun=0;battle.playerDisarm=0;battle.enemyBleed=0;battle.enemyStun=0;battle.fortified=0;battle.apLeft=startAp;battle.maxAp=startAp;battle.turn=1;battle.selectedCards=[];battle.firstCard=true;battle.nextFreeCount=0;battle.stolenCards=[];battle.exiledCards=[];
+  battle.blk=0;battle.str=0;battle.jugg=false;battle.lifestealMode=false;battle.playerPoison=0;battle.playerWeak=0;battle.playerStun=0;battle.playerDisarm=0;battle.enemyBleed=0;battle.enemyStun=0;battle.fortified=0;battle.apLeft=startAp;battle.maxAp=startAp;battle.apLockAmt=0;battle.apLockRounds=0;battle.turn=1;battle.selectedCards=[];battle.firstCard=true;battle.nextFreeCount=0;battle.stolenCards=[];battle.exiledCards=[];
   if(chapter.modifier?.onBattleStart)chapter.modifier.onBattleStart(battle,player);
   applyRelicHooks('onBattleStart',battle,player);
   const ep=document.getElementById('ep');
@@ -2029,18 +2029,19 @@ function endTurn(){
       battle.playerStun=Math.min(3,(battle.playerStun||0)+act.v);toast(`${act.n}！你被眩晕 ${act.v} 回合！`,'r');sfx(130,.2,'square',.1,-30);
     }else if(act.t==='x'){// 缴械玩家
       battle.playerDisarm=Math.min(3,(battle.playerDisarm||0)+act.v);toast(`${act.n}！你被缴械 ${act.v} 回合！`,'r');sfx(160,.15,'square',.1,-20);
-    }else if(act.t==='steal'){// 偷牌（小偷：击杀可找回；强盗：永久失去）
+    }else if(act.t==='steal'){// 偷牌（小偷：携带战利品，击杀可找回，逃跑则真正永久丢失；强盗：当场永久摧毁）
       const fromHand=battle.hand.length>0;
       const pool=fromHand?battle.hand:battle.drawPile;
       if(pool.length>0){
         const si=0|Math.random()*pool.length;const stolen=pool.splice(si,1)[0];
+        const di=battle.deck.indexOf(stolen);if(di>=0)battle.deck.splice(di,1);// 真正从持久牌组移除，不再是摆设
         if(!battle.stolenCards)battle.stolenCards=[];
         if(battle.enemy?.trait==='强盗'){
-          toast(`💢 ${act.n}！「${stolen.name}」被强盗摧毁，永久失去！`,'r');
-          // 强盗摧毁牌：不放入战斗任何牌堆（永久消失）
+          toast(`💢 ${act.n}！「${stolen.name}」被强盗当场砸烂，永久从牌组消失！`,'r');
+          // 强盗摧毁牌：已从battle.deck永久移除，不会再出现
         }else{
           battle.stolenCards.push(stolen);
-          toast(`🎭 ${act.n}！「${stolen.name}」被偷走！击杀可找回`,'r');
+          toast(`🎭 ${act.n}！「${stolen.name}」被偷走带在身上！击杀小偷才能夺回，否则它逃跑后这张牌将永久消失`,'r');
         }
         if(fromHand)updatePlayButton();
       }else toast(`🤚 ${act.n}！你没有可偷的牌`,'r');
@@ -2081,11 +2082,19 @@ function endTurn(){
         toast(`🔥 ${act.n}！「${card.name}」被焚毁，获得一张诅咒牌！`,'r');
         if(hi>=0)updatePlayButton();
       }
-    }else if(act.t==='drain_ap'){// 吸取能量（魅魔）
+    }else if(act.t==='drain_ap'){// 吸取能量（单回合）
       const drained=Math.min(act.v,battle.apLeft);
       battle.apLeft=Math.max(0,battle.apLeft-drained);
       if(drained>0)toast(`💜 ${act.n}！你的行动力被吸取 -${drained}！`,'r');
       else toast(`💜 ${act.n}！你的能量已空，无效`,'r');
+    }else if(act.t==='lock_ap'){// 封锁最大行动力，持续多回合（魅魔）
+      const dur=act.dur||2;
+      const amt=Math.min(act.v,Math.max(0,battle.maxAp-1));// 至少保留1点行动力，避免彻底卡死
+      if(amt>0){
+        battle.maxAp-=amt;battle.apLeft=Math.min(battle.apLeft,battle.maxAp);
+        battle.apLockAmt=(battle.apLockAmt||0)+amt;battle.apLockRounds=Math.max(battle.apLockRounds||0,dur);
+        toast(`🔒 ${act.n}！行动力上限被封锁 -${amt}，持续 ${dur} 回合！`,'r');
+      }else toast(`🔒 ${act.n}！但你的行动力已被封无可封`,'r');
     }
     // 吸血鬼生命偷取：攻击造成伤害时回复
     if(_eDidAtk&&_eDmg>0&&battle.enemy?.lifesteal){
@@ -2119,6 +2128,8 @@ function endTurn(){
   // 眩晕/缴械递减
   if(battle.playerStun>0)battle.playerStun--;
   if(battle.playerDisarm>0)battle.playerDisarm--;
+  // 能量封锁递减，到期归还行动力上限
+  if(battle.apLockRounds>0){battle.apLockRounds--;if(battle.apLockRounds<=0&&battle.apLockAmt>0){battle.maxAp+=battle.apLockAmt;toast(`🔓 行动力封锁解除，恢复 ${battle.apLockAmt} 点上限`,'g');battle.apLockAmt=0;}}
   if(player.hp<=0){endBattle(false);return;}
   battle.turn++;rs.turns++;battle.apLeft=battle.maxAp;battle.selectedCards=[];battle.firstCard=true;
   const drawN=chapter.modifier?.handLimit?Math.min(player.drawCount||5,chapter.modifier.handLimit):player.drawCount||5;
@@ -2131,10 +2142,11 @@ function endBattle(won){
   stopBGM();
   if(won){
     sfx(440,.1,'square',.1,220);setTimeout(()=>sfx(660,.2,'square',.1,110),120);
-    // 击杀小偷后找回被偷的牌（强盗偷的已永久销毁，不找回）
+    // 击杀小偷后找回被偷的牌，重新放回持久牌组（强盗偷的已永久销毁，不找回）
     if(battle.stolenCards?.length&&battle.enemy?.trait==='小偷'){
-      battle.stolenCards.forEach(c=>battle.discardPile.push(c));
-      toast(`🎭 击杀小偷！找回 ${battle.stolenCards.length} 张被偷的牌！`,'g');
+      battle.stolenCards.forEach(c=>{battle.discardPile.push(c);battle.deck.push(c);});
+      toast(`🎭 击杀小偷！夺回 ${battle.stolenCards.length} 张被偷的牌！`,'g');
+      battle.stolenCards=[];
     }
     // 战斗结束，归还封印牌
     if(battle.exiledCards?.length){battle.exiledCards.forEach(c=>battle.discardPile.push(c));}
@@ -2629,11 +2641,12 @@ function renderBattle(){
     else if(na.t==='w')intent=`💀 虚弱${na.v}回合（${na.n}）`;
     else if(na.t==='z')intent=`🌀 眩晕你${na.v}回合（${na.n}）· 下回合你将无法出牌`;
     else if(na.t==='x')intent=`⛓ 缴械你${na.v}回合（${na.n}）· 下回合你将无法使用攻击牌`;
-    else if(na.t==='steal'){const et=b.enemy?.trait;intent=et==='强盗'?`💢 抢夺并摧毁手牌（${na.n}）`:`🎭 偷你手牌（${na.n}）`;}
+    else if(na.t==='steal'){const et=b.enemy?.trait;intent=et==='强盗'?`💢 抢夺并当场砸烂一张牌，永久消失（${na.n}）`:`🎭 偷走一张牌带在身上，逃跑前击杀才能夺回（${na.n}）`;}
     else if(na.t==='wear_card')intent=`🔧 磨损你的卡牌（${na.n}）`;
     else if(na.t==='exile_card')intent=`💀 封印你的卡牌（${na.n}）`;
     else if(na.t==='burn_card')intent=`🔥 焚毁你的卡牌（${na.n}）`;
     else if(na.t==='drain_ap')intent=`💜 吸取你的行动力（${na.n}）`;
+    else if(na.t==='lock_ap')intent=`🔒 封锁你的行动力上限 ${na.v} 点，持续 ${na.dur||2} 回合（${na.n}）`;
     if(b.enemyBlk>0)intent+=`  🛡${b.enemyBlk}`;
     // 小偷逃跑倒计时提示
     if(b.enemy?.escapeRound){const remaining=b.enemy.escapeRound-b.turn;if(remaining<=3&&remaining>0)intent+=`  ⚠逃跑倒计时${remaining}回合`;}
@@ -2648,7 +2661,7 @@ function renderBattle(){
   document.getElementById('pht').textContent=`${p.hp}/${p.maxHp}`;
   const pb=document.getElementById('phb');pb.style.width=pp+'%';pb.className='hf pf'+(pp<30?' cr':pp<50?' lw':'');
   const bd=document.getElementById('bbd');if(b.blk>0){bd.style.display='flex';document.getElementById('bbv').textContent=b.blk;}else bd.style.display='none';
-  let ps2='';if(b.str>0)ps2+=`<div class="sb ss">力量 +${b.str}</div>`;if(b.jugg)ps2+=`<div class="sb sbk">势不可挡</div>`;if(b.lifestealMode)ps2+=`<div class="sb" style="color:var(--blood);border-color:var(--blood2)">吸血</div>`;if(b.fortified>0)ps2+=`<div class="sb" style="color:var(--slime);border-color:var(--mold)">坚固 ${b.fortified}</div>`;if(b.playerWeak>0)ps2+=`<div class="sb sw">虚弱 ${b.playerWeak}</div>`;if(b.playerPoison>0)ps2+=`<div class="sb sp">中毒↑ ${b.playerPoison}</div>`;if(b.playerStun>0)ps2+=`<div class="sb" style="color:var(--amber);border-color:var(--bone2)">眩晕 ${b.playerStun}</div>`;if(b.playerDisarm>0)ps2+=`<div class="sb" style="color:var(--ash);border-color:var(--ash2)">缴械 ${b.playerDisarm}</div>`;
+  let ps2='';if(b.str>0)ps2+=`<div class="sb ss">力量 +${b.str}</div>`;if(b.jugg)ps2+=`<div class="sb sbk">势不可挡</div>`;if(b.lifestealMode)ps2+=`<div class="sb" style="color:var(--blood);border-color:var(--blood2)">吸血</div>`;if(b.fortified>0)ps2+=`<div class="sb" style="color:var(--slime);border-color:var(--mold)">坚固 ${b.fortified}</div>`;if(b.playerWeak>0)ps2+=`<div class="sb sw">虚弱 ${b.playerWeak}</div>`;if(b.playerPoison>0)ps2+=`<div class="sb sp">中毒↑ ${b.playerPoison}</div>`;if(b.playerStun>0)ps2+=`<div class="sb" style="color:var(--amber);border-color:var(--bone2)">眩晕 ${b.playerStun}</div>`;if(b.playerDisarm>0)ps2+=`<div class="sb" style="color:var(--ash);border-color:var(--ash2)">缴械 ${b.playerDisarm}</div>`;if(b.apLockAmt>0)ps2+=`<div class="sb" style="color:var(--violet);border-color:var(--soul)">能量封锁 -${b.apLockAmt}（${b.apLockRounds}）</div>`;
   document.getElementById('ps2').innerHTML=ps2;
   const ptit=getPlayerTitle();const pnEl=document.getElementById('pn');pnEl.textContent=ptit.icon+' '+ptit.title;pnEl.style.color=ptit.color||'var(--text)';
   const pips=Array(b.maxAp).fill(0).map((_,i)=>`<span class="app${i<b.apLeft?' on':''}"></span>`).join('');
