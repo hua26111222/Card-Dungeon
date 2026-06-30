@@ -1048,7 +1048,7 @@ const TRAIT_DEFS={
     intro:'对方的皮肤白如冷玉，嘴角残留着干涸的血迹，那双红眸直盯着你的喉咙。',
     quote:['你的血……真香。','再靠近一点……','别挣扎，很快就结束了。'],
     names:['夜族血爵','嗜血贵族','暗影血魔','永恒血渴者'],aiType:'skill',lifesteal:true,
-    acts(atk){return[{t:'a',v:atk,n:'吸血啃噬'},{t:'h',v:Math.round(atk*.7),n:'血液汲取'},{t:'a',v:Math.round(atk*1.1),n:'记忆掠食'},{t:'a',v:Math.round(atk*1.2),n:'死亡之噬'},{t:'h',v:Math.round(atk*.5),n:'暗夜复苏'}];}},
+    acts(atk){return[{t:'a',v:atk,n:'吸血啃噬'},{t:'h',v:Math.round(atk*.7),n:'血液汲取'},{t:'drain_maxhp',pct:.045,n:'血脉烙印'},{t:'a',v:Math.round(atk*1.2),n:'死亡之噬'},{t:'h',v:Math.round(atk*.5),n:'暗夜复苏'}];}},
   '魅魔':{art:'💜',col:'#7a0a6a',desc:'吸走行动力，让你每回合几乎无法出牌',
     intro:'对方的声音如同蜜糖，眼中有某种说不清的东西在流动——你感到头脑一阵发沉。',
     quote:['乖乖站着别动……','你的力气，都是我的。','放松……放松……'],
@@ -1058,27 +1058,27 @@ const TRAIT_DEFS={
     intro:'试管里的液体咕嘟咕嘟冒着泡，对方对你露出异样的笑容："有趣的样本……"',
     quote:['样本请保持静止！','毒素浓度……完美！','数据，需要更多数据！'],
     names:['疯狂炼金师','毒物痴迷者','腐蚀实验者','混沌药剂师'],aiType:'skill',
-    acts(atk){return[{t:'p',v:4,n:'剧毒喷射'},{t:'w',v:2,n:'虚弱毒素'},{t:'a',v:atk,n:'玻璃瓶投掷'},{t:'p',v:3,n:'毒雾弥漫'},{t:'w',v:1,n:'腐蚀药剂'}];}},
+    acts(atk){return[{t:'p',v:4,n:'剧毒喷射'},{t:'w',v:2,n:'虚弱毒素'},{t:'a',v:atk,n:'玻璃瓶投掷'},{t:'mutate_card',n:'基因污染注射'},{t:'p',v:3,n:'毒雾弥漫'}];}},
   '游荡者':{art:'👻',col:'#3a3a6a',desc:'若隐若现，窃取记忆与血气',
     intro:'空气骤然变冷，一个半透明的身影飘在原地——它没有表情，只是静静盯着你。',
     quote:['……（沉默）','嘶——','你……想起了什么？'],
     names:['迷途幽灵','怨念游魂','诅咒鬼影','虚空游荡者'],aiType:'skill',
-    acts(atk){return[{t:'z',v:1,n:'恐惧凝视'},{t:'a',v:atk,n:'虚空触碰'},{t:'steal',v:1,n:'记忆侵蚀'},{t:'p',v:2,n:'灵能腐蚀'},{t:'z',v:2,n:'噩梦缠绕'}];}},
+    acts(atk){return[{t:'z',v:1,n:'恐惧凝视'},{t:'a',v:atk,n:'虚空触碰'},{t:'exile_card',v:1,n:'灵体封印'},{t:'p',v:2,n:'灵能腐蚀'},{t:'z',v:2,n:'噩梦缠绕'}];}},
   '控制师':{art:'⛓',col:'#1a5a8a',desc:'先眩晕再缴械，让你彻底动弹不得',
     intro:'铁链在对方手中哗哗作响，他慢条斯理地走近，神情冷静得像在处理例行工作。',
     quote:['别反抗。','老实点。','缴械——这是命令。'],
     names:['铁链缴械师','枷锁束缚者','压制镇守者','禁锢守卫'],aiType:'skill',
-    acts(atk){return[{t:'z',v:2,n:'眩晕重击'},{t:'x',v:2,n:'铁链缴械'},{t:'a',v:atk,n:'震慑冲击'},{t:'z',v:1,n:'再度眩晕'},{t:'x',v:1,n:'铁枷锁链'}];}},
+    acts(atk){return[{t:'z',v:2,n:'眩晕重击'},{t:'x',v:2,n:'铁链缴械'},{t:'a',v:atk,n:'震慑冲击'},{t:'lock_ap',v:1,dur:2,n:'全面禁锢'},{t:'x',v:1,n:'铁枷锁链'}];}},
   '暴君':{art:'💀',col:'#8a1a1a',desc:'持续强化自身，最终以毁灭级伤害秒杀',
     intro:'这个体型不像普通人——对方呼出的每口气都像风暴，踩在地上都发出轰鸣。',
     quote:['哈哈哈！有趣！','再来！再来！','我要你的命——'],
     names:['暴怒霸主','嗜杀暴君','血腥屠夫','无情蛮王'],aiType:'power',
-    acts(atk){return[{t:'a',v:atk,n:'猛力斩击'},{t:'s',v:2,n:'暴怒涌现'},{t:'a',v:Math.round(atk*1.2),n:'愤怒猛冲'},{t:'s',v:1,n:'血腥狂热'},{t:'a',v:Math.round(atk*1.5),n:'毁灭重压'}];}},
+    acts(atk){return[{t:'a',v:atk,n:'猛力斩击'},{t:'s',v:2,n:'暴怒涌现'},{t:'a',v:Math.round(atk*1.2),n:'愤怒猛冲'},{t:'s',v:1,n:'血腥狂热'},{t:'execute',v:Math.round(atk*1.3),thresh:.35,n:'终焉处决'}];}},
   '掠夺者':{art:'⚔',col:'#6a4a0a',desc:'攻守兼备，越打越强',
     intro:'对方全身披甲，战斗姿态一看就是久经沙场——他评估了你一眼，嘴角微微上扬。',
     quote:['准备好了吗？','不错的架势。','这才叫战斗！'],
     names:['铁甲掠夺者','战场武装狂','狂热战士','铁血战狂'],aiType:'power',
-    acts(atk){return[{t:'s',v:1,n:'战意强化'},{t:'a',v:atk,n:'猛力冲击'},{t:'d',v:Math.round(atk*.5),n:'铁甲格挡'},{t:'a',v:Math.round(atk*1.2),n:'重甲碾压'},{t:'s',v:2,n:'战场磨砺'}];}},
+    acts(atk){return[{t:'s',v:1,n:'战意强化'},{t:'a',v:atk,n:'猛力冲击'},{t:'d',v:Math.round(atk*.5),n:'铁甲格挡'},{t:'multi_a',v:Math.round(atk*.65),hits:3,n:'狂风骤雨连击'},{t:'s',v:2,n:'战场磨砺'}];}},
 };
 // 每种 trait 对应的战利品牌池（5张，战后随机取3张展示）
 const _TRAIT_LOOT={
@@ -2090,7 +2090,7 @@ function endTurn(){
       battle.apLeft=Math.max(0,battle.apLeft-drained);
       if(drained>0)toast(`💜 ${act.n}！你的行动力被吸取 -${drained}！`,'r');
       else toast(`💜 ${act.n}！你的能量已空，无效`,'r');
-    }else if(act.t==='lock_ap'){// 封锁最大行动力，持续多回合（魅魔）
+    }else if(act.t==='lock_ap'){// 封锁最大行动力，持续多回合（魅魔/控制师）
       const dur=act.dur||2;
       const amt=Math.min(act.v,Math.max(0,battle.maxAp-1));// 至少保留1点行动力，避免彻底卡死
       if(amt>0){
@@ -2098,6 +2098,51 @@ function endTurn(){
         battle.apLockAmt=(battle.apLockAmt||0)+amt;battle.apLockRounds=Math.max(battle.apLockRounds||0,dur);
         toast(`🔒 ${act.n}！行动力上限被封锁 -${amt}，持续 ${dur} 回合！`,'r');
       }else toast(`🔒 ${act.n}！但你的行动力已被封无可封`,'r');
+    }else if(act.t==='drain_maxhp'){// 永久夺取生命上限，转移给吸血鬼自身（吸血鬼专属·血印）
+      const amt=Math.max(1,Math.round(player.maxHp*(act.pct||.04)));
+      player.maxHp=Math.max(10,player.maxHp-amt);player.hp=Math.min(player.hp,player.maxHp);
+      battle.enemyMaxHp+=amt;battle.enemyHp=Math.min(battle.enemyMaxHp,battle.enemyHp+amt);
+      toast(`🩸 ${act.n}！「血印」永久夺走你 ${amt} 点生命上限，转移给了${battle.enemy.name}！`,'r');
+      renderHud();
+    }else if(act.t==='mutate_card'){// 基因污染：永久将一张牌原地变异为诅咒（疯狂科学家专属）
+      const pool4=[...battle.hand,...battle.drawPile];
+      if(pool4.length>0){
+        const si=0|Math.random()*pool4.length;const card=pool4[si];
+        if(card.rar!=='curse'){
+          const hi=battle.hand.indexOf(card);const di=battle.drawPile.indexOf(card);
+          const curse=gc('regret');
+          if(hi>=0)battle.hand[hi]=curse;else if(di>=0)battle.drawPile[di]=curse;
+          const pi=battle.deck.indexOf(card);if(pi>=0)battle.deck[pi]=curse;
+          toast(`🧪 ${act.n}！「${card.name}」被注入异变毒素，永久变成了诅咒牌！`,'r');
+          if(hi>=0)updatePlayButton();
+        }
+      }
+    }else if(act.t==='execute'){// 处决：你残血时打出毁灭性伤害，否则只是普通一击（暴君专属·斩杀）
+      _eDidAtk=true;
+      if(Math.random()<.32)enemySpeech('taunt');
+      const hpPct=player.hp/player.maxHp;
+      const isExec=hpPct<=(act.thresh||.35);
+      let eatk=(isExec?act.v*2.2:act.v)+(battle.enemyStr||0);if(battle.enemyWeak>0)eatk=Math.floor(eatk*.75);
+      if(battle.fortified>0){eatk=Math.floor(eatk*.5);battle.fortified--;toast('🛡 坚固减伤');}
+      eatk=Math.round(eatk);
+      const hadBlk=battle.blk>0;
+      const dmg=Math.max(0,eatk-battle.blk);player.hp=Math.max(0,player.hp-dmg);battle.blk=Math.max(0,battle.blk-eatk);rs.dmgTaken+=dmg;_eDmg=dmg;
+      if(dmg>0){floatDmg(dmg,'#8b1a1a',true);sfx(100+dmg,.2,'sawtooth',.12,-40);hitFX(false);if(isExec)showBatText('处决！','#ff0000');else if(dmg>=18)showBatText('重伤！','#ff4444');if(Math.random()<.4)enemySpeech('win');}
+      else if(hadBlk){blockFX();showBatText('完美防御','#44ddaa');}
+      if(isExec)toast(`💀 ${act.n}！你残血状态触发处决，遭受毁灭性打击！`,'r');
+    }else if(act.t==='multi_a'){// 连续多次攻击（掠夺者专属·连击）
+      _eDidAtk=true;
+      const hits=act.hits||2;let totalDmg=0;
+      for(let i=0;i<hits;i++){
+        let eatk=act.v+(battle.enemyStr||0);if(battle.enemyWeak>0)eatk=Math.floor(eatk*.75);
+        if(battle.fortified>0){eatk=Math.floor(eatk*.5);battle.fortified--;}
+        eatk=Math.round(eatk);
+        const dmg=Math.max(0,eatk-battle.blk);player.hp=Math.max(0,player.hp-dmg);battle.blk=Math.max(0,battle.blk-eatk);rs.dmgTaken+=dmg;totalDmg+=dmg;
+        if(dmg>0){floatDmg(dmg,'#8b1a1a',true);hitFX(false);}
+      }
+      _eDmg=totalDmg;
+      if(totalDmg>0){sfx(100+totalDmg,.2,'sawtooth',.12,-40);showBatText(`连击 x${hits}！`,'#ffaa00');if(Math.random()<.4)enemySpeech('win');}
+      toast(`⚔ ${act.n}！连续打出 ${hits} 次攻击，总计 ${totalDmg} 伤害！`,'r');
     }
     // 吸血鬼生命偷取：攻击造成伤害时回复
     if(_eDidAtk&&_eDmg>0&&battle.enemy?.lifesteal){
@@ -2659,6 +2704,10 @@ function renderBattle(){
     else if(na.t==='burn_card')intent=`🔥 焚毁你的卡牌（${na.n}）`;
     else if(na.t==='drain_ap')intent=`💜 吸取你的行动力（${na.n}）`;
     else if(na.t==='lock_ap')intent=`🔒 封锁你的行动力上限 ${na.v} 点，持续 ${na.dur||2} 回合（${na.n}）`;
+    else if(na.t==='drain_maxhp')intent=`🩸 永久夺走你的生命上限（${na.n}）· 不会随战斗结束恢复`;
+    else if(na.t==='mutate_card')intent=`🧪 将你一张牌永久变异为诅咒牌（${na.n}）`;
+    else if(na.t==='execute')intent=`💀 你残血时将遭受处决级打击（${na.n}）· 残血时极度危险`;
+    else if(na.t==='multi_a')intent=`⚔ 连续攻击 ${na.hits||2} 次（${na.n}）`;
     if(b.enemyBlk>0)intent+=`  🛡${b.enemyBlk}`;
     // 小偷逃跑倒计时提示
     if(b.enemy?.escapeRound){const remaining=b.enemy.escapeRound-b.turn;if(remaining<=3&&remaining>0)intent+=`  ⚠逃跑倒计时${remaining}回合`;}
