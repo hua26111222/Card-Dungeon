@@ -1871,6 +1871,7 @@ function startBattle(isElite,isBoss){
   battle.drawPile=shuf([...normalCards]);battle.hand=innateCards.slice(0,2);battle.discardPile=[];battle.exhPile=[];
   const startAp=player.maxAp||3;
   battle.blk=0;battle.str=0;battle.jugg=false;battle.lifestealMode=false;battle.playerPoison=0;battle.playerWeak=0;battle.playerStun=0;battle.playerDisarm=0;battle.enemyBleed=0;battle.enemyStun=0;battle.fortified=0;battle.apLeft=startAp;battle.maxAp=startAp;battle.apLockAmt=0;battle.apLockRounds=0;battle.turn=1;battle.selectedCards=[];battle.firstCard=true;battle.nextFreeCount=0;battle.stolenCards=[];battle.exiledCards=[];battle.log=[];
+  logBattle(`⚔ 战斗开始：遭遇 ${en.name}`,'sys');
   if(chapter.modifier?.onBattleStart)chapter.modifier.onBattleStart(battle,player);
   applyRelicHooks('onBattleStart',battle,player);
   const ep=document.getElementById('ep');
@@ -2831,6 +2832,7 @@ function renderTokens(){
 }
 function showView(name){
   document.body.style.overflow=name==='bv'?'hidden':'';
+  if(name!=='bv'){const bl=document.getElementById('blogmodal');if(bl)bl.style.display='none';}
   const map={hv:'#hv',ci:'#ci',mv:'#mv',bv:'#bv',ov:'#ov',gov:'#gov',lbv:'#lbv'};
   const flex=new Set(['hv','ci','gov','lbv']);
   Object.entries(map).forEach(([k,sel])=>{const el=document.querySelector(sel);if(!el)return;const show=k===name;el.style.display=show?(k==='bv'?'grid':flex.has(k)?'flex':'block'):'none';if(show)el.classList.add('vi');});
