@@ -537,6 +537,12 @@ html,body{background:var(--void);color:var(--text);font-family:var(--fm);font-si
 #bbd.blk-pop{animation:blk-pop .32s ease forwards}
 #btxt{position:absolute;left:50%;top:34%;transform:translateX(-50%) skewX(-5deg);pointer-events:none;font-family:var(--fs);font-size:22px;font-weight:700;letter-spacing:4px;text-shadow:0 2px 12px rgba(0,0,0,.95),0 0 30px currentColor;z-index:20;white-space:nowrap;display:none;opacity:0}
 #btxt.show{display:block;opacity:1;animation:btxt-in .26s cubic-bezier(.23,1,.32,1) forwards}
+#blog-feed{position:absolute;left:50%;bottom:10px;transform:translateX(-50%);z-index:18;text-align:center;pointer-events:none;width:92%;max-width:280px}
+#blog-feed .bfm{display:block;font-size:11px;padding:3px 10px;background:rgba(7,5,14,.85);border:1px solid var(--crack2);letter-spacing:.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;animation:bfin .25s ease forwards}
+#blog-feed .bfm.blog-pl{color:var(--frost)}
+#blog-feed .bfm.blog-en{color:#e08a8a}
+#blog-feed .bfm.blog-sys{color:var(--text2)}
+@keyframes bfin{0%{opacity:0;transform:translateY(6px)}100%{opacity:1;transform:translateY(0)}}
 #enemy-speech{position:absolute;right:8px;top:16px;max-width:108px;background:rgba(12,6,22,.94);border:1px solid rgba(154,90,191,.55);border-radius:8px 8px 0 8px;padding:6px 8px;font-size:9px;color:var(--bone);z-index:16;pointer-events:none;line-height:1.65;display:none;word-break:break-all;transition:opacity .3s}
 #enemy-speech.show{display:block;animation:speech-pop .18s ease forwards}
 #enemy-speech::after{content:'';position:absolute;bottom:-7px;right:10px;border-width:7px 7px 0;border-style:solid;border-color:rgba(154,90,191,.55) transparent transparent}
@@ -717,13 +723,14 @@ html,body{background:var(--void);color:var(--text);font-family:var(--fm);font-si
         <span onclick="showDeck()" style="cursor:pointer;color:var(--frost);text-decoration:underline;text-underline-offset:2px;text-decoration-color:rgba(122,170,191,.4)">牌库 <b id="ddr">0</b></span>
         <span>弃牌 <b id="ddc">0</b></span>
         <span>消耗 <b id="dex">0</b></span>
-        <span onclick="showBattleLog()" style="cursor:pointer;color:var(--frost);text-decoration:underline;text-underline-offset:2px;text-decoration-color:rgba(122,170,191,.4)">📜 战斗日志</span>
+
         <span style="margin-left:auto;color:var(--text3)">回合 <b id="dtn" style="color:var(--text2)">1</b></span>
       </div>
       <div class="bscene">
         <div class="etag" id="etag">战斗遭遇</div>
         <div id="btxt"></div>
         <div id="enemy-speech"></div>
+        <div id="blog-feed"></div>
         <div class="bchar-p">
           <div class="pav" id="pav">🗡</div>
           <div class="binfo-p">
@@ -817,15 +824,6 @@ html,body{background:var(--void);color:var(--text);font-family:var(--fm);font-si
       <button class="btn" style="flex:none;padding:5px 16px;font-size:10px" onclick="closeDeck()">✕ 关闭</button>
     </div>
     <div id="dm-cards"></div>
-  </div>
-</div>
-<div id="blogmodal" style="display:none;position:fixed;inset:0;z-index:9000;background:rgba(7,5,10,.96);overflow-y:auto;padding:16px 12px">
-  <div style="max-width:420px;margin:0 auto">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--crack)">
-      <div style="font-family:var(--fs);color:var(--bone);font-size:14px;letter-spacing:3px;text-shadow:0 0 12px rgba(200,169,110,.3)">📜 战斗日志</div>
-      <button class="btn" style="flex:none;padding:5px 16px;font-size:10px" onclick="closeBattleLog()">✕ 关闭</button>
-    </div>
-    <div id="blog-list"></div>
   </div>
 </div>
 <div id="relicmodal" style="display:none"></div>
@@ -3100,7 +3098,7 @@ function renderTokens(){
 }
 function showView(name){
   document.body.style.overflow=name==='bv'?'hidden':'';
-  if(name!=='bv'){const bl=document.getElementById('blogmodal');if(bl)bl.style.display='none';}
+  window._bfq=[];window._bfp=false;const bf=document.getElementById('blog-feed');if(bf)bf.innerHTML='';
   const map={hv:'#hv',ci:'#ci',mv:'#mv',bv:'#bv',ov:'#ov',gov:'#gov',lbv:'#lbv'};
   const flex=new Set(['hv','ci','gov','lbv']);
   Object.entries(map).forEach(([k,sel])=>{const el=document.querySelector(sel);if(!el)return;const show=k===name;el.style.display=show?(k==='bv'?'flex':flex.has(k)?'flex':'block'):'none';if(show)el.classList.add('vi');});
@@ -3111,18 +3109,16 @@ function logBattle(msg,who='sys'){
   if(!battle.log)battle.log=[];
   battle.log.push({msg,who,t:battle.turn||1});
   if(battle.log.length>60)battle.log.shift();
+  if(phase===PH.BATTLE){if(!window._bfq)window._bfq=[];window._bfq.push({msg,who});if(!window._bfp)_runBfq();}
 }
-function showBattleLog(){
-  const wrap=document.getElementById('blog-list');
-  if(!battle.log||!battle.log.length){wrap.innerHTML=`<div style="text-align:center;padding:30px 0;color:var(--text3);font-size:12px">本场战斗暂无记录</div>`;}
-  else{
-    wrap.innerHTML=[...battle.log].reverse().map(e=>
-      `<div class="blog-row blog-${e.who}"><span class="blog-t">回合${e.t}</span><span>${e.msg}</span></div>`
-    ).join('');
-  }
-  document.getElementById('blogmodal').style.display='block';
+function _runBfq(){
+  const el=document.getElementById('blog-feed');
+  if(!window._bfq||!window._bfq.length||!el){window._bfp=false;if(el)el.innerHTML='';return;}
+  window._bfp=true;
+  const{msg,who}=window._bfq.shift();
+  el.innerHTML=`<div class="bfm blog-${who}">${msg}</div>`;
+  setTimeout(_runBfq,1600);
 }
-function closeBattleLog(){document.getElementById('blogmodal').style.display='none';}
 function floatDmg(n,color,isPlayer=false){const el=document.createElement('div');el.className='df';el.style.color=color;el.textContent='-'+n;const b=document.getElementById('app').getBoundingClientRect();el.style.left=(b.left+b.width*.5)+'px';el.style.top=(isPlayer?b.top+b.height*.6:b.top+b.height*.22)+'px';document.body.appendChild(el);setTimeout(()=>el.remove(),950);}
 // ── KOF战斗特效 ──
 function hitFX(isEnemy){
