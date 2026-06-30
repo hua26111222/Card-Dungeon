@@ -712,7 +712,7 @@ html,body{background:var(--void);color:var(--text);font-family:var(--fm);font-si
           <div class="pn" id="pn">无名旅者</div>
           <div class="hbg" style="max-width:88px"><div class="hf pf" id="phb" style="width:100%"></div></div>
           <div class="pst">
-            <span class="pht" id="pht">80/80</span>
+            <span class="pht" id="pht">50/50</span>
             <div class="bb" id="bbd" style="display:none">🛡<span id="bbv">0</span></div>
             <div class="bb" id="pod" style="display:none;color:#2d7a27;border-color:#2d7a27">☠<span id="pov">0</span></div>
           </div>
@@ -1173,7 +1173,7 @@ const EVTS=[
     {text:'痛饮圣水',sub:'恢复40%最大HP',fn:(p)=>{const em=window._mapEffectMult||1;const h=Math.floor(p.maxHp*.4*em);p.hp=Math.min(p.maxHp,p.hp+h);return`+${h} HP！圣泉祝福`}},
     {text:'净化诅咒',sub:'移除1张诅咒牌，恢复15HP',fn:(p,b)=>{const em=window._mapEffectMult||1;const ci=b.deck.findIndex(c=>c.kind==='crs');if(ci>=0){const h=15*em;b.deck.splice(ci,1);p.hp=Math.min(p.maxHp,p.hp+h);return`移除诅咒！+${h}HP`}const h2=30*em;p.hp=Math.min(p.maxHp,p.hp+h2);return`无诅咒可除，额外回复${h2}HP`}}]},
   {difficulty:'hard',art:'☠',title:'暗影裂变',tag:'☠ 黑暗降临',desc:'黑暗从地缝中涌出，你感到某种邪恶力量正在渗入你的牌组……',choices:[
-    {text:'迎战（强制战斗）',sub:'战胜后获得2张稀有卡',fn:(p,b)=>{const cost=Math.floor(p.maxHp*.35);p.hp=Math.max(1,p.hp-cost);return'reward_rare2'}},
+    {text:'迎战（强制战斗）',sub:'与黑暗化身真实一战，战胜后获得2张稀有卡',fn:()=>{const em=window._mapEffectMult||1;window._eventRareCount=em>1?4:2;window._mapCard={_hasDims:true,combatPower:'强壮',cardDmg:'撕裂',trait:'暴君',enemyName:'裂变暗影'};return'event_battle'}},
     {text:'逃跑',sub:'失去 35% HP，诅咒牌进入牌组',fn:(p,b)=>{const cost=Math.floor(p.maxHp*.35);p.hp=Math.max(1,p.hp-cost);b.deck.push(gc('regret'));return`逃脱！-${cost}HP +诅咒`}}]},
   {difficulty:'easy',art:'🧓',title:'老商人',tag:'🛒 路边摊贩',desc:'"你看起来很需要帮助，孩子。"白胡子老人推开满载货物的推车，挑出几件好东西。',choices:[
     {text:'升级最贵的牌（免费）',sub:'自动强化费用最高的攻击牌',fn:(p,b)=>{const up=b.deck.filter(c=>c.kind==='atk');if(!up.length)return'没有攻击牌';up.sort((a,z)=>z.cost-a.cost);upgradeCard(up[0]);return`强化了：${up[0].name}`}},
@@ -1197,7 +1197,7 @@ function cheatClick(){
     if(phase===PH.BATTLE)renderBattle();
   }
 }
-let player={hp:80,maxHp:80,gold:80,floor:1,kills:0,steps:0,drawCount:5,maxAp:3};
+let player={hp:50,maxHp:50,gold:80,floor:1,kills:0,steps:0,drawCount:5,maxAp:3};
 let chapter={floor:1,theme:null,modifier:null,boss:null};
 let battle={enemy:null,enemyHp:0,enemyMaxHp:0,enemyBlk:0,enemyStr:0,enemyWeak:0,enemyVuln:0,enemyPoison:0,enemyBleed:0,enemyStun:0,enemyActions:[],enemyActionIdx:0,nextEnemyAction:null,deck:[],drawPile:[],hand:[],discardPile:[],exhPile:[],apLeft:3,maxAp:3,blk:0,str:0,jugg:false,lifestealMode:false,fortified:0,playerPoison:0,playerWeak:0,playerStun:0,playerDisarm:0,turn:1,selectedCards:[],firstCard:true,nextFreeCount:0};
 let mapData={rows:[],step:0,playerCol:2,history:[]};
@@ -1374,7 +1374,7 @@ const CardGen={
 
 function calcPS(){
   const ds=battle.deck.reduce((s,c)=>{if(!c)return s;const w={common:1,uncommon:2,rare:4,curse:-1};return s+(w[c.rar]||1)+(cardValue(c)||0)*.05;},0);
-  return Math.round(ds+(player.maxHp/80)*20+chapter.floor*8+player.kills*2+Math.floor(player.gold/20));
+  return Math.round(ds+(player.maxHp/50)*20+chapter.floor*8+player.kills*2+Math.floor(player.gold/20));
 }
 function buildEnemy(tmpl,isElite,isBoss){
   const fp=chapter.floor;
@@ -2463,6 +2463,7 @@ function resolveEvent(i){
   const em=window._mapEffectMult||1;
   if(r==='reward_rare'){window._eventRareCount=em>1?2:1;showReward(0);return;}
   if(r==='reward_rare2'){window._eventRareCount=em>1?4:2;showReward(0);return;}
+  if(r==='event_battle'){showPreBattle(false,false);return;}
   if(r&&r!=='pass')toast(r,r.includes('-')||r.includes('陷阱')||r.includes('输')?'r':'g');
   renderHud();renderTokens();setTimeout(backToMap,500);
 }
@@ -3971,7 +3972,7 @@ function finishCutscene(){
 }
 function initGame(){
   stopBGM();navClear();
-  player={hp:80,maxHp:80,gold:80,floor:1,kills:0,steps:0,drawCount:5,maxAp:3};
+  player={hp:50,maxHp:50,gold:80,floor:1,kills:0,steps:0,drawCount:5,maxAp:3};
   chapter={floor:1,theme:null,modifier:null,boss:null};
   const startDeck=buildStarterDeck();
   clearLegacy();
