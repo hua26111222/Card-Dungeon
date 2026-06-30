@@ -122,9 +122,11 @@ html,body{background:var(--void);color:var(--text);font-family:var(--fm);font-si
 .hcrb.rcu{color:var(--soul);border-color:var(--violet)}
 
 /* ═══ 战斗 KOF格斗风格 ═══ */
-#bv{display:none;grid-template-areas:"scene""hand""buttons""stats";grid-template-columns:1fr;grid-template-rows:1fr auto auto auto;height:calc(100dvh - 62px)}
-.bscene{grid-area:scene;position:relative;overflow:hidden;display:flex;align-items:stretch;
-  background:#07050e;min-height:140px}
+#bv{display:none;flex-direction:column;height:calc(100dvh - 62px)}
+.bv-top{flex:0 0 50%;display:flex;flex-direction:column;min-height:0;overflow:hidden}
+.bv-bottom{flex:0 0 50%;display:flex;flex-direction:column;min-height:0;overflow:hidden}
+.bscene{flex:1;min-height:0;position:relative;overflow:hidden;display:flex;align-items:stretch;
+  background:#07050e}
 .bscene::before{content:'';position:absolute;left:0;right:0;bottom:82px;height:2px;z-index:1;pointer-events:none;
   background:linear-gradient(90deg,transparent 0%,rgba(200,169,110,.22) 25%,rgba(200,169,110,.1) 50%,rgba(200,169,110,.22) 75%,transparent 100%);
   box-shadow:0 0 18px rgba(200,169,110,.08)}
