@@ -1132,51 +1132,51 @@ function buildEnemyFromDims(card,isElite,ps){
 const EVTS=[
   {difficulty:'hard',art:'🗿',title:'血祭祭坛',tag:'☠ 神圣遗址',desc:'古老祭坛嗡嗡作响，仿佛渴望着鲜血。祭品越多，馈赠越重。',choices:[
     {text:'献祭 25% HP',sub:'立即获得稀有卡牌',fn:(p,b)=>{const cost=Math.floor(p.maxHp*.25);if(p.hp>cost+5){p.hp-=cost;return'reward_rare'}return'HP不足'}},
-    {text:'献祭 15% HP',sub:'获得 80 金币',fn:(p,b,ch)=>{const cost=Math.floor(p.maxHp*.15);if(p.hp>cost+5){const g=Math.floor(80*(1+ch.floor*.2));p.hp-=cost;p.gold+=g;return`+${g}金币`}return'HP不足'}},
+    {text:'献祭 15% HP',sub:'获得 80 金币',fn:(p,b,ch)=>{const cost=Math.floor(p.maxHp*.15);if(p.hp>cost+5){const em=window._mapEffectMult||1;const g=Math.floor(80*(1+ch.floor*.2))*em;p.hp-=cost;p.gold+=g;return`+${g}金币`}return'HP不足'}},
     {text:'转身离去',sub:'什么都不发生',fn:()=>'pass'}]},
   {difficulty:'hard',art:'🎲',title:'赌徒骰盅',tag:'♦ 命运一掷',desc:'"敢不敢赌？赢了翻倍，输了……哈！"矮个子商人嬉笑道。',choices:[
-    {text:'押 40 金币',sub:'50% → +80金 / 50% → 失去40金',fn:(p,b,ch)=>{if(p.gold<40){return'金币不足'}const win=Math.random()<.5;if(win){p.gold+=80;return'+80金币 赢了！'}else{p.gold-=40;return'-40金币 输了…'}}},
-    {text:'押 HP 换金',sub:'失去20%HP，获得 60 金币',fn:(p,b,ch)=>{const cost=Math.floor(p.maxHp*.2);if(p.hp>cost+5){const g=Math.floor(60*(1+ch.floor*.15));p.hp-=cost;p.gold+=g;return`-${cost}HP +${g}金币`}return'HP不足'}},
+    {text:'押 40 金币',sub:'50% → +80金 / 50% → 失去40金',fn:(p,b,ch)=>{if(p.gold<40){return'金币不足'}const win=Math.random()<.5;const em=window._mapEffectMult||1;if(win){const g=80*em;p.gold+=g;return`+${g}金币 赢了！`}else{p.gold-=40;return'-40金币 输了…'}}},
+    {text:'押 HP 换金',sub:'失去20%HP，获得 60 金币',fn:(p,b,ch)=>{const cost=Math.floor(p.maxHp*.2);if(p.hp>cost+5){const em=window._mapEffectMult||1;const g=Math.floor(60*(1+ch.floor*.15))*em;p.hp-=cost;p.gold+=g;return`-${cost}HP +${g}金币`}return'HP不足'}},
     {text:'不赌',sub:'老老实实继续',fn:()=>'pass'}]},
   {difficulty:'easy',art:'✨',title:'命运岔路',tag:'✦ 随机事件',desc:'"旅行者，你走在刀锋上。选择一种命运。"',choices:[
     {text:'强化之路',sub:'获得一张稀有卡牌',fn:()=>'reward_rare'},
-    {text:'财富之路',sub:'获得 100 金币',fn:(p,b,ch)=>{const g=Math.floor(100*(1+ch.floor*.1));p.gold+=g;return`+${g}金币`}},
-    {text:'力量之路',sub:'+20 最大HP 并恢复至满',fn:(p)=>{p.maxHp+=20;p.hp=p.maxHp;return'最大HP+20 已满血'}}]},
+    {text:'财富之路',sub:'获得 100 金币',fn:(p,b,ch)=>{const em=window._mapEffectMult||1;const g=Math.floor(100*(1+ch.floor*.1))*em;p.gold+=g;return`+${g}金币`}},
+    {text:'力量之路',sub:'+20 最大HP 并恢复至满',fn:(p)=>{const em=window._mapEffectMult||1;const add=20*em;p.maxHp+=add;p.hp=p.maxHp;return`最大HP+${add} 已满血`}}]},
   {difficulty:'hard',art:'💀',title:'诅咒商人',tag:'☠ 危险遭遇',desc:'"出售力量，只需要一点代价……"黑袍下的手指向你的心脏。',choices:[
-    {text:'诅咒换力量',sub:'牌组加诅咒牌，最大HP+30，获得120金币',fn:(p,b)=>{b.deck.push(gc('regret'));p.maxHp+=30;p.hp=Math.min(p.maxHp,p.hp+30);p.gold+=120;return`+诅咒 +30maxHP +120金币`}},
-    {text:'诅咒换金币',sub:'牌组加2张诅咒，获得 150 金币',fn:(p,b,ch)=>{const g=Math.floor(150*(1+ch.floor*.15));p.gold+=g;b.deck.push(gc('regret'));b.deck.push(gc('regret'));return`+${g}金币 +2诅咒`}},
+    {text:'诅咒换力量',sub:'牌组加诅咒牌，最大HP+30，获得120金币',fn:(p,b)=>{const em=window._mapEffectMult||1;const addHp=30*em,addGold=120*em;b.deck.push(gc('regret'));p.maxHp+=addHp;p.hp=Math.min(p.maxHp,p.hp+addHp);p.gold+=addGold;return`+诅咒 +${addHp}maxHP +${addGold}金币`}},
+    {text:'诅咒换金币',sub:'牌组加2张诅咒，获得 150 金币',fn:(p,b,ch)=>{const em=window._mapEffectMult||1;const g=Math.floor(150*(1+ch.floor*.15))*em;p.gold+=g;b.deck.push(gc('regret'));b.deck.push(gc('regret'));return`+${g}金币 +2诅咒`}},
     {text:'果断拒绝',sub:'逃离但失去 8 HP（踢伤了）',fn:(p)=>{p.hp=Math.max(1,p.hp-8);return'-8 HP 跑路成功'}}]},
   {difficulty:'neutral',art:'🌌',title:'虚空裂缝',tag:'✦ 维度异常',desc:'现实在你眼前撕裂。裂缝另一端……是未知的馈赠，还是诅咒？',choices:[
-    {text:'跳进去',sub:'随机：+大量HP / +大量金 / 失去30%HP',fn:(p,b,ch)=>{const r=Math.random();if(r<.35){const h=Math.floor(p.maxHp*.5);p.hp=Math.min(p.maxHp,p.hp+h);return`惊喜！+${h}HP`}if(r<.65){const g=Math.floor(90+ch.floor*15);p.gold+=g;return`惊喜！+${g}金币`}const d=Math.floor(p.maxHp*.3);p.hp=Math.max(1,p.hp-d);return`陷阱！-${d}HP`}},
+    {text:'跳进去',sub:'随机：+大量HP / +大量金 / 失去30%HP',fn:(p,b,ch)=>{const em=window._mapEffectMult||1;const r=Math.random();if(r<.35){const h=Math.floor(p.maxHp*.5*em);p.hp=Math.min(p.maxHp,p.hp+h);return`惊喜！+${h}HP`}if(r<.65){const g=Math.floor((90+ch.floor*15)*em);p.gold+=g;return`惊喜！+${g}金币`}const d=Math.floor(p.maxHp*.3);p.hp=Math.max(1,p.hp-d);return`陷阱！-${d}HP`}},
     {text:'观察不进入',sub:'啥也没有',fn:()=>'pass'}]},
   {difficulty:'hard',art:'🐉',title:'古龙残骸',tag:'✦ 史诗发现',desc:'一具巨龙的遗骸横陈于此。龙鳞与龙骨依然散发着威压。',choices:[
     {text:'取走龙骸精华',sub:'失去 30% HP，获得 2 张随机稀有卡',fn:(p,b)=>{const cost=Math.floor(p.maxHp*.30);if(p.hp>cost+5){p.hp-=cost;return'reward_rare2'}return'HP不足'}},
-    {text:'收集龙鳞',sub:'获得 120 金币',fn:(p,b,ch)=>{const g=Math.floor(120*(1+ch.floor*.12));p.gold+=g;return`+${g}金币`}},
-    {text:'祭拜遗骸',sub:'最大HP +30，但本场景结束后扣 20HP',fn:(p)=>{p.maxHp+=30;p.hp=Math.max(1,p.hp-20);return'最大HP+30 -20HP'}}]},
+    {text:'收集龙鳞',sub:'获得 120 金币',fn:(p,b,ch)=>{const em=window._mapEffectMult||1;const g=Math.floor(120*(1+ch.floor*.12))*em;p.gold+=g;return`+${g}金币`}},
+    {text:'祭拜遗骸',sub:'最大HP +30，但本场景结束后扣 20HP',fn:(p)=>{const em=window._mapEffectMult||1;const add=30*em;p.maxHp+=add;p.hp=Math.max(1,p.hp-20);return`最大HP+${add} -20HP`}}]},
   {difficulty:'hard',art:'🗡',title:'流浪盗贼',tag:'⚔ 危险遭遇',desc:'"把钱袋交出来！"一个蒙面盗贼挡住去路，刀尖对准你的喉咙。',choices:[
-    {text:'正面迎击',sub:'失去20%HP，击败后获得120金币',fn:(p,b,ch)=>{const d=Math.floor(p.maxHp*.20);p.hp=Math.max(1,p.hp-d);const g=Math.floor(120*(1+ch.floor*.1));p.gold+=g;return`战胜盗贼！-${d}HP +${g}金`}},
+    {text:'正面迎击',sub:'失去20%HP，击败后获得120金币',fn:(p,b,ch)=>{const em=window._mapEffectMult||1;const d=Math.floor(p.maxHp*.20);p.hp=Math.max(1,p.hp-d);const g=Math.floor(120*(1+ch.floor*.1))*em;p.gold+=g;return`战胜盗贼！-${d}HP +${g}金`}},
     {text:'乖乖交钱',sub:'失去当前金币的30%',fn:(p)=>{const lost=Math.floor(p.gold*.30);p.gold=Math.max(0,p.gold-lost);return`交出 ${lost} 金币顺利通过`}},
     {text:'拔腿就跑',sub:'50%成功/50%被打-15HP',fn:(p)=>{if(Math.random()<.5)return'成功逃脱！';const d=15;p.hp=Math.max(1,p.hp-d);return`逃跑失败！-${d}HP`}}]},
   {difficulty:'easy',art:'🧙',title:'流浪法师',tag:'✨ 神秘相遇',desc:'一位白发法师在路边闭目冥想，睁眼时目光深邃。"旅者，我能助你一臂之力。"',choices:[
-    {text:'拜师学艺',sub:'获得1张稀有卡，失去15HP',fn:(p,b)=>{const pool=DB.filter(c=>c.rar==='rare');const c=pool[0|Math.random()*pool.length];b.deck.push(gc(c.id));p.hp=Math.max(1,p.hp-15);return`学得 ${c.name}！-15HP`}},
+    {text:'拜师学艺',sub:'获得1张稀有卡，失去15HP',fn:(p,b)=>{const em=window._mapEffectMult||1;const pool=DB.filter(c=>c.rar==='rare');const c=pool[0|Math.random()*pool.length];for(let k=0;k<em;k++)b.deck.push(gc(c.id));p.hp=Math.max(1,p.hp-15);return`学得 ${c.name}${em>1?` x${em}`:''}！-15HP`}},
     {text:'请他强化最弱的牌',sub:'自动强化费用最低的一张牌（免费）',fn:(p,b)=>{const up=b.deck.filter(c=>c.rar!=='curse');if(!up.length)return'没有可强化的牌';up.sort((a,z)=>a.cost-z.cost);upgradeCard(up[0]);return`强化了：${up[0].name}`}},
     {text:'礼貌离开',sub:'继续前行',fn:()=>'pass'}]},
   {difficulty:'easy',art:'🤕',title:'受伤旅者',tag:'❤ 善意相遇',desc:'一位旅行者倒在路边，身上有伤。他用虚弱的眼神望向你。',choices:[
-    {text:'出手救助（失去HP）',sub:'失去10%HP，获得1张罕见卡作为感谢',fn:(p,b)=>{const cost=Math.floor(p.maxHp*.10);if(p.hp<=cost+5)return'HP不足';p.hp-=cost;const pool=DB.filter(c=>c.rar==='uncommon');const c=pool[0|Math.random()*pool.length];b.deck.push(gc(c.id));return`救人！-${cost}HP 获得${c.name}`}},
-    {text:'花钱雇人救他',sub:'花费50金，他事后报答你80金',fn:(p)=>{if(p.gold<50)return'金币不足';p.gold+=30;return'好人有好报！净得30金币'}},
+    {text:'出手救助（失去HP）',sub:'失去10%HP，获得1张罕见卡作为感谢',fn:(p,b)=>{const cost=Math.floor(p.maxHp*.10);if(p.hp<=cost+5)return'HP不足';p.hp-=cost;const em=window._mapEffectMult||1;const pool=DB.filter(c=>c.rar==='uncommon');const c=pool[0|Math.random()*pool.length];for(let k=0;k<em;k++)b.deck.push(gc(c.id));return`救人！-${cost}HP 获得${c.name}${em>1?` x${em}`:''}`}},
+    {text:'花钱雇人救他',sub:'花费50金，他事后报答你80金',fn:(p)=>{if(p.gold<50)return'金币不足';const em=window._mapEffectMult||1;const g=30*em;p.gold+=g;return`好人有好报！净得${g}金币`}},
     {text:'视而不见',sub:'继续前行',fn:()=>'pass'}]},
   {difficulty:'neutral',art:'🔑',title:'秘密房间',tag:'🔑 隐藏发现',desc:'墙壁上有一道细缝，仔细查看——竟是一扇暗门。里面漆黑一片……',choices:[
-    {text:'进入探索',sub:'随机：金币+100~200 / 稀有卡 / 最大HP+15',fn:(p,b,ch)=>{const r=Math.random();if(r<.35){const g=Math.floor(100+ch.floor*15);p.gold+=g;return`发现宝藏！+${g}金币`}if(r<.65)return'reward_rare';p.maxHp+=15;p.hp=Math.min(p.maxHp,p.hp+15);return'发现古老遗物！最大HP+15'}},
+    {text:'进入探索',sub:'随机：金币+100~200 / 稀有卡 / 最大HP+15',fn:(p,b,ch)=>{const em=window._mapEffectMult||1;const r=Math.random();if(r<.35){const g=Math.floor((100+ch.floor*15)*em);p.gold+=g;return`发现宝藏！+${g}金币`}if(r<.65)return'reward_rare';const add=15*em;p.maxHp+=add;p.hp=Math.min(p.maxHp,p.hp+add);return`发现古老遗物！最大HP+${add}`}},
     {text:'谨慎不进',sub:'未知风险，放弃可能的宝藏',fn:()=>'pass'}]},
   {difficulty:'easy',art:'💧',title:'圣泉',tag:'💧 神圣甘泉',desc:'林间一汪清泉散发着柔和光芒，饮下去像是洗去了所有疲惫。',choices:[
-    {text:'痛饮圣水',sub:'恢复40%最大HP',fn:(p)=>{const h=Math.floor(p.maxHp*.4);p.hp=Math.min(p.maxHp,p.hp+h);return`+${h} HP！圣泉祝福`}},
-    {text:'净化诅咒',sub:'移除1张诅咒牌，恢复15HP',fn:(p,b)=>{const ci=b.deck.findIndex(c=>c.kind==='crs');if(ci>=0){b.deck.splice(ci,1);p.hp=Math.min(p.maxHp,p.hp+15);return'移除诅咒！+15HP'}p.hp=Math.min(p.maxHp,p.hp+30);return'无诅咒可除，额外回复30HP'}}]},
+    {text:'痛饮圣水',sub:'恢复40%最大HP',fn:(p)=>{const em=window._mapEffectMult||1;const h=Math.floor(p.maxHp*.4*em);p.hp=Math.min(p.maxHp,p.hp+h);return`+${h} HP！圣泉祝福`}},
+    {text:'净化诅咒',sub:'移除1张诅咒牌，恢复15HP',fn:(p,b)=>{const em=window._mapEffectMult||1;const ci=b.deck.findIndex(c=>c.kind==='crs');if(ci>=0){const h=15*em;b.deck.splice(ci,1);p.hp=Math.min(p.maxHp,p.hp+h);return`移除诅咒！+${h}HP`}const h2=30*em;p.hp=Math.min(p.maxHp,p.hp+h2);return`无诅咒可除，额外回复${h2}HP`}}]},
   {difficulty:'hard',art:'☠',title:'暗影裂变',tag:'☠ 黑暗降临',desc:'黑暗从地缝中涌出，你感到某种邪恶力量正在渗入你的牌组……',choices:[
     {text:'迎战（强制战斗）',sub:'战胜后获得2张稀有卡',fn:(p,b)=>{const cost=Math.floor(p.maxHp*.35);p.hp=Math.max(1,p.hp-cost);return'reward_rare2'}},
     {text:'逃跑',sub:'失去 35% HP，诅咒牌进入牌组',fn:(p,b)=>{const cost=Math.floor(p.maxHp*.35);p.hp=Math.max(1,p.hp-cost);b.deck.push(gc('regret'));return`逃脱！-${cost}HP +诅咒`}}]},
   {difficulty:'easy',art:'🧓',title:'老商人',tag:'🛒 路边摊贩',desc:'"你看起来很需要帮助，孩子。"白胡子老人推开满载货物的推车，挑出几件好东西。',choices:[
     {text:'升级最贵的牌（免费）',sub:'自动强化费用最高的攻击牌',fn:(p,b)=>{const up=b.deck.filter(c=>c.kind==='atk');if(!up.length)return'没有攻击牌';up.sort((a,z)=>z.cost-a.cost);upgradeCard(up[0]);return`强化了：${up[0].name}`}},
-    {text:'获得罕见卡（付15金）',sub:'花15金获得1张罕见卡',fn:(p,b)=>{if(p.gold<15)return'金币不足';p.gold-=15;const pool=DB.filter(c=>c.rar==='uncommon');const c=pool[0|Math.random()*pool.length];b.deck.push(gc(c.id));return`获得 ${c.name}`}},
+    {text:'获得罕见卡（付15金）',sub:'花15金获得1张罕见卡',fn:(p,b)=>{if(p.gold<15)return'金币不足';p.gold-=15;const em=window._mapEffectMult||1;const pool=DB.filter(c=>c.rar==='uncommon');const c=pool[0|Math.random()*pool.length];for(let k=0;k<em;k++)b.deck.push(gc(c.id));return`获得 ${c.name}${em>1?` x${em}`:''}`}},
     {text:'拒绝',sub:'继续上路',fn:()=>'pass'}]},
 ];
 let phase=PH.INTRO;
@@ -2434,13 +2434,15 @@ function startEvent(){
   document.getElementById('ovtag').textContent=ev.tag;
   document.getElementById('ovtit').textContent=ev.title;
   setSceneArt(ev.art||'✦');
-  document.getElementById('ovb').innerHTML=`<div class="ovd">${ev.desc}</div><div class="tcards-table">${cards}</div>`;
+  const emBanner=(window._mapEffectMult||1)>1?'<div class="ovd" style="color:var(--amber)">🎴 暗牌效果：本次事件奖励翻倍！</div>':'';
+  document.getElementById('ovb').innerHTML=`<div class="ovd">${ev.desc}</div>${emBanner}<div class="tcards-table">${cards}</div>`;
   showView('ov');renderHud();renderTokens();
 }
 function resolveEvent(i){
   const r=window._ev.choices[i].fn(player,battle,chapter);
-  if(r==='reward_rare'){window._eventRareCount=1;showReward(0);return;}
-  if(r==='reward_rare2'){window._eventRareCount=2;showReward(0);return;}
+  const em=window._mapEffectMult||1;
+  if(r==='reward_rare'){window._eventRareCount=em>1?2:1;showReward(0);return;}
+  if(r==='reward_rare2'){window._eventRareCount=em>1?4:2;showReward(0);return;}
   if(r&&r!=='pass')toast(r,r.includes('-')||r.includes('陷阱')||r.includes('输')?'r':'g');
   renderHud();renderTokens();setTimeout(backToMap,500);
 }
@@ -3162,6 +3164,8 @@ function startBlackMarket(){
   phase=PH.OV;
   const ps=calcPS();
   window._bmLots=[_bmMakeLot(ps),_bmMakeLot(ps),_bmMakeLot(ps),_bmMakeLot(ps)];
+  const em=window._mapEffectMult||1;
+  if(em>1)window._bmLots.forEach(lot=>{lot.price=Math.max(1,Math.round(lot.price/em));});
   window._bmBought=new Set();window._bmSel=null;
   document.getElementById('ovtag').textContent='🌑  黑市  · 骗率约35%';
   document.getElementById('ovtit').textContent='神秘商人';
@@ -3175,6 +3179,7 @@ function renderBlackMarket(){
   const rCol={rare:'var(--amber)',uncommon:'var(--frost)',common:'var(--text3)'};
   const rLbl={rare:'★ 稀有',uncommon:'◇ 罕见',common:'○ 普通'};
   let h=`<div class="ovd">蒙面商人的摊位上摆着几张正面朝下的牌。描述可能不准确——风险自负。（金币：<b style="color:var(--amber)">${player.gold}</b>）</div>`;
+  if((window._mapEffectMult||1)>1)h+='<div class="ovd" style="color:var(--amber)">🎴 暗牌效果：全场半价！</div>';
   h+=`<div class="tcards-table">${lots.map((lot,i)=>{
     const rc=lot.realCard;
     if(bought.has(i)){
@@ -3266,7 +3271,9 @@ function startGamble(){
       <div class="ccard-sub">${b.sub}${poor?'<br><span style="color:var(--gore2)">金不足</span>':''}</div>
     </div>`;
   }).join('');
+  const emBanner=(window._mapEffectMult||1)>1?'<div class="ovd" style="color:var(--amber)">🎴 暗牌效果：本次赌局奖励翻倍！</div>':'';
   const h=`<div class="ovd">赌馆老板翻弄着牌摊，目光狡黠。赌一把？</div>
+  ${emBanner}
   <div class="tcards-table">${cards}</div>
   <button class="ovbtn" onclick="backToMap()">离开赌馆</button>`;
   document.getElementById('ovb').innerHTML=h;
@@ -3278,7 +3285,8 @@ function playGamble(tier){
   player.gold-=cost;renderHud();
   if(tier==='x'){
     if(Math.random()<.5){
-      const cards=shuf(DB.filter(c=>c.rar!=='curse')).slice(0,2);
+      const em=window._mapEffectMult||1;
+      const cards=shuf(DB.filter(c=>c.rar!=='curse')).slice(0,2*em);
       cards.forEach(c=>battle.deck.push(JSON.parse(JSON.stringify(c))));
       // 显示赢牌确认画面
       document.getElementById('ovtag').textContent='🎲  赌馆结算';
@@ -3304,12 +3312,14 @@ function playGamble(tier){
 }
 function renderGambleResult(){
   const picks=window._gamblePicks||[];const sel=window._gambleSel;const cost=window._gambleCost2||0;
+  const em=window._mapEffectMult||1;
   let h=`<div class="ovd">已花费 <b>${cost}</b> 金币。选1张：</div>`;
+  if(em>1)h+='<div class="ovd" style="color:var(--amber)">🎴 暗牌效果：选中的牌将获得 ×'+em+'！</div>';
   h+=`<div class="tcards-table">${picks.map((c,j)=>renderPokerCard(c,`selectGamble(${j})`,{idx:j,total:picks.length,sel:sel===j})).join('')}</div>`;
   if(sel!==null&&sel!==undefined&&picks[sel]){
     const c=picks[sel];
     h+=`<div style="display:flex;gap:8px;margin-bottom:6px">
-      <button class="ovbtn gd" style="flex:1;margin:0" onclick="confirmGamble()">✓ 获取 ${c.name}</button>
+      <button class="ovbtn gd" style="flex:1;margin:0" onclick="confirmGamble()">✓ 获取 ${c.name}${em>1?` x${em}`:''}</button>
       <button class="ovbtn" style="flex:1;margin:0" onclick="window._gambleSel=null;renderGambleResult()">✗ 重选</button>
     </div>`;
   }
@@ -3321,8 +3331,9 @@ function selectGamble(i){window._gambleSel=i;renderGambleResult();}
 function confirmGamble(){
   const i=window._gambleSel;const c=window._gamblePicks?.[i];
   if(!c)return;
-  battle.deck.push(JSON.parse(JSON.stringify(c)));
-  toast(`获得：${c.name}`,'g');
+  const em=window._mapEffectMult||1;
+  for(let k=0;k<em;k++)battle.deck.push(JSON.parse(JSON.stringify(c)));
+  toast(`获得：${c.name}${em>1?` x${em}`:''}`,'g');
   window._gambleSel=null;
   setTimeout(startGamble,400);
 }
