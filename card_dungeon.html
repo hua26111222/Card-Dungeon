@@ -2360,11 +2360,10 @@ function endTurn(){
         toast(`🔥 ${act.n}！「${card.name}」被焚毁，获得一张诅咒牌！`,'r');
         if(hi>=0)updatePlayButton();
       }
-    }else if(act.t==='drain_ap'){// 吸取能量（单回合）
-      const drained=Math.min(act.v,battle.apLeft);
-      battle.apLeft=Math.max(0,battle.apLeft-drained);
-      if(drained>0)toast(`💜 ${act.n}！你的行动力被吸取 -${drained}！`,'r');
-      else toast(`💜 ${act.n}！你的能量已空，无效`,'r');
+    }else if(act.t==='drain_ap'){// 吸取能量：下回合少一点AP
+      const drain=Math.min(act.v,battle.maxAp-1);// 至少保留1点，不让玩家彻底动不了
+      if(drain>0){battle.drainedAp=(battle.drainedAp||0)+drain;toast(`💜 ${act.n}！下回合行动力 -${drain}！`,'r');}
+      else toast(`💜 ${act.n}！行动力已无法再降`,'r');
     }else if(act.t==='lock_ap'){// 封锁最大行动力，持续多回合（魅魔/控制师）
       const dur=act.dur||2;
       const amt=Math.min(act.v,Math.max(0,battle.maxAp-1));// 至少保留1点行动力，避免彻底卡死
@@ -2455,7 +2454,11 @@ function endTurn(){
   // 能量封锁递减，到期归还行动力上限
   if(battle.apLockRounds>0){battle.apLockRounds--;if(battle.apLockRounds<=0&&battle.apLockAmt>0){battle.maxAp+=battle.apLockAmt;toast(`🔓 行动力封锁解除，恢复 ${battle.apLockAmt} 点上限`,'g');battle.apLockAmt=0;}}
   if(player.hp<=0){endBattle(false);return;}
-  battle.turn++;rs.turns++;battle.apLeft=battle.maxAp;battle.selectedCards=[];battle.firstCard=true;
+  battle.turn++;rs.turns++;
+  const _apDrain=battle.drainedAp||0;battle.drainedAp=0;
+  battle.apLeft=Math.max(1,battle.maxAp-_apDrain);
+  if(_apDrain>0)toast(`💜 能量被侵蚀，本回合只有 ${battle.apLeft} 点行动力！`,'r');
+  battle.selectedCards=[];battle.firstCard=true;
   const drawN=chapter.modifier?.handLimit?Math.min(player.drawCount||5,chapter.modifier.handLimit):player.drawCount||5;
   drawCards(drawN);
   renderBattle();document.getElementById('dtn').textContent=battle.turn;
