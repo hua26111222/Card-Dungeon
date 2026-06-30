@@ -2627,8 +2627,8 @@ function renderBattle(){
     else if(na.t==='h')intent=`💚 自愈+${na.v}（${na.n}）`;
     else if(na.t==='p'){const cur=b.enemyPoison||0;intent=`☠ 施毒+${na.v}层（${na.n}）${cur>0?` · 你已中毒${cur}`:''}（每回合递增）`;}
     else if(na.t==='w')intent=`💀 虚弱${na.v}回合（${na.n}）`;
-    else if(na.t==='z')intent=`🌀 眩晕你${na.v}回合（${na.n}）`;
-    else if(na.t==='x')intent=`⛓ 缴械你${na.v}回合（${na.n}）`;
+    else if(na.t==='z')intent=`🌀 眩晕你${na.v}回合（${na.n}）· 下回合你将无法出牌`;
+    else if(na.t==='x')intent=`⛓ 缴械你${na.v}回合（${na.n}）· 下回合你将无法使用攻击牌`;
     else if(na.t==='steal'){const et=b.enemy?.trait;intent=et==='强盗'?`💢 抢夺并摧毁手牌（${na.n}）`:`🎭 偷你手牌（${na.n}）`;}
     else if(na.t==='wear_card')intent=`🔧 磨损你的卡牌（${na.n}）`;
     else if(na.t==='exile_card')intent=`💀 封印你的卡牌（${na.n}）`;
@@ -2668,7 +2668,7 @@ function renderHand(){
   const selectedSet=new Set(b.selectedCards||[]);
   document.getElementById('hcs').innerHTML=b.hand.map((c,i)=>{
     const sel=selectedSet.has(i);
-    const unplay=b.apLeft<c.cost||c.unplayable;
+    const unplay=b.playerStun>0||(b.playerDisarm>0&&c.kind==='atk')||b.apLeft<c.cost||c.unplayable;
     const cc=c.cost===0?'c0':c.cost===2?'c2':c.cost>=3?'c3':'';
     const kc=c.kind==='atk'?'atk':c.kind==='def'?'def':c.kind==='skl'?'skl':'crs';
     let actualAtk=null;
