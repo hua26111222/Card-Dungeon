@@ -3341,25 +3341,40 @@ function confirmGamble(){
 function startChest(card){
   phase=PH.OV;
   window._chestCards=(card?.preChestCards)||[];
+  window._chestPicksLeft=(window._mapEffectMult||1)>1?2:1;
   document.getElementById('ovtag').textContent='💎  宝箱';
   document.getElementById('ovtit').textContent='神秘宝箱';
   document.getElementById('ovtit').style.color='';
   const artEl=document.getElementById('ov-art');if(artEl)artEl.textContent='';
   const stEl=document.getElementById('ov-story');if(stEl)stEl.style.display='none';
-  document.getElementById('ovb').innerHTML=`
-  <div class="ovd">宝箱中沉睡着三张强力卡牌，选择一张带走。</div>
-  <div class="tcards-table">${(window._chestCards||[]).map((c,i)=>renderPokerCard(c,`pickChestCard(${i})`,{idx:i,total:3})).join('')}</div>
-  <button class="ovbtn" style="margin-top:8px;" onclick="skipChest()">放弃宝箱</button>`;
+  renderChestUI();
   showView('ov');renderHud();renderTokens();
 }
+function renderChestUI(){
+  const cards=window._chestCards||[];
+  const picksLeft=window._chestPicksLeft||1;
+  const emBanner=picksLeft>1?'<div class="ovd" style="color:var(--amber)">🎴 暗牌效果：可以选 2 张！</div>':'';
+  document.getElementById('ovb').innerHTML=`
+  <div class="ovd">宝箱中沉睡着${cards.length}张强力卡牌，选择${picksLeft>1?`${picksLeft}张`:'一张'}带走。</div>
+  ${emBanner}
+  <div class="tcards-table">${cards.map((c,i)=>renderPokerCard(c,`pickChestCard(${i})`,{idx:i,total:cards.length})).join('')}</div>
+  <button class="ovbtn" style="margin-top:8px;" onclick="skipChest()">放弃宝箱</button>`;
+}
 function pickChestCard(i){
-  const c=window._chestCards&&window._chestCards[i];
+  const cards=window._chestCards;
+  const c=cards&&cards[i];
   if(!c)return;
   battle.deck.push(JSON.parse(JSON.stringify(c)));
-  window._chestCards=null;
   toast('💎 获得：'+c.name,'g');
-  SM.auto();
-  backToMap();
+  cards.splice(i,1);
+  window._chestPicksLeft=(window._chestPicksLeft||1)-1;
+  if(window._chestPicksLeft<=0||cards.length===0){
+    window._chestCards=null;
+    SM.auto();
+    backToMap();
+  }else{
+    renderChestUI();renderHud();renderTokens();
+  }
 }
 function skipChest(){
   window._chestCards=null;
@@ -3453,8 +3468,9 @@ function burnOnAltar(){
   const deckIdx=battle.deck.indexOf(c);
   if(deckIdx>=0)battle.deck.splice(deckIdx,1);
   window._altarSel=null;
+  const em=window._mapEffectMult||1;
   if(val>=60){
-    const rewardHp=Math.floor(val*.35);
+    const rewardHp=Math.floor(val*.35*em);
     const rarePool=shuf(DB.filter(x=>x.rar==='rare'));
     const ucPool=shuf(DB.filter(x=>x.rar==='uncommon'));
     let cards=`<div class="ccard" style="transform:rotate(-7deg) translateY(10px)" onclick="altarReward('hp',${rewardHp})">
@@ -3464,21 +3480,22 @@ function burnOnAltar(){
     if(rarePool[0]){const rc=rarePool[0];const rd=(rc.desc||'').replace('{atk}',rc.atk||0).replace('{blk}',rc.blk||0).replace('{heal}',rc.heal||0).replace('{str}',rc.str||0);
       cards+=`<div class="ccard" style="transform:rotate(0deg)" onclick="altarReward('card','${rc.id}')">
         <div class="ccard-top" style="background:linear-gradient(90deg,transparent,rgba(212,136,26,.5),transparent)"></div>
-        <div class="ccard-icon">${rc.art}</div><div class="ccard-text">${rc.name}</div>
+        <div class="ccard-icon">${rc.art}</div><div class="ccard-text">${rc.name}${em>1?` x${em}`:''}</div>
         <div class="ccard-sub">${rd.substring(0,40)}</div></div>`;}
     if(ucPool[0]){const uc=ucPool[0];const ud=(uc.desc||'').replace('{atk}',uc.atk||0).replace('{blk}',uc.blk||0).replace('{heal}',uc.heal||0).replace('{str}',uc.str||0);
       cards+=`<div class="ccard" style="transform:rotate(7deg) translateY(10px)" onclick="altarReward('card','${uc.id}')">
         <div class="ccard-top"></div>
-        <div class="ccard-icon">${uc.art}</div><div class="ccard-text">${uc.name}</div>
+        <div class="ccard-icon">${uc.art}</div><div class="ccard-text">${uc.name}${em>1?` x${em}`:''}</div>
         <div class="ccard-sub">${ud.substring(0,40)}</div></div>`;}
     document.getElementById('ovtag').textContent='🔱  祭坛馈赠';
     document.getElementById('ovtit').textContent='火焰的选择';
-    document.getElementById('ovb').innerHTML=`<div class="ovd">🔥 <b>${nm}</b> 化为灰烬，祭坛颤动……三个馈赠向你低语：</div><div class="tcards-table">${cards}</div>`;
+    const emBanner=em>1?'<div class="ovd" style="color:var(--amber)">🎴 暗牌效果：馈赠翻倍！</div>':'';
+    document.getElementById('ovb').innerHTML=`<div class="ovd">🔥 <b>${nm}</b> 化为灰烬，祭坛颤动……三个馈赠向你低语：</div>${emBanner}<div class="tcards-table">${cards}</div>`;
     renderHud();renderTokens();return;
   }
   if(val>=30){
-    if(Math.random()<.6){const hp=Math.floor(val*.2);player.hp=Math.min(player.maxHp,player.hp+hp);toast(`🔥 ${nm}化为灰烬 +${hp}HP`,'g');}
-    else{const pool=DB.filter(c=>c.rar==='common');const nc=pool[0|Math.random()*pool.length];if(nc){battle.deck.push(gc(nc.id));toast(`🔥 ${nm}化为灰烬，获得${nc.name}`,'g');}}
+    if(Math.random()<.6){const hp=Math.floor(val*.2*em);player.hp=Math.min(player.maxHp,player.hp+hp);toast(`🔥 ${nm}化为灰烬 +${hp}HP`,'g');}
+    else{const pool=DB.filter(c=>c.rar==='common');const nc=pool[0|Math.random()*pool.length];if(nc){for(let k=0;k<em;k++)battle.deck.push(gc(nc.id));toast(`🔥 ${nm}化为灰烬，获得${nc.name}${em>1?` x${em}`:''}`,'g');}}
     setTimeout(backToMap,700);return;
   }
   if(Math.random()<.55){const d=Math.floor(player.maxHp*.08);player.hp=Math.max(1,player.hp-d);toast(`🔥 ${nm}化为灰烬，祭坛不悦！-${d}HP`,'r');}
@@ -3486,8 +3503,9 @@ function burnOnAltar(){
   setTimeout(backToMap,700);
 }
 function altarReward(type,val){
+  const em=window._mapEffectMult||1;
   if(type==='hp'){player.hp=Math.min(player.maxHp,player.hp+val);toast(`+${val} HP`,'g');}
-  else{const c=gc(val);if(c){battle.deck.push(c);toast(`获得：${c.name}`,'g');}}
+  else{const c=gc(val);if(c){for(let k=0;k<em;k++)battle.deck.push(k===0?c:gc(val));toast(`获得：${c.name}${em>1?` x${em}`:''}`,'g');}}
   renderHud();renderTokens();setTimeout(backToMap,600);
 }
 // ── 铁匠铺 (锻造 + 融合 + 移除) ──
