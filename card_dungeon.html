@@ -1018,6 +1018,16 @@ const CP_SCALE={孱弱:{h:.30,a:.50},健康:{h:.55,a:.80},强壮:{h:.80,a:1.10},
 const CP_COL={孱弱:'#5a8a5a',健康:'#7a8a5a',强壮:'#cc7020',暴虐:'#cc3020',恐怖:'#8a0a8a'};
 const CD_DESC={磨损:'偶尔磨损你的卡牌数值',折痕:'持续折损多张卡牌',撕裂:'从手牌撕走卡牌',破碎:'破碎牌组中的卡牌',焚毁:'彻底焚毁卡牌并投入诅咒'};
 const CD_COL={磨损:'#6a6a4a',折痕:'#8a6a2a',撕裂:'#aa4a2a',破碎:'#cc2a0a',焚毁:'#8a0a0a'};
+// 5级稀有度体系（全局共享）：标签直接显示遇到概率，而非文字等级；同时决定奖励质量权重
+const VAL_TIERS=[
+  {pct:'45%',w:45,col:'#9a9a9a',border:'rgba(120,120,130,.7)',tip:'约45%几率遇到：标准收益'},
+  {pct:'28%',w:28,col:'#4aaa6a',border:'rgba(40,140,80,.8)',tip:'约28%几率遇到：收益较好'},
+  {pct:'15%',w:15,col:'#5599ee',border:'rgba(50,110,220,.85)',tip:'约15%几率遇到：物有所值'},
+  {pct:'8%', w:8, col:'#cc44ee',border:'rgba(160,40,200,.85)',tip:'约8%几率遇到：高风险高收益'},
+  {pct:'4%', w:4, col:'#ffaa20',border:'rgba(220,150,10,.95)',tip:'约4%几率遇到！极高价值，可能改变游戏走向'},
+];
+const CP_VAL_IDX={孱弱:0,健康:1,强壮:2,暴虐:3,恐怖:4};
+const TYPE_VAL_IDX={campfire:0,event:2,tavern:1,blackmarket:3,blacksmith:2,gamble:2,altar:2,chest:3};
 const TRAIT_DEFS={
   '流浪者':{art:'🧟',col:'#6a5a3a',desc:'无特殊技能，凭蛮力战斗',
     intro:'对方张开嘴，发出含混的低吼，眼神空洞——这不是一个还有理智的生物。',
@@ -1528,17 +1538,11 @@ function renderMap(){
 
   document.getElementById('mprompt').textContent=isBossStep?'☠ 首领降临，无路可退！':step>=16?`⚠ 首领将至，还有 ${18-step} 步`:'选择前进的路：';
 
-  // 5级稀有度系统（颜色决定卡牌边框，标签直接显示遇到概率，而非文字等级）
-  const VAL_T=[
-    {label:'45%',col:'#9a9a9a',border:'rgba(120,120,130,.7)',tip:'约45%几率遇到：标准收益'},
-    {label:'28%',col:'#4aaa6a',border:'rgba(40,140,80,.8)',tip:'约28%几率遇到：收益较好'},
-    {label:'15%',col:'#5599ee',border:'rgba(50,110,220,.85)',tip:'约15%几率遇到：物有所值'},
-    {label:'8%',col:'#cc44ee',border:'rgba(160,40,200,.85)',tip:'约8%几率遇到：高风险高收益'},
-    {label:'4%',col:'#ffaa20',border:'rgba(220,150,10,.95)',tip:'约4%几率遇到！极高价值，可能改变游戏走向'},
-  ];
-  const cpToValIdx={孱弱:0,健康:1,强壮:2,暴虐:3,恐怖:4};
-  const typeValIdx={campfire:0,event:2,tavern:1,blackmarket:3,blacksmith:2,gamble:2,altar:2,chest:3};
-  function valBadge(vidx){const vt=VAL_T[vidx]||VAL_T[1];return`<div style="position:absolute;top:2px;left:2px;font-size:5px;color:${vt.col};font-weight:700;cursor:help;z-index:2;text-shadow:0 0 4px ${vt.col}" onclick="event.stopPropagation();showValTip(${vidx})" title="${vt.tip}">${vt.label}</div>`;}
+  // 5级稀有度系统（颜色决定卡牌边框，标签直接显示遇到概率，而非文字等级；定义见全局 VAL_TIERS/CP_VAL_IDX/TYPE_VAL_IDX）
+  const VAL_T=VAL_TIERS;
+  const cpToValIdx=CP_VAL_IDX;
+  const typeValIdx=TYPE_VAL_IDX;
+  function valBadge(vidx){const vt=VAL_T[vidx]||VAL_T[1];return`<div style="position:absolute;top:2px;left:2px;font-size:5px;color:${vt.col};font-weight:700;cursor:help;z-index:2;text-shadow:0 0 4px ${vt.col}" onclick="event.stopPropagation();showValTip(${vidx})" title="${vt.tip}">${vt.pct}</div>`;}
   function cardHTML(card,ci,mode,potReach){
     // mode: 'act'=active row, 'd1'=next, 'd2'=next-next
     const isActive=mode==='act';
@@ -1580,7 +1584,6 @@ function renderMap(){
       const vt=VAL_T[vidx]||VAL_T[1];
       return`<div class="mcard${reachCls}${dimCls}${selCls}" ${click} style="border-color:${vt.border};background:${card.bg};box-shadow:0 0 6px ${vt.border}">
         ${valBadge(vidx)}
-        ${card.type==='elite'?`<div style="position:absolute;top:2px;right:2px;font-size:5px;color:var(--amber)">精英</div>`:''}
         <div class="mcicon" style="font-size:20px;text-shadow:0 0 10px ${cpCol};margin-top:10px">${card.enemyArt}</div>
         <div class="mctype" style="color:${cpCol};font-size:6px;letter-spacing:.3px">${card.enemyName}</div>
         ${isActive&&isReach?`<div class="mchint" style="font-size:5px;letter-spacing:.2px"><span style="color:${cdCol}">${card.cardDmg}</span><span style="color:var(--ash3)">·</span><span style="color:${trCol}">${card.trait}</span></div>`:''}
@@ -2276,6 +2279,12 @@ function renderPokerCard(c,onclick,opts={}){
     </div>
   </div>`;
 }
+function enemyValIdx(en){
+  if(!en)return 1;
+  if(en.tier==='boss')return 4;
+  const base=CP_VAL_IDX[en.combatPower]??1;
+  return en.tier==='elite'?Math.min(4,base+1):base;
+}
 function showReward(gold){
   phase=PH.OV;
   const ps=calcPS();
@@ -2283,8 +2292,12 @@ function showReward(gold){
   const tier=enemy.tier;
   const loot=enemy.loot||{cards:[],relics:[]};
   const isElite=tier==='elite',isBoss=tier==='boss';
+  // 节点稀有度（百分比角标对应的5档）越高，战利品中来自敌人随身卡池的数量越多、整体稀有度权重也越高——强化"刷卡"体验
+  const vidx=enemyValIdx(enemy);
+  const traitSlots=[1,1,2,2,3][vidx];
+  const tierRareBoost=[0,.08,.18,.32,.5][vidx];
   // Card pool: enemy loot first, fill random (deck-aware biased)
-  const rc=Math.min(.5,ps/130);const uc=Math.min(.65,.25+ps/110);
+  const rc=Math.min(.6,ps/130+tierRareBoost);const uc=Math.min(.7,.25+ps/110+tierRareBoost*.6);
   const fillPool=DB.filter(c=>c.rar!=='curse');
   // Analyze deck composition to bias rewards toward what player needs
   const deckKinds={atk:0,def:0,skl:0};
@@ -2307,13 +2320,12 @@ function showReward(gold){
     shuf(rarePool).slice(0,forceRare).forEach(c=>{picked.push(c);used.add(c.id);});
     while(picked.length<3){const c=randCard(used);if(!c)break;picked.push(c);used.add(c.id);}
   }else{
-    // Enemy's own cards + one generated card
-    shuf([...loot.cards]).forEach(id=>{if(!used.has(id)){const c=DB.find(x=>x.id===id);if(c){picked.push(c);used.add(id);}}});
-    const genCard=CardGen.one(ps);
-    if(picked.length<3)picked.push(genCard);
-    else picked[picked.length-1]=genCard;
+    // 敌人随身卡池：按节点稀有度抽取对应数量（traitSlots），其余用动态生成牌/加权随机填满
+    shuf([...loot.cards]).slice(0,traitSlots).forEach(id=>{if(!used.has(id)){const c=DB.find(x=>x.id===id);if(c){picked.push(c);used.add(id);}}});
+    if(picked.length<3){const genCard=CardGen.one(ps+vidx*8);if(!used.has(genCard.id)){picked.push(genCard);used.add(genCard.id);}}
     while(picked.length<3){const c=randCard(used);if(!c)break;picked.push(c);used.add(c.id);}
   }
+  picked=picked.slice(0,3);// 兜底：奖励一次最多只给3张
   window._rw=shuf(picked);window._rwSel=null;window._rwGold=gold;window._rwLabel=isBoss?`☠ 击败 ${enemy.name}`:isElite?`✦ 掠夺 ${enemy.name}`:forceRare?'✦ 事件奖励':'⚔ 战斗奖励';window._rwBoss=isBoss;window._rwElite=isElite;window._rwForce=forceRare;window._rwEnemy=enemy.name;
   document.getElementById('ovtag').textContent=isBoss?'☠  战利品':isElite?'✦  精英战利品':'⚔  战斗奖励';
   document.getElementById('ovtit').textContent='选择奖励';
@@ -3065,8 +3077,7 @@ function showDeck(){
 }
 function closeDeck(){document.getElementById('deckmodal').style.display='none';}
 function showValTip(idx){
-  const tips=['约45%几率：标准遭遇，收益有限','约28%几率：遭遇偏好，收益较普通更佳','约15%几率：值得优先选择的路线','约8%几率：高风险高收益，有机会获得强力卡牌','约4%几率：极稀有！可能获得改变局面的道具或卡牌'];
-  toast(tips[idx]||'未知概率');
+  toast(VAL_TIERS[idx]?.tip||'未知概率');
 }
 // ── 黑市（只卖牌，模糊描述，骗率显示）──
 // 每张牌有"表面描述"和"真实牌"，35%概率是骗局
@@ -3295,14 +3306,16 @@ function skipChest(){
   backToMap();
 }
 function startAltar(){
-  phase=PH.OV;window._altarSel=null;
+  phase=PH.OV;window._altarSel=null;window._altarMode='burn';window._dispelCurseSel=null;window._dispelCardSel=null;
   document.getElementById('ovtag').textContent='🔱  祭坛';
   document.getElementById('ovtit').textContent='神秘的古老祭坛';
   setSceneArt('🗿','祭坛上的火焰无风自动。符文在颤动，似乎在期待某种献祭……');
   showView('ov');renderAltarUI();renderHud();renderTokens();
 }
 function renderAltarUI(){
+  if((window._altarMode||'burn')==='dispel')return renderDispelUI();
   const validCards=battle.deck.filter(c=>c.rar!=='curse');
+  const hasCurse=battle.deck.some(c=>c.rar==='curse');
   const sel=window._altarSel;
   const tableHtml=validCards.map((c,i)=>{
     const val=cardValue(c);
@@ -3322,10 +3335,54 @@ function renderAltarUI(){
     </div>`;
   }
   let h=`<div class="ovd">古老祭坛——<b>焚烧一张牌换取馈赠</b>。高价牌得大奖，低价牌遭惩戒。</div>
+  ${hasCurse?`<button class="ovbtn" style="margin-bottom:8px;width:100%;border-color:var(--soul);color:var(--violet)" onclick="window._altarMode='dispel';renderAltarUI()">✦ 驱散诅咒（献祭鲜血 + 高级牌）</button>`:''}
   <div class="tcards-table">${tableHtml||'<div style="color:var(--text3);padding:20px">牌组中无可焚烧之牌</div>'}</div>
   ${confirmHtml}
   <button class="ovbtn" style="margin-top:8px" onclick="backToMap()">离开祭坛</button>`;
   document.getElementById('ovb').innerHTML=h;
+}
+function renderDispelUI(){
+  const curses=battle.deck.filter(c=>c.rar==='curse');
+  const advCards=battle.deck.filter(c=>c.rar==='rare'||c.rar==='uncommon');
+  const curseSel=window._dispelCurseSel,cardSel=window._dispelCardSel;
+  const hpCost=Math.floor(player.maxHp*.2);
+  const curseHtml=curses.map((c,i)=>renderPokerCard(c,`selectDispelCurse(${i})`,{idx:i,total:curses.length,sel:curseSel===i})).join('');
+  const cardHtml=advCards.map((c,i)=>renderPokerCard(c,`selectDispelCard(${i})`,{idx:i,total:advCards.length,sel:cardSel===i})).join('');
+  let confirmHtml='';
+  if(curseSel!=null&&curseSel<curses.length&&cardSel!=null&&cardSel<advCards.length){
+    confirmHtml=`<div style="margin:8px 0;padding:8px 10px;border:1px solid rgba(154,90,191,.35);font-size:11px;color:var(--bone);text-align:center">
+      献祭 <b>${hpCost}HP</b> + 高级牌「${advCards[cardSel].name}」，驱散诅咒「${curses[curseSel].name}」？
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="ovbtn" style="flex:1;margin:0;border-color:var(--soul);color:var(--violet)" onclick="confirmDispelCurse()">✦ 献祭驱散</button>
+      <button class="ovbtn" style="flex:1;margin:0" onclick="window._dispelCurseSel=null;window._dispelCardSel=null;renderAltarUI()">✗ 取消</button>
+    </div>`;
+  }
+  let h=`<div class="ovd">驱散诅咒——选一张<b>诅咒牌</b>与一张<b>稀有/罕见牌</b>作为祭品，献祭 ${hpCost} HP，即可彻底移除该诅咒。是否值得，全看你自己。</div>
+  <div style="font-size:10px;color:var(--text3);margin:4px 0">① 选择要驱散的诅咒：</div>
+  <div class="tcards-table">${curseHtml||'<div style="color:var(--text3);padding:12px">没有诅咒牌</div>'}</div>
+  <div style="font-size:10px;color:var(--text3);margin:8px 0 4px">② 选择献祭的高级牌（稀有/罕见）：</div>
+  <div class="tcards-table">${cardHtml||'<div style="color:var(--text3);padding:12px">没有可献祭的高级牌</div>'}</div>
+  ${confirmHtml}
+  <button class="ovbtn" style="margin-top:8px" onclick="window._altarMode='burn';window._dispelCurseSel=null;window._dispelCardSel=null;renderAltarUI()">← 返回焚烧祭坛</button>`;
+  document.getElementById('ovb').innerHTML=h;
+}
+function selectDispelCurse(i){window._dispelCurseSel=i;renderDispelUI();}
+function selectDispelCard(i){window._dispelCardSel=i;renderDispelUI();}
+function confirmDispelCurse(){
+  const curses=battle.deck.filter(c=>c.rar==='curse');
+  const advCards=battle.deck.filter(c=>c.rar==='rare'||c.rar==='uncommon');
+  const curse=curses[window._dispelCurseSel];const sac=advCards[window._dispelCardSel];
+  if(!curse||!sac)return;
+  const hpCost=Math.floor(player.maxHp*.2);
+  if(player.hp<=hpCost){toast('HP不足，无法献祭','r');return;}
+  player.hp-=hpCost;
+  const ci=battle.deck.indexOf(curse);if(ci>=0)battle.deck.splice(ci,1);
+  const si=battle.deck.indexOf(sac);if(si>=0)battle.deck.splice(si,1);
+  window._dispelCurseSel=null;window._dispelCardSel=null;window._altarMode='burn';
+  toast(`✦ 诅咒「${curse.name}」已被驱散！代价：-${hpCost}HP，「${sac.name}」`,'g');
+  renderHud();renderTokens();
+  setTimeout(backToMap,700);
 }
 function selectAltarCard(i){window._altarSel=i;renderAltarUI();}
 function burnOnAltar(){
