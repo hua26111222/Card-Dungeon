@@ -2331,7 +2331,7 @@ function renderPokerCard(c,onclick,opts={}){
   const cCol=c.cost===0?'var(--ash)':c.cost===2?'var(--bone)':'var(--frost)';
   const rCol=c.rar==='rare'?'var(--amber)':c.rar==='uncommon'?'var(--frost)':c.rar==='curse'?'var(--ash)':'var(--text3)';
   const rBd=c.rar==='rare'?'var(--amber2)':c.rar==='uncommon'?'var(--ice)':c.rar==='curse'?'var(--ash2)':'var(--crack2)';
-  const rLbl=c.rar==='rare'?'★稀有':c.rar==='uncommon'?'◇罕见':'○普通';
+  const rLbl=c.rar==='curse'?'☠ 诅咒':`✦${val}`;
   const upg=c.upgradeCount?`<span style="color:var(--slime);font-weight:700"> +${c.upgradeCount}</span>`:'';
   const rots=total<=1?[0]:total===2?[-5,5]:total===3?[-7,0,7]:[-9,-3,3,9];
   const rot=rots[Math.min(idx,rots.length-1)]||0;
@@ -3252,7 +3252,7 @@ function renderBlackMarket(){
       return`<div class="tcard" style="transform:rotate(${rots[i]}deg) translateY(${yOffs[i]}px);opacity:.5;pointer-events:none">
         <div class="tc-stripe" style="background:${isScam?'var(--ash3)':kCol[rc?.kind]||'var(--ice)'}"></div>
         <div class="tc-cost" style="background:rgba(20,20,30,.95)">✓</div>
-        <div class="tc-rar" style="color:${isScam?'var(--ash)':rCol[rc?.rar]||'var(--text3)'};border-color:currentColor">${isScam?'☠ 诅咒':rLbl[rc?.rar]||'○'}</div>
+        <div class="tc-rar" style="color:${isScam?'var(--ash)':rCol[rc?.rar]||'var(--text3)'};border-color:currentColor">${isScam?'☠ 诅咒':`✦${cardValue(rc)}`}</div>
         <div class="tc-art">${rc?.art||'?'}</div>
         <div class="tc-info"><div class="tc-name">${rc?.name||'?'}</div><div class="tc-desc" style="font-size:9px;color:${isScam?'var(--gore2)':'var(--slime)'}">${isScam?'骗局！':'到手了！'}</div></div></div>`;
     }
