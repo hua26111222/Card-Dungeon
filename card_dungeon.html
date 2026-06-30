@@ -663,6 +663,7 @@ html,body{background:var(--void);color:var(--text);font-family:var(--fm);font-si
         <button class="hvbtn hvbtn-c" id="hv-cont" onclick="onContAdventure()">继续冒险</button>
         <button class="hvbtn hvbtn-n" onclick="onNewGame()">全新开始</button>
       </div>
+      <button class="ovbtn" style="margin-top:14px;padding:6px 14px;font-size:11px" onclick="showLeaderboard('hv')">🏆 探险排行榜</button>
     </div>
     <div id="hv-saves">
       <div style="font-size:10px;color:var(--text3);letter-spacing:3px;margin-bottom:16px">✦ 选择存档 ✦</div>
@@ -762,14 +763,15 @@ html,body{background:var(--void);color:var(--text);font-family:var(--fm);font-si
       <div id="legacy-cards"></div>
       <button id="legacy-btn" class="ovbtn gd" style="width:100%;margin-top:6px;opacity:.5" onclick="confirmLegacy()" disabled>点选卡牌传给下一局（最多3张）</button>
     </div>
+    <button class="ovbtn" style="width:100%;max-width:360px;margin:0 0 10px" onclick="showLeaderboard('gov')">🏆 查看探险排行榜</button>
     <button class="brst" onclick="initGame()">再次挑战</button>
   </div>
-  <div id="winv" style="display:none;flex-direction:column;align-items:center;justify-content:center;min-height:calc(100vh - 88px);text-align:center;padding:24px;background:radial-gradient(ellipse at 50% 30%,rgba(106,58,154,.25),transparent 60%),var(--void)">
-    <div class="goico" style="filter:drop-shadow(0 0 28px rgba(154,90,191,.8))">👑</div>
-    <div class="gotit" style="color:var(--violet)">深渊的征服者</div>
-    <div class="gosub" id="winsub"></div>
-    <div class="gost" id="winst"></div>
-    <button class="brst" style="border-color:var(--soul);color:var(--violet);background:linear-gradient(180deg,var(--soul),#4a2a7a);box-shadow:inset 0 1px 0 rgba(255,255,255,.04),0 3px 0 var(--void),3px 3px 0 var(--void),0 0 18px rgba(106,58,154,.3)" onclick="initGame()">再次挑战</button>
+  <div id="lbv" style="display:none;flex-direction:column;align-items:center;justify-content:flex-start;min-height:calc(100vh - 88px);text-align:center;padding:24px;background:radial-gradient(ellipse at 50% 30%,rgba(106,58,154,.25),transparent 60%),var(--void)">
+    <div class="goico" style="filter:drop-shadow(0 0 28px rgba(154,90,191,.8))">🏆</div>
+    <div class="gotit" style="color:var(--violet)">探险排行榜</div>
+    <div style="display:flex;gap:6px;margin:10px 0 14px" id="lb-tabs"></div>
+    <div id="lb-list" style="width:100%;max-width:380px"></div>
+    <button class="brst" style="border-color:var(--soul);color:var(--violet);background:linear-gradient(180deg,var(--soul),#4a2a7a);box-shadow:inset 0 1px 0 rgba(255,255,255,.04),0 3px 0 var(--void),3px 3px 0 var(--void),0 0 18px rgba(106,58,154,.3)" onclick="lbBack()">返回</button>
   </div>
 </div>
 </div>
@@ -2150,7 +2152,7 @@ function endBattle(won){
       if(window._pendingCurse){battle.deck.push(gc('regret'));toast(`☠ 诅咒化身！首领已倒但获得了诅咒牌！+${bGold}金币`,'r');}
       else toast(`首领已倒！+${bGold}金币`,'g');
       window._pendingCurse=false;
-      setTimeout(()=>showBossReward(chapter.floor>=3),1000);
+      setTimeout(()=>showBossReward(),1000);
     }
     else{showReward(g);SM.auto();}
   }else{sfx(80,.4,'sawtooth',.15,-30);showGameOver();SM.clear();}
@@ -2158,12 +2160,12 @@ function endBattle(won){
 const _FLOOR_NARRATIVE=[
   '黑暗的入口在背后轰然关闭。深渊不会放你离开——唯一的出路，是穿越它。',
   '踩着第一层留下的战迹，你继续向下。空气更沉、更冷，危险也在随深度倍增。',
-  '这是最深处。光芒彻底消失，脚下是亘古的黑暗。你能感觉到——它也在等待你。',
+  '光芒早已消失，脚下是亘古的黑暗。你能感觉到——更深处，还有什么在等待你。',
 ];
 function showChapterIntro(){
   const info=generateChapter();const mod=info.mod;
   const fl=info.floor;
-  const narrative=_FLOOR_NARRATIVE[fl-1]||`地下第 ${fl} 层——越往深处，现实越扭曲，退路早已封死。`;
+  const narrative=_FLOOR_NARRATIVE[fl-1]||`地下第 ${fl} 层——越往深处，现实越扭曲，退路早已封死，唯有不断下潜。`;
   document.getElementById('cid').textContent=narrative;
   document.getElementById('cif').textContent=`地下 · 第 ${toR(fl)} 层`;
   document.getElementById('cin').textContent=info.theme.name;
@@ -2171,7 +2173,7 @@ function showChapterIntro(){
   document.getElementById('cim').style.borderColor=mod.color;document.getElementById('cim').style.color=mod.color;
   document.getElementById('cimt').textContent=`${mod.icon}  ${mod.name}`;
   document.getElementById('cimd').textContent=mod.desc;
-  document.getElementById('cips').textContent=`${getDiff(info.ps)}${fl>=3?'  ·  ☠ 最终一层，击败守卫以逃出深渊':'  ·  第 '+toR(fl)+' 层'}`;
+  document.getElementById('cips').textContent=`${getDiff(info.ps)}  ·  第 ${toR(fl)} 层`;
   document.getElementById('hc2').textContent=`${info.theme.name} · ${mod.name}`;
   document.getElementById('mb').style.display='none';
   const legacy=battle.deck.filter(c=>c.isLegacy);
@@ -2526,6 +2528,7 @@ function doRest(act){
 }
 function showGameOver(){
   phase=PH.DEAD;const ps=calcPS();
+  recordRun();
   document.getElementById('goico').textContent='☠';
   document.getElementById('gotit').textContent='你已陨落';document.getElementById('gotit').style.color='var(--gore2)';
   document.getElementById('gosub').textContent=`第 ${toR(chapter.floor)} 章  ·  ${chapter.theme?.name||''}  ·  凄风中的传说`;
@@ -2705,8 +2708,8 @@ function renderTokens(){
 }
 function showView(name){
   document.body.style.overflow=name==='bv'?'hidden':'';
-  const map={hv:'#hv',ci:'#ci',mv:'#mv',bv:'#bv',ov:'#ov',gov:'#gov',winv:'#winv'};
-  const flex=new Set(['hv','ci','gov','winv']);
+  const map={hv:'#hv',ci:'#ci',mv:'#mv',bv:'#bv',ov:'#ov',gov:'#gov',lbv:'#lbv'};
+  const flex=new Set(['hv','ci','gov','lbv']);
   Object.entries(map).forEach(([k,sel])=>{const el=document.querySelector(sel);if(!el)return;const show=k===name;el.style.display=show?(k==='bv'?'grid':flex.has(k)?'flex':'block'):'none';if(show)el.classList.add('vi');});
 }
 function backToMap(){phase=PH.MAP;showView('mv');renderMap();renderHud();renderTokens();saveGame();startBGM('map');}
@@ -3479,7 +3482,7 @@ function buildFusionCard(sources,val){
   return r;
 }
 // ── Boss 胜利奖励 ──
-function showBossReward(isFinalFloor){
+function showBossReward(){
   phase=PH.OV;
   const ps=calcPS();
   // 3张卡牌：混合 DB稀有牌 + CardGen动态生成牌
@@ -3499,11 +3502,11 @@ function showBossReward(isFinalFloor){
     {art:'🌟',name:'深渊馈赠',desc:'获得1张稀有卡 + HP回满',apply:()=>{const r=shuf(DB.filter(c=>c.rar==='rare'))[0];if(r){battle.deck.push({...gc(r.id)});}player.hp=player.maxHp;toast('HP回满！获得 '+(r?r.name:'稀有卡'),'g');}},
   ];
   const abilities=shuf(ALL_ABILITIES).slice(0,2);
-  window._bossReward={cardPicks,abilities,sel:null,selType:null,isFinalFloor};
+  window._bossReward={cardPicks,abilities,sel:null,selType:null};
   renderBossRewardUI();
 }
 function renderBossRewardUI(){
-  const{cardPicks,abilities,sel,selType,isFinalFloor}=window._bossReward;
+  const{cardPicks,abilities,sel,selType}=window._bossReward;
   document.getElementById('ovtag').textContent='☠  首领已倒';
   document.getElementById('ovtit').textContent='选择你的奖励';
   const cardHtml=cardPicks.map((c,i)=>renderPokerCard(c,`selectBossCard(${i})`,{idx:i,total:cardPicks.length,sel:selType==='card'&&sel===i})).join('');
@@ -3530,19 +3533,32 @@ function renderBossRewardUI(){
 function selectBossCard(i){window._bossReward.sel=i;window._bossReward.selType='card';renderBossRewardUI();}
 function selectBossAbility(i){window._bossReward.sel=i;window._bossReward.selType='ability';renderBossRewardUI();}
 function confirmBossReward(){
-  const{cardPicks,abilities,sel,selType,isFinalFloor}=window._bossReward;
+  const{cardPicks,abilities,sel,selType}=window._bossReward;
   if(sel===null)return;
   if(selType==='card'){const c=cardPicks[sel];if(c)battle.deck.push({...gc(c.id)});toast('获得：'+(c?.name||''),'g');}
   else if(selType==='ability'){abilities[sel]?.apply();}
   window._bossReward=null;
-  if(isFinalFloor){setTimeout(showVictory,600);}
-  else{chapter.floor++;setTimeout(()=>showCutscene('floor'+chapter.floor,showChapterIntro),600);}
+  chapter.floor++;setTimeout(()=>showCutscene('floor'+chapter.floor,showChapterIntro),600);
 }
-function showVictory(){
-  phase=PH.DEAD;const ps=calcPS();
-  document.getElementById('winsub').textContent=`通关 ${rs.chaptersCleared} 章  ·  ${chapter.theme?.name||''}  ·  深渊的征服者`;
-  document.getElementById('winst').innerHTML=`<div class="gor"><span class="gol">通关章节</span><span class="gov2">${rs.chaptersCleared}</span></div><div class="gor"><span class="gol">最终 PS</span><span class="gov2">${ps}</span></div><div class="gor"><span class="gol">击杀数</span><span class="gov2">${player.kills}</span></div><div class="gor"><span class="gol">造成伤害</span><span class="gov2">${rs.dmgDealt}</span></div><div class="gor"><span class="gol">承受伤害</span><span class="gov2">${rs.dmgTaken}</span></div><div class="gor"><span class="gol">使用卡牌</span><span class="gov2">${rs.cardsPlayed}</span></div><div class="gor"><span class="gol">经历回合</span><span class="gov2">${rs.turns}</span></div>`;
-  showView('winv');
+// ── 探险排行榜 ──
+function loadLeaderboard(){try{const l=localStorage.getItem('cd_leaderboard');return l?JSON.parse(l):[];}catch(e){return[];}}
+function saveLeaderboard(list){try{localStorage.setItem('cd_leaderboard',JSON.stringify(list.slice(0,50)));}catch(e){}}
+function recordRun(){
+  const entry={floor:chapter.floor,dmgDealt:rs.dmgDealt,kills:player.kills,ps:calcPS(),title:getPlayerTitle().title,date:Date.now()};
+  const list=loadLeaderboard();list.push(entry);saveLeaderboard(list);
+}
+let _lbSort='floor';
+function showLeaderboard(from){window._lbFrom=from||'hv';renderLeaderboard();showView('lbv');}
+function lbBack(){showView(window._lbFrom==='gov'?'gov':'hv');}
+function setLbSort(k){_lbSort=k;renderLeaderboard();}
+function renderLeaderboard(){
+  const keyMap={floor:'floor',dmg:'dmgDealt',kills:'kills'};
+  const k=keyMap[_lbSort]||'floor';
+  const list=loadLeaderboard().slice().sort((a,b)=>b[k]-a[k]);
+  const tabs=[['floor','按层数'],['dmg','按伤害'],['kills','按击杀']];
+  document.getElementById('lb-tabs').innerHTML=tabs.map(([id,label])=>`<button class="ovbtn${_lbSort===id?' gd':''}" style="margin:0;padding:5px 12px;font-size:11px" onclick="setLbSort('${id}')">${label}</button>`).join('');
+  const top=list.slice(0,20);
+  document.getElementById('lb-list').innerHTML=top.length?top.map((e,i)=>`<div class="gor" style="border-bottom:1px solid var(--crack)"><span class="gol">#${i+1} ${e.title||'无名旅者'}</span><span class="gov2">第${toR(e.floor)}层 · ${e.dmgDealt}伤害 · ${e.kills}杀</span></div>`).join(''):'<div style="color:var(--text3);font-size:11px;padding:20px 0">暂无记录，去闯荡深渊吧</div>';
 }
 // ── 传承系统 ──
 function saveLegacy(ids){try{localStorage.setItem('cd_legacy',JSON.stringify(ids.slice(0,3)));}catch(e){}}
