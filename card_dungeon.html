@@ -1685,6 +1685,30 @@ const CardGen={
     return{atk:['⚔','🗡','💢','⚡','🔥','🌀','💥','🗜','🔱'],def:['🛡','🌊','💠','🏰','⬡','🔵','🧱','⚙'],skl:['✨','💎','🔮','💡','🌀','⚗','🔍','🌸','🎯']}[kind][0|Math.random()*9];
   }
 };
+// ── 战斗奖励卡牌的唯一来源：把刚打赢的敌人自己用过的招式，转换成玩家能用的卡牌 ──
+// 玩家和敌人本质上是同一套"角色属性"系统的产物，没有专属于玩家的卡牌清单：
+// 敌人用什么打你，你赢了之后就学会同一招反过来用。商人/事件的卡牌走另一套独立体系（CardGen+DB），不受影响。
+function cardFromMove(move,tier){
+  const rar=tier==='boss'?'rare':tier==='elite'?(Math.random()<.6?'rare':'uncommon'):(Math.random()<.35?'uncommon':'common');
+  const id='mv'+Date.now().toString(36)+(Math.random()*1e6|0).toString(36);
+  const nm=move.n||'未知招式';
+  const base={id,name:nm,rar};
+  switch(move.t){
+    case 'a':{const atk=Math.max(3,Math.round(move.v*.85));return{...base,art:'⚔',kind:'atk',cost:atk<9?0:atk<20?1:2,atk,desc:`造成 <b>${atk}</b> 伤害`};}
+    case 'multi_a':{const atk=Math.max(2,Math.round(move.v*.8));const times=move.hits||2;return{...base,art:'🌀',kind:'atk',cost:2,atk,times,desc:`造成 <b>${atk}</b> 伤 <b>×${times}</b>`};}
+    case 'execute':{const dmg=Math.max(8,Math.round(move.v*.5));const thresh=Math.min(.4,move.thresh||.3);return{...base,art:'⚰',kind:'atk',cost:2,special:'execute',execThresh:thresh,execDmg:dmg,desc:`敌人HP＜${Math.round(thresh*100)}%时即死，否则造成 <b>${dmg}</b> 伤`};}
+    case 'd':{const blk=Math.max(4,Math.round(move.v*1.1));return{...base,art:'🛡',kind:'def',cost:blk<9?0:blk<18?1:2,blk,desc:`获得 <b>${blk}</b> 格挡`};}
+    case 'h':{const heal=Math.max(4,Math.round(move.v*.9));return{...base,art:'💊',kind:'skl',cost:1,heal,exhaust:true,desc:`立即恢复 <b>${heal}</b> HP（消耗）`};}
+    case 's':{const str=Math.max(1,Math.min(3,move.v||1));return{...base,art:'💪',kind:'skl',cost:1,str,dur:999,desc:`【全场】攻击 <b>+${str}</b>`};}
+    case 'p':{const poison=Math.max(2,move.v||3);const atk=Math.max(3,Math.round(poison*STAT_W.poison/STAT_W.atk));return{...base,art:'☠',kind:'atk',cost:1,atk,poison,desc:`造成 <b>${atk}</b> 伤，施加 <b>${poison}</b> 层中毒`};}
+    case 'w':{const weak=Math.max(1,move.v||1);const atk=6;return{...base,art:'💚',kind:'atk',cost:1,atk,weak,desc:`造成 <b>${atk}</b> 伤，敌人虚弱 <b>${weak}</b> 回合`};}
+    case 'z':case 'x':case 'drain_ap':return{...base,art:'💫',kind:'atk',cost:1,atk:7,special:'stagger',stunCount:1,desc:'造成 <b>7</b> 伤，使敌人本回合跳过行动'};
+    case 'lock_ap':{const dur=Math.max(1,move.dur||2);return{...base,art:'⛓',kind:'skl',cost:1,special:'lockdown',stunCount:dur,exhaust:true,desc:`使敌人眩晕 <b>${dur}</b> 回合（消耗）`};}
+    case 'drain_maxhp':{const heal=Math.max(6,Math.round((move.pct||.03)*300));return{...base,art:'🧛',kind:'def',cost:1,blk:6,heal,desc:`获得 <b>6</b> 格挡，恢复 <b>${heal}</b> HP`};}
+    case 'steal':case 'wear_card':case 'exile_card':case 'burn_card':case 'mutate_card':
+    default:return{...base,art:'🔍',kind:'skl',cost:0,draw:2,special:'discard',desc:'弃最贵的牌，摸 2 张'};
+  }
+}
 
 function calcPS(){
   const ds=battle.deck.reduce((s,c)=>{if(!c)return s;const w={common:1,uncommon:2,rare:4,curse:-1};return s+(w[c.rar]||1)+(cardValue(c)||0)*.05;},0);
@@ -2655,13 +2679,10 @@ function enemyValIdx(en){
 function showReward(gold){
   phase=PH.OV;
   const ps=calcPS();
-  const enemy=battle.enemy||{tier:'fight',loot:{cards:[],relics:[]},art:'✦',name:'奖励'};
+  const enemy=battle.enemy||{tier:'fight',art:'✦',name:'奖励'};
   const tier=enemy.tier;
-  const loot=enemy.loot||{cards:[],relics:[]};
   const isElite=tier==='elite',isBoss=tier==='boss';
-  // 节点稀有度（百分比角标对应的5档）越高，战利品中来自敌人随身卡池的数量越多、整体稀有度权重也越高——强化"刷卡"体验
   const vidx=enemyValIdx(enemy);
-  const traitSlots=[1,1,2,2,3][vidx];
   const tierRareBoost=[0,.08,.18,.32,.5][vidx];
   // Card pool: enemy loot first, fill random (deck-aware biased)
   const rc=Math.min(.6,ps/130+tierRareBoost);const uc=Math.min(.7,.25+ps/110+tierRareBoost*.6);
@@ -2705,8 +2726,17 @@ function showReward(gold){
     shuf(rarePool).slice(0,forceRare).forEach(c=>{picked.push(c);used.add(c.id);});
     while(picked.length<3){const c=randCard(used);if(!c)break;picked.push(c);used.add(c.id);}
   }else{
-    // 敌人随身卡池：按节点稀有度抽取对应数量（traitSlots），其余用动态生成牌/加权随机填满
-    shuf([...loot.cards]).slice(0,traitSlots).forEach(id=>{if(!used.has(id)){const c=DB.find(x=>x.id===id);if(c){picked.push(c);used.add(id);}}});
+    // 没有专属于玩家的"战利品清单"——直接把刚打赢的这个敌人自己用过的招式，转换成玩家能用的卡牌。
+    // 敌人和玩家本质上是同一套"角色属性"系统的产物，敌人用什么打你，你赢了就学会同一招反过来用。
+    const srcActions=(battle.enemy?.actions||[]).filter(a=>a&&a.t);
+    const seenT=new Set();
+    shuf(srcActions).forEach(mv=>{
+      if(picked.length>=3||seenT.has(mv.t))return;
+      seenT.add(mv.t);
+      const c=cardFromMove(mv,tier);
+      if(!used.has(c.id)){picked.push(c);used.add(c.id);}
+    });
+    // 极少数情况敌人招式种类不够3种：用商人/事件那套独立体系（CardGen）补足，不影响主流程
     if(picked.length<3){const genCard=CardGen.one(ps+vidx*8);if(!used.has(genCard.id)){picked.push(genCard);used.add(genCard.id);}}
     while(picked.length<3){const c=randCard(used);if(!c)break;picked.push(c);used.add(c.id);}
   }
@@ -3997,12 +4027,21 @@ function buildFusionCard(sources,val){
 function showBossReward(){
   phase=PH.OV;
   const ps=calcPS();
-  // 3张卡牌：混合 DB稀有牌 + CardGen动态生成牌
-  const dbPool=DB.filter(c=>c.rar!=='curse'&&(c.rar==='rare'||c.rar==='uncommon'));
+  // 3张卡牌：优先把Boss自己用过的招式转换成卡牌（和普通战斗奖励同一套逻辑），
+  // 招式种类不够3种时，用商人体系（DB稀有/罕见 + CardGen）补足
   const used=new Set(battle.deck.map(c=>c.id));
-  const dbPicks=shuf(dbPool.filter(c=>!used.has(c.id))).slice(0,2);
-  const genPick=CardGen.one(ps+10); // 动态生成1张偏强卡
-  const cardPicks=[...dbPicks,genPick].slice(0,3);
+  const cardPicks=[];const seenT=new Set();
+  shuf((battle.enemy?.actions||[]).filter(a=>a&&a.t)).forEach(mv=>{
+    if(cardPicks.length>=3||seenT.has(mv.t))return;
+    seenT.add(mv.t);
+    const c=cardFromMove(mv,'boss');
+    if(!used.has(c.id)){cardPicks.push(c);used.add(c.id);}
+  });
+  if(cardPicks.length<3){
+    const dbPool=DB.filter(c=>c.rar!=='curse'&&(c.rar==='rare'||c.rar==='uncommon'));
+    shuf(dbPool.filter(c=>!used.has(c.id))).forEach(c=>{if(cardPicks.length<3){cardPicks.push(c);used.add(c.id);}});
+  }
+  if(cardPicks.length<3)cardPicks.push(CardGen.one(ps+10));
   // 2个能力选项（随机选3取2展示）
   const floor=chapter.floor;
   const ALL_ABILITIES=[
@@ -4047,7 +4086,7 @@ function selectBossAbility(i){window._bossReward.sel=i;window._bossReward.selTyp
 function confirmBossReward(){
   const{cardPicks,abilities,sel,selType}=window._bossReward;
   if(sel===null)return;
-  if(selType==='card'){const c=cardPicks[sel];if(c)battle.deck.push({...gc(c.id)});toast('获得：'+(c?.name||''),'g');}
+  if(selType==='card'){const c=cardPicks[sel];if(c)battle.deck.push({...c});toast('获得：'+(c?.name||''),'g');}
   else if(selType==='ability'){abilities[sel]?.apply();}
   window._bossReward=null;
   chapter.floor++;setTimeout(()=>showCutscene('floor'+chapter.floor,showChapterIntro),600);
