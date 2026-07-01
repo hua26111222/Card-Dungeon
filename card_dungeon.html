@@ -2004,9 +2004,8 @@ function _maybeReinforce(en,isElite){
   if(en.hp>=shouldHp*.65)return en;
   const targetHp=Math.round(shouldHp*.85);
   const atkRatio=Math.sqrt(targetHp/en.hp);
-  const atkCap=player.maxHp*(isElite?.28:.22);
   return{...en,hp:targetHp,
-    actions:en.actions.map(a=>a.t==='a'?{...a,v:Math.round(Math.min(a.v*atkRatio,atkCap))}:a)};
+    actions:en.actions.map(a=>a.t==='a'?{...a,v:Math.round(a.v*atkRatio)}:a)};
 }
 function startBattle(isElite,isBoss){
   if(!chapter.usedEnemies)chapter.usedEnemies=new Set();
