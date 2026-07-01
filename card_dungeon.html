@@ -1337,7 +1337,8 @@ function _cdPick(stepBand){
 function calcTierScale(floor,rank){
   const fp=floor||1;const rk=rank||7;
   const rankMult=rk<=4?.85:rk<=8?1.0:rk<=12?1.15:1.30;
-  return(1+(fp-1)*.1)*rankMult;
+  const heirMult=window._heirMode?1.15:1; // 继承人模式：继承了上一位的力量，深渊也相应更警惕你
+  return(1+(fp-1)*.1)*rankMult*heirMult;
 }
 function buildEnemyFromDims(card,isElite,ps){
   const {combatPower='健康',cardDmg='磨损',trait='流浪者'}=card;
@@ -1456,7 +1457,8 @@ const SM={
         deck:battle.deck.map(c=>({...c})),
         map:JSON.parse(JSON.stringify(mapData)),
         chapter:{...chapter,usedEnemies:[...(chapter.usedEnemies||[])]},
-        rs:{...rs}
+        rs:{...rs},
+        heirMode:window._heirMode||false,heirParentTitle:window._heirParentTitle||null
       }));this._slot=s;return true;
     }catch(e){return false;}
   },
@@ -1472,6 +1474,7 @@ const SM={
       mapData=JSON.parse(JSON.stringify(sv.map));
       battle.deck=sv.deck.map(c=>({...c}));
       window._mapRank=7;
+      window._heirMode=sv.heirMode||false;window._heirParentTitle=sv.heirParentTitle||null;
       document.getElementById('mb').style.display='none';
       phase=PH.MAP;navClear();showView('mv');renderMap();renderHud();renderTokens();
       return true;
@@ -2865,6 +2868,8 @@ function showGameOver(){
   renderLegacyPicker();
 }
 function getPlayerTitle(dk){
+  // 继承人模式：整局固定显示"XX的继承者"，不再走下面按牌组构成算称号那一套
+  if(window._heirMode&&window._heirParentTitle)return{title:`「${window._heirParentTitle}」的继承者`,icon:'⬡',color:'var(--violet)'};
   const deck=dk||battle.deck;
   if(!deck||!deck.length)return{title:'无名旅者',icon:'🗡',color:'var(--text)'};
   const n=deck.length;const cnt={atk:0,def:0,skl:0,pwr:0,crs:0};
@@ -4254,13 +4259,81 @@ function initGame(){
   player={hp:50,maxHp:50,gold:80,floor:1,kills:0,steps:0,drawCount:5,maxAp:3};
   chapter={floor:1,theme:null,modifier:null,boss:null};
   const startDeck=buildStarterDeck();
-  clearLegacy();
   window._playerSeed=null;window._playerAppear=null;
   battle={enemy:null,enemyHp:0,enemyMaxHp:0,enemyBlk:0,enemyStr:0,enemyWeak:0,enemyVuln:0,enemyPoison:0,enemyBleed:0,enemyStun:0,enemyActions:[],enemyActionIdx:0,nextEnemyAction:null,deck:startDeck,drawPile:[],hand:[],discardPile:[],exhPile:[],apLeft:3,maxAp:3,blk:0,str:0,jugg:false,lifestealMode:false,playerPoison:0,playerWeak:0,playerStun:0,playerDisarm:0,fortified:0,turn:1,selectedCards:[],firstCard:true,nextFreeCount:0};
   rs={dmgDealt:0,dmgTaken:0,cardsPlayed:0,turns:0,chaptersCleared:0,killsByTrait:{}};
   window._mapRank=7;
   window._lastShownTitle=null;
+  window._heirMode=false;window._heirParentTitle=null;
   document.getElementById('mb').style.display='none';
+  showRunStart();
+}
+// ── 开局特色选择：没有固定角色，但可以在这里为这一局挑一份"特色卡包"来定调子；
+// 如果上一局死亡时选择了传承，这里还会多一个"成为XX的继承者"选项——继承卡包+称号，但本局难度会提高
+const _STARTER_ARCHETYPES=[
+  {key:'berserk',title:'狂战徽记',icon:'⚔',desc:'为了更快更痛的胜利',cards:['berserker','chain_slash']},
+  {key:'guard',  title:'铁壁徽记',icon:'🛡',desc:'先立于不败之地，再谈胜负',cards:['regen','jugg']},
+  {key:'poison', title:'蛊毒徽记',icon:'☣',desc:'不急，慢慢耗死对手',cards:['venom_blade','poison_flask']},
+  {key:'tempo',  title:'节奏徽记',icon:'✨',desc:'牌多一张，赢面就多一分',cards:['adrenaline','catalyze']},
+  {key:'blood',  title:'嗜血徽记',icon:'🩸',desc:'伤敌亦是养己',cards:['vampire_oath','blood_pact']},
+];
+function showRunStart(){
+  phase=PH.OV;
+  window._runStartOpts=shuf(_STARTER_ARCHETYPES).slice(0,3);
+  window._runStartLegacy=loadLegacy();
+  window._runStartSel=null;
+  document.getElementById('ovtag').textContent='✦  踏入深渊之前';
+  document.getElementById('ovtit').textContent='选择你的起手特色';
+  setSceneArt('🧭','背包已经收拾好，但你还想再带点什么在身上……');
+  renderRunStart();
+  showView('ov');renderHud();renderTokens();
+}
+function renderRunStart(){
+  const opts=window._runStartOpts||[];
+  const legacy=window._runStartLegacy;
+  const sel=window._runStartSel;
+  const archHtml=opts.map((a,i)=>{
+    const cardNames=a.cards.map(id=>gc(id)?.name||id).join('、');
+    const isSel=sel==='a'+i;
+    const rot=(i-1)*7;
+    return`<div class="ccard${isSel?' cc-sel':''}" style="transform:rotate(${rot}deg) translateY(${Math.abs(rot)*1.2}px)" onclick="selectRunStart('a${i}')">
+      <div class="ccard-top"></div>
+      <div class="ccard-icon">${a.icon}</div>
+      <div class="ccard-text">${a.title}</div>
+      <div class="ccard-sub">${a.desc}<br><span style="color:var(--text3)">+${cardNames}</span></div>
+    </div>`;
+  }).join('');
+  const legacyHtml=legacy?`<div class="ccard${sel==='legacy'?' cc-sel':''}" style="transform:rotate(9deg) translateY(11px);border-color:rgba(154,90,191,.5)" onclick="selectRunStart('legacy')">
+    <div class="ccard-top" style="background:linear-gradient(90deg,transparent,rgba(154,90,191,.5),transparent)"></div>
+    <div class="ccard-icon">⬡</div>
+    <div class="ccard-text" style="color:var(--violet)">「${legacy.title}」的继承者</div>
+    <div class="ccard-sub">继承 ${legacy.cards.length} 张遗物：${legacy.cards.map(c=>c.name).join('、')}<br><span style="color:var(--gore2)">⚠ 本局难度提升</span></div>
+  </div>`:'';
+  let confirmHtml='';
+  if(sel){
+    const isLegacy=sel==='legacy';
+    const label=isLegacy?`「${legacy.title}」的继承者`:opts[+sel[1]].title;
+    confirmHtml=`<button class="ovbtn gd" style="margin-top:10px" onclick="confirmRunStart()">✓ 就决定是「${label}」了</button>`;
+  }
+  const h=`<div class="ovd">这一局，你想带着什么样的特色出发？（只能选一个）</div>
+  <div class="tcards-table">${archHtml}${legacyHtml}</div>
+  ${confirmHtml}`;
+  document.getElementById('ovb').innerHTML=h;
+}
+function selectRunStart(key){window._runStartSel=key;renderRunStart();}
+function confirmRunStart(){
+  const sel=window._runStartSel;if(!sel)return;
+  if(sel==='legacy'){
+    const legacy=window._runStartLegacy;
+    (legacy?.cards||[]).forEach(c=>{if(c)battle.deck.push({...c,isLegacy:true});});
+    window._heirMode=true;window._heirParentTitle=legacy?.title||'无名旅者';
+    toast(`⬡ 你成为了「${legacy?.title}」的继承者！`,'g');
+  }else{
+    const a=(window._runStartOpts||[])[+sel[1]];
+    if(a)a.cards.forEach(id=>{const c=gc(id);if(c)battle.deck.push(c);});
+  }
+  clearLegacy();
+  window._runStartOpts=null;window._runStartLegacy=null;window._runStartSel=null;
   showCutscene('intro',showChapterIntro);
 }
 // ── 主菜单系统 ──
