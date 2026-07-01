@@ -1690,11 +1690,18 @@ const _FLOOR_PERSONA=[
   {key:'cursed',    title:'诅咒之层',    lines:['黑暗诅咒笼罩着这片土地','每走一步，都感受到恶意','诅咒的力量扭曲了现实'],   color:'#882288'},
   {key:'fierce',    title:'猛兽之层',    lines:['野蛮的力量充斥着这里','敌人以蛮力为骄傲','只有更强的力量才能制衡它们'],color:'#aa4422'},
 ];
+const MAP_COLS=9; // 普通行的列数（首领行固定4列，单独处理）
+// 从普通行（MAP_COLS列）走到首领行（bossCols列）时的可达范围：按玩家所在列的相对位置，
+// 映射到首领行里最近的3格——renderMap()和pickMapCard()共用同一份，不再各写一份重复的对照表
+function bossRowReach(pCol,srcCols,bossCols){
+  const center=Math.round(pCol/(srcCols-1)*(bossCols-1));
+  return new Set([center-1,center,center+1].filter(c=>c>=0&&c<bossCols));
+}
 function buildMap(){
   const rows=[];
   for(let s=0;s<19;s++)rows.push(genMapRow(s));
   const persona=_FLOOR_PERSONA[0|Math.random()*_FLOOR_PERSONA.length];
-  mapData={rows,step:0,playerCol:2,history:[],persona};
+  mapData={rows,step:0,playerCol:Math.floor(MAP_COLS/2),history:[],persona};
   window._mapPending=null;
 }
 function genMapRow(step){
@@ -1726,13 +1733,14 @@ function genMapRow(step){
        suit:'?',rank:14,label:'',col:'#8b0000',bg:'rgba(150,5,5,.48)'},
     ];
   }
-  // 5 cols, 2 random blinds (not both on same edge to guarantee visible path)
+  // MAP_COLS 列，3张随机暗牌（不让暗牌把两侧边缘都堵死，保留看得见的路）
+  const blindCount=3;
   const blinds=new Set();
-  while(blinds.size<2){blinds.add(Math.floor(Math.random()*5));}
-  // Prevent both blinds blocking same edge (0+1 or 3+4)
-  if(blinds.has(0)&&blinds.has(1)){blinds.delete(1);blinds.add(2);}
-  if(blinds.has(3)&&blinds.has(4)){blinds.delete(3);blinds.add(2);}
-  return[0,1,2,3,4].map(c=>({...genCardInfo(step,rank),rank,label:lbl,isHidden:blinds.has(c),revealed:false}));
+  while(blinds.size<blindCount){blinds.add(Math.floor(Math.random()*MAP_COLS));}
+  const mid=Math.floor(MAP_COLS/2);
+  if(blinds.has(0)&&blinds.has(1)){blinds.delete(1);blinds.add(mid);}
+  if(blinds.has(MAP_COLS-2)&&blinds.has(MAP_COLS-1)){blinds.delete(MAP_COLS-2);blinds.add(mid);}
+  return Array.from({length:MAP_COLS},(_,c)=>c).map(c=>({...genCardInfo(step,rank),rank,label:lbl,isHidden:blinds.has(c),revealed:false}));
 }
 function genCardInfo(step,nodeRank){
   const r=Math.random();
@@ -1786,22 +1794,18 @@ function renderMap(){
   const SC={'♠':'#cc3333','♥':'#ee4444','♦':'#4488cc','♣':'#336633','🃏':'#9944cc'};
   const isBossStep=step===18;
   const bossColCount=4;
-  const rowColCount=isBossStep?bossColCount:5;
+  const rowColCount=isBossStep?bossColCount:MAP_COLS;
 
-  // Reach for current step (5-col normal, 4-col boss)
+  // Reach for current step (MAP_COLS-col normal, 4-col boss)
   function calcReach(pCol,rowCols){
-    if(isBossStep){
-      // Map from 5-col playerCol to 4-col boss reach
-      const bmap=[[0,1],[0,1,2],[0,1,2,3],[1,2,3],[2,3]];
-      return new Set(bmap[pCol]||[0,1,2,3]);
-    }
+    if(isBossStep)return bossRowReach(pCol,MAP_COLS,bossColCount);
     return new Set([pCol-1,pCol,pCol+1].filter(c=>c>=0&&c<rowCols));
   }
   const reach=calcReach(playerCol,rowColCount);
   // Path preview for d1/d2 rows
-  const nextColCount=(step+1===18)?bossColCount:5;
-  const potD1=new Set();reach.forEach(c=>[c-1,c,c+1].forEach(n=>{if(n>=0&&n<(step+1===18?bossColCount:5))potD1.add(n);}));
-  const potD2=new Set();potD1.forEach(c=>[c-1,c,c+1].forEach(n=>{if(n>=0&&n<5)potD2.add(n);}));
+  const nextColCount=(step+1===18)?bossColCount:MAP_COLS;
+  const potD1=new Set();reach.forEach(c=>[c-1,c,c+1].forEach(n=>{if(n>=0&&n<nextColCount)potD1.add(n);}));
+  const potD2=new Set();potD1.forEach(c=>[c-1,c,c+1].forEach(n=>{if(n>=0&&n<MAP_COLS)potD2.add(n);}));
 
   document.getElementById('mprompt').textContent=isBossStep?'☠ 首领降临，无路可退！':step>=16?`⚠ 首领将至，还有 ${18-step} 步`:'选择前进的路：';
 
