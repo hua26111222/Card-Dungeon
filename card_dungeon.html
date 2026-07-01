@@ -1306,6 +1306,87 @@ const _TRAIT_LOOT={
   '雪原狼王': ['strength','warcry','multishot','berserker','battle_hymn'],
   '深渊主教': ['lockdown','regen','corruption','silence','soul_strike'],
 };
+// ── 敌人生成器 EnemyGen ──
+// 上面 TRAIT_DEFS 里的50种特性都是手写的固定清单；这里补一套"公式产物"的生成器：
+// 用"形容词+怪物词根"自己造名字，用战斗引擎已经认识的18种"动作原语"自己拼招式，
+// 组合数接近无限，不再局限于固定的50种。生成出来的特性会被登记进 TRAIT_DEFS，
+// 所以其余所有按 trait 名查表的地方（地图预览、战前提示、战斗立绘、台词等）完全不用改。
+const _CURATED_TRAITS=Object.keys(TRAIT_DEFS); // 生成开始前，先记下手写特性的名单
+const EnemyGen={
+  ADJ:['腐化','暗影','远古','血色','冰封','熔岩','荆棘','深渊','雷鸣','瘟疫','虚空','钢铁','狂暴','诅咒','幽冥','霜寒','烈焰','剧毒','夜袭','荒野','石化','溃烂','裂魂','妖异','蚀骨','狼藉','鬼影','魇魔','沙尘','锈蚀','幻影','嗜血','枯骨','雾隐','焦土','寒潮','蛊惑','裂地','噬魂','绝境'],
+  NOUN:['魔像','蛛魔','巫尸','夜魔','食尸鬼','怨灵','妖兽','恶蟒','邪修','狂徒','食人花','蜂魔','触手兽','狼人','刺客','守卫','法师','术士','屠夫','游魂','巨怪','傀儡','蝠魔','蟹魔','蜥蜴人','骷髅王','石魔','沙虫','冰魔','雷兽','毒虫','魔犬','妖姬','魂灵','铁卫','荒兽','蟒蛇','树精','鸦魔','蝎魔'],
+  // 每种"动作原语"的招式名词库 + 数值生成规则；t 与战斗引擎 endTurn() 里认识的类型完全一致
+  MOVES:{
+    a:{tag:'atk',names:['猛击','斩击','冲撞','爪击','突刺','横扫','重拳','撕咬'],mk(atk){return{v:Math.round(atk*(.9+Math.random()*.4))};}},
+    d:{tag:'def',names:['格挡','护甲','躲闪','硬化'],mk(atk){return{v:Math.round(atk*(.4+Math.random()*.4))};}},
+    s:{tag:'buff',names:['力量涌动','怒气积聚','战意高涨'],mk(){return{v:1+(Math.random()<.4?1:0)};}},
+    h:{tag:'sustain',names:['自我修复','伤口愈合','汲取生机'],mk(atk){return{v:Math.round(atk*(.5+Math.random()*.3))};}},
+    p:{tag:'poison',names:['剧毒喷射','毒液浸染','腐蚀毒雾'],mk(){return{v:2+Math.floor(Math.random()*3)};}},
+    w:{tag:'ctrl',names:['虚弱诅咒','衰弱侵蚀'],mk(){return{v:1+(Math.random()<.5?1:0)};}},
+    z:{tag:'ctrl',names:['震慑一击','眩晕打击'],mk(){return{v:1};}},
+    x:{tag:'ctrl',names:['缴械突袭','卸力擒拿'],mk(){return{v:1};}},
+    steal:{tag:'steal',names:['伸手夺物','趁乱扒窃'],mk(){return{v:1};}},
+    wear_card:{tag:'steal',names:['侵蚀卡面','磨损打击'],mk(){return{v:1+(Math.random()<.3?1:0)};}},
+    exile_card:{tag:'steal',names:['封印之触','虚空吞噬'],mk(){return{v:1};}},
+    burn_card:{tag:'steal',names:['焚毁诅咒','烈焰吞噬'],mk(){return{v:1};}},
+    drain_ap:{tag:'ctrl',names:['力量汲取','气力吸食'],mk(){return{v:1+(Math.random()<.4?1:0)};}},
+    lock_ap:{tag:'ctrl',names:['禁锢法阵','封锁枷锁'],mk(){return{v:1,dur:2+(Math.random()<.4?1:0)};}},
+    drain_maxhp:{tag:'sustain',names:['生命汲取','血脉侵蚀'],mk(){return{pct:.03+Math.random()*.02};}},
+    mutate_card:{tag:'steal',names:['异变污染','诡变之触'],mk(){return{};}},
+    execute:{tag:'atk',names:['终焉一击','斩杀连击'],mk(atk){return{v:Math.round(atk*(1.1+Math.random()*.2)),thresh:.3+Math.random()*.05};}},
+    multi_a:{tag:'atk',names:['连续攻击','乱舞猛击'],mk(atk){return{v:Math.round(atk*(.55+Math.random()*.1)),hits:2+(Math.random()<.4?1:0)};}},
+  },
+  // 每类招式对应的"顺手"战利品卡：招式里出现了哪几类标签，就从对应池子里抽战利品
+  LOOT_BY_TAG:{
+    atk:['strike','slam','heavy_blow','double','chain_slash','berserker','adrenaline'],
+    def:['defend','fortify','barrier','guard_quick','heavy_guard'],
+    buff:['strength','warcry','battle_hymn'],
+    sustain:['regen','meditate','sacrifice','vampire_oath'],
+    poison:['poison_flask','venom_blade','corruption'],
+    ctrl:['lockdown','silence','weaken','stagger'],
+    steal:['discard','inspect','catalyze','phantom_hit'],
+  },
+  // 现场生成一份全新的敌人特性，登记进 TRAIT_DEFS 并返回它的 key
+  genTrait(){
+    const adj=this.ADJ[0|Math.random()*this.ADJ.length];
+    const noun=this.NOUN[0|Math.random()*this.NOUN.length];
+    const key=adj+noun; // 造出来的"词"，同时作为特性key和第一个候选名字
+    const names=[key];const usedNoun=new Set([noun]);
+    while(names.length<3){
+      const adj2=Math.random()<.5?adj:this.ADJ[0|Math.random()*this.ADJ.length];
+      const noun2=this.NOUN[0|Math.random()*this.NOUN.length];
+      if(usedNoun.has(noun2))continue;usedNoun.add(noun2);
+      names.push(adj2+noun2);
+    }
+    const moveKeys=Object.keys(this.MOVES);
+    const pickCount=3+Math.floor(Math.random()*3); // 3~5个招式，加上随机数值/随机招式名，组合数接近无限
+    const picked=['a']; // 保底一个普通攻击，避免生成出"完全不会打人"的怪
+    while(picked.length<pickCount){
+      const k=moveKeys[0|Math.random()*moveKeys.length];
+      if(picked.length<2||Math.random()<.85)picked.push(k);
+    }
+    const tagCount={};picked.forEach(k=>{const t=this.MOVES[k].tag;tagCount[t]=(tagCount[t]||0)+1;});
+    const atkN=tagCount.atk||0,ctrlN=(tagCount.ctrl||0)+(tagCount.steal||0);
+    const aiType=atkN>=3?'aggro':ctrlN>atkN?'skill':'power';
+    const lootPool=new Set();
+    picked.forEach(k=>{(this.LOOT_BY_TAG[this.MOVES[k].tag]||[]).forEach(c=>lootPool.add(c));});
+    const loot=shuf([...lootPool]).slice(0,5);
+    const art=['👹','👺','🧟','💀','🕷','🦂','👻','🐍','🐙','🦇'][0|Math.random()*10];
+    const col=['#6a5a3a','#8a3a1a','#5a0a7a','#1a7a2a','#1a5a8a','#8a1a1a','#6a4a0a','#4a4a6a','#7a2a2a','#2a6a5a'][0|Math.random()*10];
+    TRAIT_DEFS[key]={
+      art,col,desc:'来历不明的变异生物，招式组合难以预测',names,aiType,
+      acts(atk){return picked.map(k=>{const m=EnemyGen.MOVES[k];const nm=m.names[0|Math.random()*m.names.length];return{t:k,n:nm,...m.mk(atk)};});},
+      loot:{cards:loot.length?loot:['strike','slam','defend','inspect','weaken']},
+    };
+    return key;
+  }
+};
+// 抽取本次遭遇用的特性：一部分概率沿用手写的经典特性（保留辨识度），
+// 其余交给 EnemyGen 现场生成全新组合——这才是真正"无限种敌人"的来源
+function pickTrait(){
+  if(Math.random()<.35)return _CURATED_TRAITS[0|Math.random()*_CURATED_TRAITS.length];
+  return EnemyGen.genTrait();
+}
 // 卡牌破坏附加行动
 function _cdActs(cardDmg,atk){
   const v={磨损:[{t:'wear_card',v:1,n:'磨损'}],折痕:[{t:'wear_card',v:2,n:'折痕撕裂'}],撕裂:[{t:'steal',v:1,n:'撕裂夺牌'}],破碎:[{t:'exile_card',v:1,n:'破碎封印'}],焚毁:[{t:'burn_card',v:1,n:'焚毁腐化'}]};
@@ -1692,7 +1773,7 @@ function genCardInfo(step,nodeRank){
     const sb=step<6?0:step<12?1:2;
     const combatPower=_cpPick(sb);
     const cardDmg=_cdPick(sb);
-    const trait=Object.keys(TRAIT_DEFS)[0|Math.random()*Object.keys(TRAIT_DEFS).length];
+    const trait=pickTrait();
     const td=TRAIT_DEFS[trait];
     const col=CP_COL[combatPower]||'#aa2222';
     const bg=isElite?'rgba(140,40,0,.35)':'rgba(80,20,20,.30)';
