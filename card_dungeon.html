@@ -974,20 +974,15 @@ const THEMES=[
 const ET=[
   /* ── Boss (恐怖) ── */
   {name:'深渊魔龙',  art:'🐲',tier:'boss',powerLevel:'恐怖',deckType:'凶恶',style:'暴君',aiType:'power',hpMult:3.0,epithet:'炎焰霸主',epithetSub:'龙鳞·烈焰·不灭',
-   actions:[{t:'a',v:10,n:'龙焰吐息'},{t:'a',v:8,n:'爪击'},{t:'a',v:8,n:'爪击'},{t:'s',v:1,n:'龙之怒'},{t:'a',v:14,n:'龙尾横扫'},{t:'d',v:8,n:'鳞甲'}],
-   loot:{cards:['sacrifice','multishot','strength','bloodrush','slam']}},
+   actions:[{t:'a',v:10,n:'龙焰吐息'},{t:'a',v:8,n:'爪击'},{t:'a',v:8,n:'爪击'},{t:'s',v:1,n:'龙之怒'},{t:'a',v:14,n:'龙尾横扫'},{t:'d',v:8,n:'鳞甲'}]},
   {name:'混沌之主',  art:'👁', tier:'boss',powerLevel:'恐怖',deckType:'阴险',style:'施法者',aiType:'skill',hpMult:2.5,epithet:'虚空凝视者',epithetSub:'混沌·腐化·无解',
-   actions:[{t:'a',v:9,n:'混沌光束'},{t:'p',v:2,n:'腐化之瘟'},{t:'z',v:1,n:'精神侵蚀·眩晕'},{t:'steal',v:1,n:'意志吞噬'},{t:'s',v:1,n:'混沌涌现'},{t:'a',v:13,n:'毁灭凝视'},{t:'p',v:2,n:'腐化之瘟'}],
-   loot:{cards:['poison_flask','corruption','warcry','weaken','vampire_oath']}},
+   actions:[{t:'a',v:9,n:'混沌光束'},{t:'p',v:2,n:'腐化之瘟'},{t:'z',v:1,n:'精神侵蚀·眩晕'},{t:'steal',v:1,n:'意志吞噬'},{t:'s',v:1,n:'混沌涌现'},{t:'a',v:13,n:'毁灭凝视'},{t:'p',v:2,n:'腐化之瘟'}]},
   {name:'腐化巨人',  art:'👹',tier:'boss',powerLevel:'恐怖',deckType:'厚皮',style:'暴君',aiType:'power',hpMult:3.2,epithet:'不死骸骨王',epithetSub:'腐朽·再生·重压',
-   actions:[{t:'d',v:9,n:'腐骨护甲'},{t:'a',v:11,n:'猛击'},{t:'h',v:8,n:'腐化再生'},{t:'a',v:11,n:'猛击'},{t:'d',v:6,n:'腐骨护甲'},{t:'a',v:15,n:'巨力重压'}],
-   loot:{cards:['fortify','slam','meditate','jugg','barrier']}},
+   actions:[{t:'d',v:9,n:'腐骨护甲'},{t:'a',v:11,n:'猛击'},{t:'h',v:8,n:'腐化再生'},{t:'a',v:11,n:'猛击'},{t:'d',v:6,n:'腐骨护甲'},{t:'a',v:15,n:'巨力重压'}]},
   {name:'时间骗子',  art:'⏳',tier:'boss',powerLevel:'恐怖',deckType:'阴险',style:'强盗',aiType:'skill',hpMult:2.8,epithet:'流逝编织者',epithetSub:'迅捷·侵蚀·无常',
-   actions:[{t:'a',v:10,n:'时间刀刃'},{t:'w',v:2,n:'时间侵蚀'},{t:'x',v:2,n:'时间停滞·缴械'},{t:'steal',v:1,n:'时光掠夺'},{t:'a',v:13,n:'迅捷突进'},{t:'s',v:1,n:'时间加速'}],
-   loot:{cards:['whirl','double','adrenaline','execute','focus_stone']}},
+   actions:[{t:'a',v:10,n:'时间刀刃'},{t:'w',v:2,n:'时间侵蚀'},{t:'x',v:2,n:'时间停滞·缴械'},{t:'steal',v:1,n:'时光掠夺'},{t:'a',v:13,n:'迅捷突进'},{t:'s',v:1,n:'时间加速'}]},
   {name:'深海怪物',  art:'🐙',tier:'boss',powerLevel:'恐怖',deckType:'阴险',style:'吸血鬼',aiType:'skill',hpMult:3.0,epithet:'深渊触手神',epithetSub:'毒素·吞噬·复原',
-   actions:[{t:'p',v:2,n:'深海毒素'},{t:'z',v:1,n:'触手缠绕·眩晕'},{t:'steal',v:1,n:'触手攫取'},{t:'a',v:12,n:'吞噬'},{t:'h',v:6,n:'深海复原'},{t:'a',v:10,n:'恐怖触手'}],
-   loot:{cards:['corruption','barrier','sacrifice','poison_flask','vampire_oath']}},
+   actions:[{t:'p',v:2,n:'深海毒素'},{t:'z',v:1,n:'触手缠绕·眩晕'},{t:'steal',v:1,n:'触手攫取'},{t:'a',v:12,n:'吞噬'},{t:'h',v:6,n:'深海复原'},{t:'a',v:10,n:'恐怖触手'}]},
 ];
 // ── 敌人三维体系 ──
 const CP_SCALE={孱弱:{h:.30,a:.50},健康:{h:.55,a:.80},强壮:{h:.80,a:1.10},暴虐:{h:1.10,a:1.40},恐怖:{h:1.50,a:1.80}};
@@ -1256,59 +1251,8 @@ const TRAIT_DEFS={
     names:['深渊主教','黑暗大主教','堕落圣职者'],aiType:'skill',
     acts(atk){return[{t:'lock_ap',v:1,dur:2,n:'禁咒封锁'},{t:'h',v:Math.round(atk*.6),n:'黑暗祝福'},{t:'mutate_card',n:'信仰侵蚀'},{t:'a',v:atk,n:'权杖审判'}];}},
 };
-// 每种 trait 对应的战利品牌池（5张，战后随机取3张展示）
-const _TRAIT_LOOT={
-  '流浪者': ['strike','slam','heavy_blow','last_stand','double'],
-  '小偷':   ['discard','inspect','catalyze','chain_slash','chaos_shot'],
-  '强盗':   ['heartbreak','stagger','heavy_blow','slam','shieldsmash'],
-  '吸血鬼': ['vampire_oath','regen','blood_pact','sacrifice','meditate'],
-  '魅魔':   ['lockdown','silence','weaken','catalyze','focus_stone'],
-  '疯狂科学家':['weaken','silence','meditate','desperation','last_stand'],
-  '游荡者': ['stagger','lockdown','phantom_hit','weaken','inspect'],
-  '控制师': ['lockdown','stagger','fortify','barrier','silence'],
-  '暴君':   ['strength','warcry','battle_hymn','berserker','whirl'],
-  '掠夺者': ['strength','fortify','heavy_guard','jugg','chain_slash'],
-  '骷髅兵': ['strike','slam','defend','guard_quick','heavy_blow'],
-  '火焰术士': ['poison_flask','venom_blade','soul_strike','chaos_shot','corruption'],
-  '冰霜巫婆': ['weaken','lockdown','stagger','silence','chaos_shot'],
-  '蛛后': ['poison_flask','venom_blade','discard','chain_slash','corruption'],
-  '食人花': ['regen','poison_flask','sacrifice','venom_blade','meditate'],
-  '石像鬼': ['defend','fortify','barrier','guard_quick','heavy_guard'],
-  '暗影刺客': ['heavy_blow','chain_slash','stagger','phantom_hit','soul_strike'],
-  '雷霆战士': ['strength','warcry','adrenaline','heavy_blow','multishot'],
-  '沼泽巨怪': ['regen','defend','heavy_guard','last_stand','martyr'],
-  '骸骨法师': ['corruption','weaken','poison_flask','silence','chaos_shot'],
-  '渡鸦巫医': ['regen','meditate','focus_stone','silence','sacrifice'],
-  '钢铁守卫': ['fortify','strength','barrier','guard_quick','jugg'],
-  '嗜魂怪': ['execute','soul_strike','strength','heavy_blow','desperation'],
-  '毒蜂群': ['multishot','poison_flask','venom_blade','chain_slash','whirl'],
-  '暴风掠夺者': ['multishot','discard','chain_slash','adrenaline','phantom_hit'],
-  '镜像诈骗师': ['catalyze','weaken','phantom_hit','corruption','chaos_shot'],
-  '食梦者': ['silence','lockdown','weaken','meditate','phantom_hit'],
-  '腐烂巨人': ['poison_flask','venom_blade','heavy_blow','corruption','jugg'],
-  '影子双子': ['multishot','defend','chain_slash','guard_quick','phantom_hit'],
-  '寒冰领主': ['lockdown','defend','barrier','stagger','silence'],
-  '熔岩傀儡': ['strength','warcry','battle_hymn','heavy_blow','jugg'],
-  '荆棘女巫': ['poison_flask','weaken','venom_blade','corruption','stagger'],
-  '暗影潜行者': ['discard','phantom_hit','stagger','chain_slash','chaos_shot'],
-  '锈蚀机兵': ['catalyze','defend','heavy_blow','fortify','guard_quick'],
-  '焚书者': ['corruption','soul_strike','heavy_blow','chaos_shot','desperation'],
-  '灰烬死灵': ['lockdown','weaken','silence','phantom_hit','soul_strike'],
-  '深渊触手': ['multishot','chain_slash','stagger','whirl','phantom_hit'],
-  '利爪猎手': ['strength','warcry','adrenaline','heavy_blow','berserker'],
-  '巨蟒': ['poison_flask','lockdown','venom_blade','stagger','chaos_shot'],
-  '走私贩': ['discard','phantom_hit','chain_slash','corruption','desperation'],
-  '噬法者': ['silence','lockdown','weaken','meditate','focus_stone'],
-  '墓地守卫': ['regen','defend','heavy_guard','martyr','last_stand'],
-  '渴血狼人': ['multishot','vampire_oath','bloodrush','berserker','adrenaline'],
-  '双刃剑客': ['multishot','chain_slash','heavy_blow','guard_quick','counter'],
-  '镣铐看守': ['stagger','lockdown','silence','weaken','phantom_hit'],
-  '瘟疫法师': ['poison_flask','corruption','venom_blade','weaken','chaos_shot'],
-  '幽灵骑士': ['defend','strength','heavy_blow','guard_quick','warcry'],
-  '沙漠盗匪': ['discard','chain_slash','phantom_hit','stagger','chaos_shot'],
-  '雪原狼王': ['strength','warcry','multishot','berserker','battle_hymn'],
-  '深渊主教': ['lockdown','regen','corruption','silence','soul_strike'],
-};
+// 注：原本每种 trait 各自维护一份"战利品牌池"，现已改为战斗结束时直接把敌人自己用过的招式
+// 转成卡牌（见 cardFromMove()），不再需要单独维护这份清单，故删除。
 // ── 敌人生成器 EnemyGen ──
 // 上面 TRAIT_DEFS 里的50种特性都是手写的固定清单；这里补一套"公式产物"的生成器：
 // 用"形容词+怪物词根"自己造名字，用战斗引擎已经认识的18种"动作原语"自己拼招式，
@@ -1339,17 +1283,8 @@ const EnemyGen={
     execute:{tag:'atk',names:['终焉一击','斩杀连击'],mk(atk){return{v:Math.round(atk*(1.1+Math.random()*.2)),thresh:.3+Math.random()*.05};}},
     multi_a:{tag:'atk',names:['连续攻击','乱舞猛击'],mk(atk){return{v:Math.round(atk*(.55+Math.random()*.1)),hits:2+(Math.random()<.4?1:0)};}},
   },
-  // 每类招式对应的"顺手"战利品卡：招式里出现了哪几类标签，就从对应池子里抽战利品
-  LOOT_BY_TAG:{
-    atk:['strike','slam','heavy_blow','double','chain_slash','berserker','adrenaline'],
-    def:['defend','fortify','barrier','guard_quick','heavy_guard'],
-    buff:['strength','warcry','battle_hymn'],
-    sustain:['regen','meditate','sacrifice','vampire_oath'],
-    poison:['poison_flask','venom_blade','corruption'],
-    ctrl:['lockdown','silence','weaken','stagger'],
-    steal:['discard','inspect','catalyze','phantom_hit'],
-  },
   // 现场生成一份全新的敌人特性，登记进 TRAIT_DEFS 并返回它的 key
+  // 注：不再需要单独配一份"战利品池"——玩家打赢后，直接把这里 acts() 生成的招式转成卡牌（见 cardFromMove()）
   genTrait(){
     const adj=this.ADJ[0|Math.random()*this.ADJ.length];
     const noun=this.NOUN[0|Math.random()*this.NOUN.length];
@@ -1371,15 +1306,11 @@ const EnemyGen={
     const tagCount={};picked.forEach(k=>{const t=this.MOVES[k].tag;tagCount[t]=(tagCount[t]||0)+1;});
     const atkN=tagCount.atk||0,ctrlN=(tagCount.ctrl||0)+(tagCount.steal||0);
     const aiType=atkN>=3?'aggro':ctrlN>atkN?'skill':'power';
-    const lootPool=new Set();
-    picked.forEach(k=>{(this.LOOT_BY_TAG[this.MOVES[k].tag]||[]).forEach(c=>lootPool.add(c));});
-    const loot=shuf([...lootPool]).slice(0,5);
     const art=['👹','👺','🧟','💀','🕷','🦂','👻','🐍','🐙','🦇'][0|Math.random()*10];
     const col=['#6a5a3a','#8a3a1a','#5a0a7a','#1a7a2a','#1a5a8a','#8a1a1a','#6a4a0a','#4a4a6a','#7a2a2a','#2a6a5a'][0|Math.random()*10];
     TRAIT_DEFS[key]={
       art,col,desc:'来历不明的变异生物，招式组合难以预测',names,aiType,
       acts(atk){return picked.map(k=>{const m=EnemyGen.MOVES[k];const nm=m.names[0|Math.random()*m.names.length];return{t:k,n:nm,...m.mk(atk)};});},
-      loot:{cards:loot.length?loot:['strike','slam','defend','inspect','weaken']},
     };
     return key;
   }
@@ -1427,8 +1358,7 @@ function buildEnemyFromDims(card,isElite,ps){
     combatPower,cardDmg,trait,traitDesc:td.desc,
     hp,atk:finalAtk,actions,block:0,str:0,poison:0,
     goldMin:gMin,goldMax:Math.round(gMin*1.6),
-    escapeRound:td.escapeRound,escapeHpPct:td.escapeHpPct,returnOnKill:td.returnOnKill,destroyStolen:td.destroyStolen,lifesteal:td.lifesteal,
-    loot:{cards:(_TRAIT_LOOT[trait]||['strike','slam','defend','inspect','weaken'])}};
+    escapeRound:td.escapeRound,escapeHpPct:td.escapeHpPct,returnOnKill:td.returnOnKill,destroyStolen:td.destroyStolen,lifesteal:td.lifesteal};
 }
 const EVTS=[
   {difficulty:'hard',art:'🗿',title:'血祭祭坛',tag:'☠ 神圣遗址',desc:'古老祭坛嗡嗡作响，仿佛渴望着鲜血。祭品越多，馈赠越重。',choices:[
@@ -2684,7 +2614,7 @@ function showReward(gold){
   const isElite=tier==='elite',isBoss=tier==='boss';
   const vidx=enemyValIdx(enemy);
   const tierRareBoost=[0,.08,.18,.32,.5][vidx];
-  // Card pool: enemy loot first, fill random (deck-aware biased)
+  // rc/uc/fillPool 仅用于事件强制奖励和"敌人招式不够3种"时的兜底填充，不再是主要卡池来源
   const rc=Math.min(.6,ps/130+tierRareBoost);const uc=Math.min(.7,.25+ps/110+tierRareBoost*.6);
   const fillPool=DB.filter(c=>c.rar!=='curse');
   // Analyze deck composition to bias rewards toward what player needs
