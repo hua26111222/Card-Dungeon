@@ -84,10 +84,10 @@ html,body{background:var(--void);color:var(--text);font-family:var(--fm);font-si
 .mrow-d1{opacity:.70;transform:scale(.95);pointer-events:none}
 .mrow-act{position:relative}
 .mplayer-row{display:flex;justify-content:center;gap:4px;padding:3px 0 1px}
-.mplayer-cell{width:58px;text-align:center;font-size:9px;letter-spacing:1px}
-.mcard{width:58px;height:82px;border-radius:5px;border:2px solid;position:relative;
+.mplayer-cell{flex:1 1 0;max-width:58px;min-width:28px;text-align:center;font-size:9px;letter-spacing:1px}
+.mcard{flex:1 1 0;max-width:58px;min-width:28px;height:82px;border-radius:5px;border:2px solid;position:relative;
   display:flex;flex-direction:column;align-items:center;justify-content:center;
-  transition:transform .15s,box-shadow .15s,opacity .2s;flex-shrink:0;overflow:hidden;
+  transition:transform .15s,box-shadow .15s,opacity .2s;overflow:hidden;
   background:linear-gradient(160deg,#1a1428,#0d0a18);opacity:1;pointer-events:none}
 .mrow-act .mcard:not(.reach){opacity:.2;filter:saturate(.25)}
 .mcard.reach{opacity:1;cursor:pointer;pointer-events:auto}
@@ -1652,7 +1652,7 @@ function buildEnemy(tmpl,isElite,isBoss){
   // HP: tier base × normalized hpMult (each tier's avg hpMult treated as 1.0)
   const hpBase=player.maxHp*(isBoss?1.4:isElite?0.9:0.5);
   const hpNorm=isBoss?3.0:isElite?1.6:1.0;
-  const hp=Math.round(hpBase*(tmpl.hpMult/hpNorm)*tierScale*(isBoss&&window._bossDoubled?2:effectMult>1&&!isBoss?effectMult:1));
+  const hp=Math.round(hpBase*(tmpl.hpMult/hpNorm)*tierScale*(effectMult>1&&!isBoss?effectMult:1));
   // Target attack per turn: % of player maxHP (keeps fights fair)
   const dangerPct=isBoss?.19:isElite?.14:.11;
   const targetAtkPerTurn=Math.round(player.maxHp*dangerPct*tierScale);
@@ -1876,8 +1876,8 @@ function renderMap(){
   const d1row=rows[step+1];if(d1row)gridHtml+=`<div class="mrow mrow-d1">${d1row.map((c,ci)=>cardHTML(c,ci,'d1',potD1)).join('')}</div>`;
   const actrow=rows[step];
   if(actrow)gridHtml+=`<div class="mrow mrow-act">${actrow.map((c,ci)=>cardHTML(c,ci,'act',reach)).join('')}</div>`;
-  // Player position indicator — 5 cols (or 4 on boss step)
-  const indCols=isBossStep?4:5;
+  // Player position indicator — MAP_COLS cols (or 4 on boss step)
+  const indCols=isBossStep?4:MAP_COLS;
   gridHtml+=`<div class="mplayer-row">${Array.from({length:indCols},(_,ci)=>`<div class="mplayer-cell" style="color:${ci===playerCol?'var(--amber)':'var(--ash2)'}">${ci===playerCol?'▲':'·'}</div>`).join('')}</div>`;
   document.getElementById('mchooser').style.flexDirection='column';
   document.getElementById('mchooser').innerHTML=gridHtml;
@@ -1945,8 +1945,8 @@ function pickMapCard(col){
   const{rows,step,playerCol}=mapData;
   if(step>18||!rows[step])return;
   let reach;
-  if(step===18){const bmap=[[0,1],[0,1,2],[0,1,2,3],[1,2,3],[2,3]];reach=new Set(bmap[playerCol]||[0,1,2,3]);}
-  else{reach=new Set([playerCol-1,playerCol,playerCol+1].filter(c=>c>=0&&c<5));}
+  if(step===18){reach=bossRowReach(playerCol,MAP_COLS,4);}
+  else{reach=new Set([playerCol-1,playerCol,playerCol+1].filter(c=>c>=0&&c<MAP_COLS));}
   if(!reach.has(col))return;
   const card=rows[step][col];if(!card)return;
 
@@ -1958,14 +1958,12 @@ function pickMapCard(col){
     // Store which boss and power multiplier
     window._bossPowerMult= bv==='easy'?.5:bv==='hard'?2.0:bv==='major'?1.2:0.85;
     window._bossRef=card.bossRef||(bv==='minor'?chapter.boss2:chapter.boss)||chapter.boss;
-    window._bossDoubled=false;
     window._mapEffectMult=1;
-    const revealMsg=wasBlind?(bv==='easy'?'🎴 镜影现形！弱化Boss出现！':bv==='hard'?'☠ 深渊具现！超强Boss降临！':bv==='curse'?'☠ 诅咒化身现身！':'● 财富守护者登场！'):'';
+    const revealMsg=wasBlind?(bv==='easy'?'🎴 镜影现形！弱化Boss出现！':bv==='hard'?'☠ 深渊具现！超强Boss降临！':bv==='curse'?'☠ 诅咒化身现身！':'● 财富守护者登场！双倍金币！'):'';
     if(revealMsg)toast(revealMsg,'r');
   }else{
     window._bossPowerMult=1;window._bossRef=null;
     window._mapEffectMult=wasBlind?2:1;
-    window._bossDoubled=false;
     if(wasBlind)toast('🎴 暗牌揭晓！效果 ×2');
   }
 
@@ -2477,11 +2475,12 @@ function endBattle(won){
     player.gold+=g;
     if(battle.enemy.tier==='boss'){
       rs.chaptersCleared++;
-      const bGold=Math.floor(50*chapter.floor*(window._bossDoubled?2:1));
+      // "财富守护"暗牌变体：之前只在地图上承诺"高额金币奖励"，却从没真正给过金币，这里补上双倍金币
+      const bGold=Math.floor(50*chapter.floor*(window._bossVariant==='gold'?2:1));
       player.gold+=bGold;
-      window._bossDoubled=false;
       // Curse variant: add a curse card as penalty
       if(window._pendingCurse){battle.deck.push(gc('regret'));toast(`☠ 诅咒化身！首领已倒但获得了诅咒牌！+${bGold}金币`,'r');}
+      else if(window._bossVariant==='gold')toast(`● 财富守护！首领已倒，双倍金币 +${bGold}！`,'g');
       else toast(`首领已倒！+${bGold}金币`,'g');
       window._pendingCurse=false;
       setTimeout(()=>showBossReward(),1000);
