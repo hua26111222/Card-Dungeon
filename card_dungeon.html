@@ -947,8 +947,8 @@ function buildStarterDeck(){
   const sklPicks=pick(['inspect','discard','poison_flask','weaken','meditate'],2);
   window._starterRandom={atk:atkPicks,def:defPicks,skl:sklPicks};
   const base=[...atkPicks,...defPicks,...sklPicks,gc('strength'),gc('focus_stone')];
-  const legacyIds=loadLegacy();
-  legacyIds.forEach(id=>{const c=gc(id);if(c){c.isLegacy=true;base.push(c);}});
+  const legacyCards=loadLegacy();
+  legacyCards.forEach(c=>{if(c)base.push({...c,isLegacy:true});});
   return base;
 }
 const MODS=[
@@ -3831,7 +3831,7 @@ function startFusion(){window._fusionSel=[];renderFusionUI();}
 function fusionModRange(stab){
   if(stab>.8)return{min:.75,max:1.4};
   if(stab>.5)return{min:.5,max:1.8};
-  return{min:-.3,max:3.3};
+  return{min:-.3,max:3.0};
 }
 function renderFusionUI(){
   const sel=window._fusionSel||[];
@@ -3848,7 +3848,8 @@ function renderFusionUI(){
     const nameDivers=new Set(sc.map(c=>c.name)).size/sc.length;
     const kindDivers=new Set(sc.map(c=>c.kind)).size/sc.length;
     const stab=Math.max(0,1-nameDivers*.7-kindDivers*.3);
-    const minR=Math.round(totalV*.7*(stab>.7?.75:-0.5)),maxR=Math.round(totalV*.7*(stab>.7?1.4:3.0));
+    const{min:_mn,max:_mx}=fusionModRange(stab);
+    const minR=Math.round(totalV*.7*_mn),maxR=Math.round(totalV*.7*_mx);
     h+=`<div style="margin:0 0 8px;padding:5px 10px;border:1px solid var(--crack2);font-size:9px;color:var(--text2)">稳定性 ${Math.round(stab*100)}% · 总价值 ${totalV}g · 预估 ${minR}~${maxR}g</div>`;
   }
   validCards.forEach((c,ci)=>{
@@ -3882,7 +3883,8 @@ function executeFusion(){
   const kindDivers=new Set(sc.map(c=>c.kind)).size/sc.length;
   const stab=Math.max(0,1-nameDivers*.7-kindDivers*.3);
   const roll=Math.random();
-  let mod=stab>.8?0.75+roll*.65:stab>.5?0.5+roll*1.3:-0.3+roll*3.3;
+  const{min:_mn2,max:_mx2}=fusionModRange(stab);
+  const mod=_mn2+roll*(_mx2-_mn2);
   const targetV=Math.round(totalV*.7*mod);
   // Remove selected cards
   [...sel].sort((a,b)=>b-a).forEach(i=>battle.deck.splice(i,1));
@@ -4007,7 +4009,9 @@ function renderLeaderboard(){
   document.getElementById('lb-list').innerHTML=top.length?top.map((e,i)=>`<div class="gor" style="border-bottom:1px solid var(--crack)"><span class="gol">#${i+1} ${e.title||'无名旅者'}</span><span class="gov2">第${toR(e.floor)}层 · ${e.dmgDealt}伤害 · ${e.kills}杀</span></div>`).join(''):'<div style="color:var(--text3);font-size:11px;padding:20px 0">暂无记录，去闯荡深渊吧</div>';
 }
 // ── 传承系统 ──
-function saveLegacy(ids){try{localStorage.setItem('cd_legacy',JSON.stringify(ids.slice(0,3)));}catch(e){}}
+// 注：这里必须存完整的卡牌对象，不能只存id——很多卡（动态生成/熔合产物）根本不在固定卡池DB里，
+// 只存id的话，下一局用gc(id)查表会查不到，那张传承卡就会静默消失，等于"传承"从没真正生效过
+function saveLegacy(cards){try{localStorage.setItem('cd_legacy',JSON.stringify(cards.slice(0,3)));}catch(e){}}
 function loadLegacy(){try{const l=localStorage.getItem('cd_legacy');return l?JSON.parse(l):[];}catch(e){return[];}}
 function clearLegacy(){try{localStorage.removeItem('cd_legacy');}catch(e){}}
 function renderLegacyPicker(){
@@ -4034,7 +4038,7 @@ function confirmLegacy(){
   const eligible=(battle.deck||[]).filter(c=>c.rar!=='curse');
   const sel=window._legacySel||new Set();
   const picks=[...sel].map(i=>eligible[i]).filter(Boolean);
-  saveLegacy(picks.map(c=>c.id));
+  saveLegacy(picks);
   toast(`⬡ 已选择传承 ${picks.length} 张牌`,'g');
   const lsEl=document.getElementById('legacy-section');if(lsEl)lsEl.style.display='none';
 }
