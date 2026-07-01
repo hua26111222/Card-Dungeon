@@ -4,6 +4,15 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>卡牌地牢</title>
+<!-- PWA：让手机浏览器可以把这个页面"添加到主屏幕"，像装了个App一样打开、离线也能玩 -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0d0a18">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="卡牌地牢">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" href="icons/icon-192.png">
 <link href="https://fonts.googleapis.com/css2?family=ZCOOL+XiaoWei&family=Cinzel+Decorative:wght@400;700&family=Noto+Serif+SC:wght@400;700;900&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;user-select:none}
@@ -4392,6 +4401,12 @@ function deleteSaveSlot(n){
   else{showSaveSelect();}
 }
 showHome();
+</script>
+<script>
+// 注册离线缓存：装到主屏幕后，没网也能打开继续玩
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});});
+}
 </script>
 </body>
 </html>

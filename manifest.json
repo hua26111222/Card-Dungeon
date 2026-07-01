@@ -1,0 +1,19 @@
+{
+  "name": "卡牌地牢 Card Dungeon",
+  "short_name": "卡牌地牢",
+  "description": "无尽地牢卡牌回合制生存游戏——每一局都是全新的敌人、全新的卡牌组合。",
+  "start_url": "./card_dungeon.html",
+  "scope": "./",
+  "id": "./card_dungeon.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0d0a18",
+  "theme_color": "#0d0a18",
+  "lang": "zh-CN",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
