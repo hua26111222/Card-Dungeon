@@ -1394,7 +1394,7 @@ const EVTS=[
     {text:'礼貌离开',sub:'继续前行',fn:()=>'pass'}]},
   {difficulty:'easy',art:'🤕',title:'受伤旅者',tag:'❤ 善意相遇',desc:'一位旅行者倒在路边，身上有伤。他用虚弱的眼神望向你。',choices:[
     {text:'出手救助（失去HP）',sub:'失去10%HP，获得1张罕见卡作为感谢',fn:(p,b)=>{const cost=Math.floor(p.maxHp*.10);if(p.hp<=cost+5)return'HP不足';p.hp-=cost;const em=window._mapEffectMult||1;const pool=DB.filter(c=>c.rar==='uncommon');const c=pool[0|Math.random()*pool.length];for(let k=0;k<em;k++)b.deck.push(gc(c.id));return`救人！-${cost}HP 获得${c.name}${em>1?` x${em}`:''}`}},
-    {text:'花钱雇人救他',sub:'花费50金，他事后报答你80金',fn:(p)=>{if(p.gold<50)return'金币不足';const em=window._mapEffectMult||1;const g=30*em;p.gold+=g;return`好人有好报！净得${g}金币`}},
+    {text:'花钱雇人救他',sub:'花费50金，他事后报答你80金',fn:(p)=>{if(p.gold<50)return'金币不足';p.gold-=50;const em=window._mapEffectMult||1;const g=Math.round(80*em);p.gold+=g;return`好人有好报！-50金 +${g}金币`}},
     {text:'视而不见',sub:'继续前行',fn:()=>'pass'}]},
   {difficulty:'neutral',art:'🔑',title:'秘密房间',tag:'🔑 隐藏发现',desc:'墙壁上有一道细缝，仔细查看——竟是一扇暗门。里面漆黑一片……',choices:[
     {text:'进入探索',sub:'随机：金币+100~200 / 稀有卡 / 最大HP+15',fn:(p,b,ch)=>{const em=window._mapEffectMult||1;const r=Math.random();if(r<.35){const g=Math.floor((100+ch.floor*15)*em);p.gold+=g;return`发现宝藏！+${g}金币`}if(r<.65)return'reward_rare';const add=15*em;p.maxHp+=add;p.hp=Math.min(p.maxHp,p.hp+add);return`发现古老遗物！最大HP+${add}`}},
@@ -2848,9 +2848,10 @@ function confirmTavBuy(){
 }
 function doRest(act){
   const em=window._mapEffectMult||1;
-  if(act==='heal'){const h=Math.floor(player.maxHp*.3*em);player.hp=Math.min(player.maxHp,player.hp+h);toast(`+${h} HP`,'g');setTimeout(backToMap,600);}
+  // 恢复比例必须和 startCampfire() 展示给玩家的 healAmt(maxHp*.35) 保持一致，之前这里写成了 .3，
+  // 导致"休息"按钮实际回血比屏幕上承诺的少一截
+  if(act==='heal'){const h=Math.floor(player.maxHp*.35*em);player.hp=Math.min(player.maxHp,player.hp+h);toast(`+${h} HP`,'g');setTimeout(backToMap,600);}
   else if(act==='upgrade'){const up=battle.deck.filter(c=>c.kind==='atk'||c.kind==='def'||c.kind==='skl'||c.kind==='pwr');if(up.length){window._upgradeFromCamp=true;return showCardPicker('upgrade',up);}toast('没有可强化的牌','r');}
-  else{const rm=battle.deck.filter(c=>c.kind!=='crs');if(rm.length)return showCardPicker('remove',rm);toast('没有可移除的牌','r');}
   renderHud();renderTokens();
 }
 function showGameOver(){
@@ -3559,7 +3560,8 @@ function startGamble(){
   showView('ov');renderHud();renderTokens();
 }
 function playGamble(tier){
-  const costs={c:20,u:55,r:90,x:40};const cost=costs[tier];
+  // 费用统一从 startGamble() 设的 window._gambleCost 读取，不再各写一份，避免以后调价只改了一处
+  const cost=(window._gambleCost||{c:20,u:55,r:90,x:40})[tier];
   if(player.gold<cost){toast('金币不足','r');return;}
   player.gold-=cost;renderHud();
   if(tier==='x'){
@@ -3584,7 +3586,7 @@ function playGamble(tier){
   const used=new Set(battle.deck.map(c=>c.id));
   const avail=shuf(pool.filter(c=>!used.has(c.id)));
   const picks=(avail.length>=3?avail:shuf(pool)).slice(0,3);
-  window._gamblePicks=picks;window._gambleSel=null;window._gambleTier=tier;window._gambleCost2=cost;
+  window._gamblePicks=picks;window._gambleSel=null;window._gambleCost2=cost;
   document.getElementById('ovtag').textContent='🎲  赌馆结算';
   document.getElementById('ovtit').textContent={c:'小赌',u:'豪赌',r:'神赌'}[tier];
   renderGambleResult();
@@ -3674,7 +3676,9 @@ function renderAltarUI(){
   const tableHtml=validCards.map((c,i)=>{
     const val=cardValue(c);
     const hint=val>=60?'🔥高价值':val>=30?'✦中等':'💀低价';
-    return renderPokerCard(c,`selectAltarCard(${i})`,{idx:i,total:validCards.length,sel:sel===i});
+    const hCol=val>=60?'#ff6a3a':val>=30?'#ffd23a':'#8899aa';
+    // 之前这个hint算出来后从没显示给玩家，只能靠卡面上的"≈XXg"数字自己猜——现在直接标出来
+    return`<div style="position:relative">${renderPokerCard(c,`selectAltarCard(${i})`,{idx:i,total:validCards.length,sel:sel===i})}<div style="position:absolute;top:-6px;left:50%;transform:translateX(-50%);font-size:8px;color:${hCol};background:rgba(0,0,0,.75);padding:1px 5px;border-radius:3px;pointer-events:none;white-space:nowrap;z-index:3">${hint}</div></div>`;
   }).join('');
   let confirmHtml='';
   if(sel!==null&&sel<validCards.length){
@@ -3823,6 +3827,12 @@ function renderBlacksmithMain(){
 function doPickForBlacksmith(act){showCardPicker(act,battle.deck.filter(c=>c.rar!=='curse'),renderBlacksmithMain);}
 // ── 熔合系统 ──
 function startFusion(){window._fusionSel=[];renderFusionUI();}
+// 稳定性→熔合倍率区间：预览文字和实际结算必须用同一份阈值/区间，不然玩家看到的"预估"和真正掷出来的对不上
+function fusionModRange(stab){
+  if(stab>.8)return{min:.75,max:1.4};
+  if(stab>.5)return{min:.5,max:1.8};
+  return{min:-.3,max:3.3};
+}
 function renderFusionUI(){
   const sel=window._fusionSel||[];
   const kn=k=>k==='atk'?'攻击':k==='def'?'防御':k==='skl'?'技能':'诅咒';
