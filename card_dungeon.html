@@ -887,6 +887,9 @@ const DB=[
   {id:'lockdown',    name:'锁链禁锢', cost:1,kind:'skl',art:'⛓',rar:'rare',     desc:'使敌人眩晕 <b>1</b> 回合（消耗）',special:'lockdown',stunCount:1,exhaust:true},
 ];
 function gc(id){const c=DB.find(c=>c.id===id);return c?JSON.parse(JSON.stringify(c)):null;}
+// 每种数值效果"值多少分"的统一权重表：cardValue() 打分、CardGen 生成数值时分配预算，
+// 两边都从这一份表里取数，不再各写各的系数——生成出来的卡，分数才能真正对应它的预算
+const STAT_W={atk:2,blk:1.5,heal:1.5,str:8,draw:7,ap:12,poison:5,weak:6,vuln:6};
 function cardValue(c){
   if(!c||c.rar==='curse')return 0;
   if(c.special){
@@ -897,9 +900,9 @@ function cardValue(c){
     const rm=c.rar==='rare'?1.5:c.rar==='uncommon'?1.2:1;
     return Math.round((sv[c.special]||40)*rm*(1+(c.upgradeCount||0)*.2));
   }
-  const base=(c.atk||0)*2+(c.atk&&c.times?(c.atk*(c.times-1)*1.5):0)+
-    (c.blk||0)*1.5+(c.heal||0)*1.5+(c.str||0)*8+(c.draw||0)*7+
-    (c.ap||0)*12+(c.poison||0)*5+(c.weak||0)*6+(c.vuln||0)*6;
+  const base=(c.atk||0)*STAT_W.atk+(c.atk&&c.times?(c.atk*(c.times-1)*1.5):0)+
+    (c.blk||0)*STAT_W.blk+(c.heal||0)*STAT_W.heal+(c.str||0)*STAT_W.str+(c.draw||0)*STAT_W.draw+
+    (c.ap||0)*STAT_W.ap+(c.poison||0)*STAT_W.poison+(c.weak||0)*STAT_W.weak+(c.vuln||0)*STAT_W.vuln;
   const cm=[1.4,1,0.8,0.65][Math.min(c.cost||0,3)];
   const rm=c.rar==='rare'?1.5:c.rar==='uncommon'?1.2:1;
   return Math.max(5,Math.round(base*cm*rm*(1+(c.upgradeCount||0)*.18)));
@@ -1568,6 +1571,9 @@ const SM={
 };
 
 // ── 卡牌动态生成器 ──
+// 生成时用到的数值上限，原本是十几个分散在各条分支里的硬编码数字（48/26/14/16...），
+// 现在集中放在这一张表里：以后想整体调"生成卡最强能有多强"，改这一处就够了
+const CG_CAP={atk:48,def:26,defHeal:14,sklHeal:16,str:2,sklPoison:5,comboAtk:24,comboBlk:14,comboHeal:12,comboAtk2:20,comboPoison:4,comboPoison2:3,atkPoison:6};
 const CardGen={
   one(ps){
     const tier=ps<30?'common':ps<60?'uncommon':'rare';
@@ -1583,40 +1589,49 @@ const CardGen={
   },
   _mkAtk(id,tier,base){
     const cost=base<14?0:base<28?1:2;
-    const atk=Math.min(48,Math.round(base/(cost===0?1.2:cost===1?1:0.75)));
+    const atk=Math.min(CG_CAP.atk,Math.round(base/(cost===0?1.2:cost===1?1:0.75)));
     const r=Math.random();
     if(r<.26){return{id,name:this._n('atk',tier),art:this._a('atk'),kind:'atk',rar:tier,cost,atk,desc:`造成 <b>${atk}</b> 伤害`};}
     if(r<.44){const da=Math.round(atk*.62);return{id,name:this._n('atk',tier,'d'),art:'⚡',kind:'atk',rar:tier,cost,atk:da,times:2,desc:`造成 <b>${da}</b> 伤 <b>×2</b>`};}
     if(r<.54){const ta=Math.round(atk*.42);return{id,name:this._n('atk',tier,'t'),art:'🌀',kind:'atk',rar:tier,cost:Math.min(2,cost+1),atk:ta,times:3,desc:`造成 <b>${ta}</b> 伤 <b>×3</b>`};}
     if(r<.65){const ra=Math.round(atk*.72);return{id,name:this._n('atk',tier,'s'),art:'🗡',kind:'atk',rar:tier,cost,atk:ra,draw:1,desc:`造成 <b>${ra}</b> 伤，摸 <b>1</b> 张牌`};}
     if(r<.75){const wa=Math.round(atk*.75);const wt=tier==='rare'?2:1;return{id,name:this._n('atk',tier,'w'),art:'💚',kind:'atk',rar:tier,cost,atk:wa,weak:wt,desc:`造成 <b>${wa}</b> 伤，虚弱敌人 <b>${wt}</b> 回合`};}
-    if(r<.87){const pa=Math.round(atk*.6);const pt=Math.min(6,Math.max(1,Math.round(base*.08)));return{id,name:this._n('atk',tier,'p'),art:'☠',kind:'atk',rar:tier,cost,atk:pa,poison:pt,desc:`造成 <b>${pa}</b> 伤，施毒 <b>${pt}</b> 层`};}
+    if(r<.87){
+      // 直伤打6折，省下的4成"预算"按 STAT_W 换算成毒层数——生成公式和 cardValue 打分公式用同一份权重表，
+      // 这样这张卡的实际得分才会跟一张纯攻击牌的预算基本一致，不会凭空多出或少算数值
+      const pa=Math.round(atk*.6);
+      const pt=Math.min(CG_CAP.atkPoison,Math.max(1,Math.round(atk*STAT_W.atk*.4/STAT_W.poison)));
+      return{id,name:this._n('atk',tier,'p'),art:'☠',kind:'atk',rar:tier,cost,atk:pa,poison:pt,desc:`造成 <b>${pa}</b> 伤，施毒 <b>${pt}</b> 层`};
+    }
     const va=Math.round(atk*.65);return{id,name:this._n('atk',tier,'v'),art:'💥',kind:'atk',rar:tier,cost,atk:va,vuln:1,desc:`造成 <b>${va}</b> 伤，易伤敌人1回合`};
   },
   _mkDef(id,tier,base){
     const cost=base<11?0:base<22?1:2;
-    const blk=Math.min(26,Math.round(base/(cost===0?1.3:cost===1?1:0.7)));
+    const blk=Math.min(CG_CAP.def,Math.round(base/(cost===0?1.3:cost===1?1:0.7)));
     const r=Math.random();
     if(r<.38){return{id,name:this._n('def',tier),art:this._a('def'),kind:'def',rar:tier,cost,blk,desc:`获得 <b>${blk}</b> 格挡`};}
-    if(r<.58){const bh=Math.round(blk*.72);const hl=Math.min(14,Math.max(2,Math.round(base*.12)));return{id,name:this._n('def',tier,'h'),art:'💊',kind:'def',rar:tier,cost,blk:bh,heal:hl,desc:`获得 <b>${bh}</b> 格挡，回复 <b>${hl}</b> HP`};}
+    if(r<.58){const bh=Math.round(blk*.72);const hl=Math.min(CG_CAP.defHeal,Math.max(2,Math.round(base*.12)));return{id,name:this._n('def',tier,'h'),art:'💊',kind:'def',rar:tier,cost,blk:bh,heal:hl,desc:`获得 <b>${bh}</b> 格挡，回复 <b>${hl}</b> HP`};}
     if(r<.75){const bd=Math.round(blk*.75);return{id,name:this._n('def',tier,'d'),art:'🔍',kind:'def',rar:tier,cost,blk:bd,draw:1,desc:`获得 <b>${bd}</b> 格挡，摸 <b>1</b> 张牌`};}
-    const bs=Math.round(blk*.65);const st=Math.min(2,Math.max(1,Math.round(base*.06)));return{id,name:this._n('def',tier,'q'),art:'💪',kind:'def',rar:tier,cost,blk:bs,str:st,dur:999,desc:`获得 <b>${bs}</b> 格挡，【全场】攻击 <b>+${st}</b>`};
+    // 格挡打65折，省下的35%预算换算成【全场】力量点数，同样用 STAT_W 反推，不再是拍脑袋的 base*.06
+    const bs=Math.round(blk*.65);
+    const st=Math.min(CG_CAP.str,Math.max(1,Math.round(blk*STAT_W.blk*.35/STAT_W.str)));
+    return{id,name:this._n('def',tier,'q'),art:'💪',kind:'def',rar:tier,cost,blk:bs,str:st,dur:999,desc:`获得 <b>${bs}</b> 格挡，【全场】攻击 <b>+${st}</b>`};
   },
   _mkSkl(id,tier,base){
     const cost=tier==='rare'?1:Math.random()<.28?1:0;
     const r=Math.random();
     if(r<.28){const draw=1+(tier!=='common'?1:0);return{id,name:this._n('skl',tier,'dr'),art:'🔍',kind:'skl',rar:tier,cost,draw,desc:`摸 <b>${draw}</b> 张牌`};}
-    if(r<.50){const heal=Math.min(16,Math.round(base*.38+3));return{id,name:this._n('skl',tier,'hl'),art:'💊',kind:'skl',rar:tier,cost,heal,exhaust:true,desc:`回复 <b>${heal}</b> HP（消耗）`};}
-    if(r<.68){const str=Math.min(2,Math.max(1,Math.round(base*.12)));return{id,name:this._n('skl',tier,'st'),art:'💪',kind:'skl',rar:tier,cost,str,dur:999,desc:`【全场】攻击 <b>+${str}</b>`};}
-    if(r<.83){const poi=Math.min(5,Math.max(1,Math.round(base*.10)));return{id,name:this._n('skl',tier,'po'),art:'☠',kind:'skl',rar:tier,cost,poison:poi,desc:`施毒 <b>${poi}</b> 层`};}
+    if(r<.50){const heal=Math.min(CG_CAP.sklHeal,Math.round(base*.38+3));return{id,name:this._n('skl',tier,'hl'),art:'💊',kind:'skl',rar:tier,cost,heal,exhaust:true,desc:`回复 <b>${heal}</b> HP（消耗）`};}
+    if(r<.68){const str=Math.min(CG_CAP.str,Math.max(1,Math.round(base*STAT_W.atk/STAT_W.str/2)));return{id,name:this._n('skl',tier,'st'),art:'💪',kind:'skl',rar:tier,cost,str,dur:999,desc:`【全场】攻击 <b>+${str}</b>`};}
+    if(r<.83){const poi=Math.min(CG_CAP.sklPoison,Math.max(1,Math.round(base*STAT_W.atk/STAT_W.poison/2)));return{id,name:this._n('skl',tier,'po'),art:'☠',kind:'skl',rar:tier,cost,poison:poi,desc:`施毒 <b>${poi}</b> 层`};}
     const draw2=1+(tier==='rare'?1:0);const str2=1;return{id,name:this._n('skl',tier,'ds'),art:'✨',kind:'skl',rar:tier,cost,draw:draw2,str:str2,dur:999,desc:`摸 <b>${draw2}</b> 张牌，【全场】攻击 <b>+${str2}</b>`};
   },
   _mkCombo(id,tier,base){
     const cost=1;const r=Math.random();
-    if(r<.32){const a=Math.min(24,Math.round(base*.42));const b2=Math.min(14,Math.round(base*.28));return{id,name:this._n('atk',tier,'c'),art:'⚔',kind:'atk',rar:tier,cost,atk:a,blk:b2,desc:`造成 <b>${a}</b> 伤，获得 <b>${b2}</b> 格挡`};}
-    if(r<.60){const p=Math.min(4,Math.max(1,Math.round(base*.08)));return{id,name:this._n('skl',tier,'pc'),art:'🔮',kind:'skl',rar:tier,cost,poison:p,draw:1,desc:`施毒 <b>${p}</b> 层，摸 <b>1</b> 张牌`};}
-    if(r<.80){const h=Math.min(12,Math.round(base*.25+2));return{id,name:this._n('skl',tier,'hc'),art:'💎',kind:'skl',rar:tier,cost,heal:h,draw:1,exhaust:true,desc:`回复 <b>${h}</b> HP，摸 <b>1</b> 张牌（消耗）`};}
-    const a2=Math.min(20,Math.round(base*.35));const w=1;return{id,name:this._n('atk',tier,'wc'),art:'💫',kind:'atk',rar:tier,cost,atk:a2,weak:w,poison:Math.min(3,Math.max(1,Math.round(base*.05))),desc:`造成 <b>${a2}</b> 伤，虚弱+施毒`};
+    if(r<.32){const a=Math.min(CG_CAP.comboAtk,Math.round(base*.42));const b2=Math.min(CG_CAP.comboBlk,Math.round(base*.28));return{id,name:this._n('atk',tier,'c'),art:'⚔',kind:'atk',rar:tier,cost,atk:a,blk:b2,desc:`造成 <b>${a}</b> 伤，获得 <b>${b2}</b> 格挡`};}
+    if(r<.60){const p=Math.min(CG_CAP.comboPoison,Math.max(1,Math.round(base*STAT_W.atk*.4/STAT_W.poison)));return{id,name:this._n('skl',tier,'pc'),art:'🔮',kind:'skl',rar:tier,cost,poison:p,draw:1,desc:`施毒 <b>${p}</b> 层，摸 <b>1</b> 张牌`};}
+    if(r<.80){const h=Math.min(CG_CAP.comboHeal,Math.round(base*.25+2));return{id,name:this._n('skl',tier,'hc'),art:'💎',kind:'skl',rar:tier,cost,heal:h,draw:1,exhaust:true,desc:`回复 <b>${h}</b> HP，摸 <b>1</b> 张牌（消耗）`};}
+    const a2=Math.min(CG_CAP.comboAtk2,Math.round(base*.35));const w=1;return{id,name:this._n('atk',tier,'wc'),art:'💫',kind:'atk',rar:tier,cost,atk:a2,weak:w,poison:Math.min(CG_CAP.comboPoison2,Math.max(1,Math.round(base*STAT_W.atk*.25/STAT_W.poison))),desc:`造成 <b>${a2}</b> 伤，虚弱+施毒`};
   },
   pool(ps,n){
     const res=[];const seen=new Set();let tries=0;
@@ -1632,7 +1647,9 @@ const CardGen={
     const P={
       rare:    ['神圣','深渊','远古','混沌','虚空','毁灭','永恒','禁忌','终焉','黑暗','超凡','冥界','星碎','龙威','灾厄','极限','无双','绝顶','异界','天罚'],
       uncommon:['精锐','强化','迅捷','狂热','血腥','灼烧','锋利','凶猛','骨裂','毒液','暗影','残酷','霜冻','蓄力','闪电','猩红','腐蚀','噬魂','裂骨','铁血'],
-      common:  ['基础','初级','粗糙','朴素','苦涩','朽腐','廉价','饥渴','寒冷','晦暗','蹒跚','磨损','生锈','破败','廉鄙','陈旧','勉强','脆弱']
+      // 注：common 词库故意避开"廉价/朽腐"这类明显贬义词——生成数值只看稀有度不看具体效果组合，
+      // common 卡也可能刚好抽到手感不错的效果，配上贬义名字会显得名不副实
+      common:  ['基础','初级','朴素','寻常','简朴','浅淡','轻捷','粗略','平实','入门','惯常','素朴','习作','清浅','中庸','浅显','平淡','朴拙']
     };
     const S={
       atk: ['斩击','打击','突刺','猛击','连斩','刺穿','劈砍','重击','扫荡','冲击','撕裂','爆破','穿甲','剑气','烈焰击','破空','裂地','噬命','斩首','毁灭冲'],
