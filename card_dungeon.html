@@ -1636,7 +1636,7 @@ function cardFromMove(move,tier){
     case 'lock_ap':{const dur=Math.max(1,move.dur||2);return{...base,art:'⛓',kind:'skl',cost:1,special:'lockdown',stunCount:dur,exhaust:true,desc:`使敌人眩晕 <b>${dur}</b> 回合（消耗）`};}
     case 'drain_maxhp':{const heal=Math.max(6,Math.round((move.pct||.03)*300));return{...base,art:'🧛',kind:'def',cost:1,blk:6,heal,desc:`获得 <b>6</b> 格挡，恢复 <b>${heal}</b> HP`};}
     case 'steal':case 'wear_card':case 'exile_card':case 'burn_card':case 'mutate_card':
-    default:return{...base,art:'🔍',kind:'skl',cost:0,draw:2,special:'discard',desc:'弃最贵的牌，摸 2 张'};
+    default:return{...base,art:'🔍',kind:'skl',cost:0,special:'discard',desc:'弃最贵的牌，摸 2 张'};
   }
 }
 
