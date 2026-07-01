@@ -2750,54 +2750,6 @@ function resolveEvent(i){
   if(r&&r!=='pass')toast(r,r.includes('-')||r.includes('陷阱')||r.includes('输')?'r':'g');
   renderHud();renderTokens();setTimeout(backToMap,500);
 }
-function startShop(){
-  phase=PH.OV;const disc=chapter.modifier?.shopDiscount||1;const ps=calcPS();
-  const items=[
-    {art:'🧪',name:'血肉药剂',desc:`恢复 ${Math.floor(20+ps*.15)} HP`,price:Math.round(35*disc),fn:(p)=>{const h=Math.floor(20+ps*.15);p.hp=Math.min(p.maxHp,p.hp+h);return`+${h} HP`}},
-    {art:'📜',name:'力量卷轴',desc:'加入【狂暴】',price:Math.round(55*disc),fn:(p,b)=>{b.deck.push(gc('strength'));return'+狂暴'}},
-    {art:'🛡',name:'强化符文',desc:'MaxHP +15',price:Math.round(70*disc),fn:(p)=>{p.maxHp+=15;p.hp+=15;return'MaxHP+15'}},
-    {art:'🔮',name:'净化结晶',desc:'清除所有诅咒',price:Math.round(40*disc),fn:(p,b)=>{const rm=b.deck.filter(c=>c.kind==='crs').length;b.deck=b.deck.filter(c=>c.kind!=='crs');return`清除 ${rm} 张诅咒`}},
-    {art:'⚡',name:'命运卡包',desc:'获得1张稀有卡',price:Math.round(90*disc),fn:(p,b)=>{const pool=DB.filter(c=>c.rar==='rare');const c=pool[0|Math.random()*pool.length];b.deck.push(gc(c.id));return`+${c.name}`}},
-    {art:'💡',name:'顿悟药剂',desc:'立即摸 2 张牌',price:Math.round(30*disc),fn:(p,b)=>{drawCards(2);return'+2 摸牌'}},
-  ];
-  window._shop=items;window._bought=new Set();window._shopSel=null;
-  document.getElementById('ovtag').textContent=`☽  商店${disc<1?` (${Math.round(disc*100)}折)`:''}`;
-  document.getElementById('ovtit').textContent='黑市商人';
-  renderShop();showView('ov');renderHud();renderTokens();
-}
-function renderShop(){
-  const sel=window._shopSel;
-  let h=`<div class="ovd">金币：<b>${player.gold}</b>　PS ${calcPS()}</div>`;
-  window._shop.forEach((it,i)=>{
-    const b=window._bought.has(i);const isSel=sel===i&&!b;
-    h+=`<div class="si" style="${isSel?'border-color:rgba(200,169,110,.5);background:rgba(200,169,110,.05)':''}">
-      <div class="sia">${it.art}</div>
-      <div class="sii"><div class="sin">${it.name}</div><div class="sid">${it.desc}</div></div>
-      <div class="sip${b?' dn':''}" onclick="${b?'':`selectShopItem(${i})`}">${b?'已购':`${it.price}●`}</div>
-    </div>`;
-  });
-  if(sel!==null&&sel!==undefined&&!window._bought.has(sel)){
-    const it=window._shop[sel];
-    h+=`<div style="margin:8px 0;padding:8px 10px;border:1px solid rgba(200,169,110,.3);font-size:11px;color:var(--bone);text-align:center;background:rgba(200,169,110,.04)">
-      购买 <b>${it.name}</b> — 消耗 <b style="color:var(--amber)">${it.price} ●</b>？
-    </div>
-    <div style="display:flex;gap:8px;margin-bottom:8px">
-      <button class="ovbtn gd" style="flex:1;margin:0" onclick="confirmShopBuy()">✓ 确认购买</button>
-      <button class="ovbtn" style="flex:1;margin:0" onclick="window._shopSel=null;renderShop()">✗ 取消</button>
-    </div>`;
-  }
-  h+=`<button class="ovbtn" onclick="backToMap()">离开商店</button>`;
-  document.getElementById('ovb').innerHTML=h;
-}
-function selectShopItem(i){window._shopSel=i;renderShop();}
-function confirmShopBuy(){
-  const i=window._shopSel;if(i===null||i===undefined)return;
-  const it=window._shop[i];
-  if(player.gold<it.price){toast('金币不足','r');window._shopSel=null;renderShop();return;}
-  player.gold-=it.price;const r=it.fn(player,battle);window._bought.add(i);
-  window._shopSel=null;toast(r,'g');renderShop();renderHud();renderTokens();
-}
-function startRest(){startTavern();}
 function startCampfire(){
   phase=PH.OV;
   const em=window._mapEffectMult||1;
