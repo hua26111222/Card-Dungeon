@@ -444,6 +444,7 @@ html,body{background:var(--void);color:var(--text);font-family:var(--fm);font-si
 .ccard:hover{transform:translateY(-16px) scale(1.06)!important;
   box-shadow:2px 20px 28px rgba(0,0,0,.95),0 0 18px rgba(200,169,110,.18);z-index:30}
 .ccard.cc-disabled{opacity:.3;pointer-events:none}
+.ccard.cc-sel{border-color:var(--amber);box-shadow:0 0 0 1px var(--amber),1px 4px 14px rgba(0,0,0,.9)}
 .ccard-top{height:2px;background:linear-gradient(90deg,transparent,rgba(200,169,110,.4),transparent);
   margin:-10px -8px 8px;flex-shrink:0}
 .ccard-icon{font-size:26px;text-align:center;padding:6px 0 4px;flex-shrink:0}
@@ -946,10 +947,8 @@ function buildStarterDeck(){
   const defPicks=pick(['defend','fortify','barrier','guard_quick'],3);
   const sklPicks=pick(['inspect','discard','poison_flask','weaken','meditate'],2);
   window._starterRandom={atk:atkPicks,def:defPicks,skl:sklPicks};
-  const base=[...atkPicks,...defPicks,...sklPicks,gc('strength'),gc('focus_stone')];
-  const legacyCards=loadLegacy();
-  legacyCards.forEach(c=>{if(c)base.push({...c,isLegacy:true});});
-  return base;
+  // 特色卡/传承包不再在这里自动加，改由 showRunStart() 让玩家自己选一份加进来
+  return[...atkPicks,...defPicks,...sklPicks,gc('strength'),gc('focus_stone')];
 }
 const MODS=[
   {id:'burning',icon:'🔥',name:'灼烧之层',color:'#c0602a',desc:'敌人攻击+20%，但每回合回复2HP',apply:(e)=>{e.actions=(e.actions||[]).map(a=>a.t==='a'?{...a,v:Math.ceil(a.v*1.2)}:a)},onTurnStart:(b,p)=>{p.hp=Math.min(p.maxHp,p.hp+2);toast('+2 HP（灼烧回复）','g')}},
@@ -4011,8 +4010,9 @@ function renderLeaderboard(){
 // ── 传承系统 ──
 // 注：这里必须存完整的卡牌对象，不能只存id——很多卡（动态生成/熔合产物）根本不在固定卡池DB里，
 // 只存id的话，下一局用gc(id)查表会查不到，那张传承卡就会静默消失，等于"传承"从没真正生效过
-function saveLegacy(cards){try{localStorage.setItem('cd_legacy',JSON.stringify(cards.slice(0,3)));}catch(e){}}
-function loadLegacy(){try{const l=localStorage.getItem('cd_legacy');return l?JSON.parse(l):[];}catch(e){return[];}}
+// 传承包现在连同"死亡时的称号"一起存，下一局开局可以选择"成为XX的继承者"来继承这份卡包（见 showRunStart）
+function saveLegacy(cards,titleInfo){try{localStorage.setItem('cd_legacy',JSON.stringify({cards:cards.slice(0,3),title:titleInfo?.title||'无名旅者'}));}catch(e){}}
+function loadLegacy(){try{const l=localStorage.getItem('cd_legacy');if(!l)return null;const d=JSON.parse(l);return(d&&Array.isArray(d.cards)&&d.cards.length)?d:null;}catch(e){return null;}}
 function clearLegacy(){try{localStorage.removeItem('cd_legacy');}catch(e){}}
 function renderLegacyPicker(){
   const lsEl=document.getElementById('legacy-section');
@@ -4038,7 +4038,7 @@ function confirmLegacy(){
   const eligible=(battle.deck||[]).filter(c=>c.rar!=='curse');
   const sel=window._legacySel||new Set();
   const picks=[...sel].map(i=>eligible[i]).filter(Boolean);
-  saveLegacy(picks);
+  saveLegacy(picks,getPlayerTitle(battle.deck));
   toast(`⬡ 已选择传承 ${picks.length} 张牌`,'g');
   const lsEl=document.getElementById('legacy-section');if(lsEl)lsEl.style.display='none';
 }
