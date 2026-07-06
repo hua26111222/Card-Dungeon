@@ -1491,7 +1491,8 @@ const SM={
         map:JSON.parse(JSON.stringify(mapData)),
         chapter:{...chapter,usedEnemies:[...(chapter.usedEnemies||[])]},
         rs:{...rs},
-        heirMode:window._heirMode||false,heirParentTitle:window._heirParentTitle||null
+        heirMode:window._heirMode||false,heirParentTitle:window._heirParentTitle||null,
+        chosenStartTitle:window._chosenStartTitle||null
       }));this._slot=s;return true;
     }catch(e){return false;}
   },
@@ -1508,6 +1509,7 @@ const SM={
       battle.deck=sv.deck.map(c=>({...c}));
       window._mapRank=7;
       window._heirMode=sv.heirMode||false;window._heirParentTitle=sv.heirParentTitle||null;
+      window._chosenStartTitle=sv.chosenStartTitle||null;
       document.getElementById('mb').style.display='none';
       phase=PH.MAP;navClear();showView('mv');renderMap();renderHud();renderTokens();
       return true;
@@ -2080,20 +2082,6 @@ function showPreBattle(isElite,isBoss){
   showView('ov');renderHud();renderTokens();
 }
 // 战前强度评估：预生成敌人若相对当前玩家明显太弱，自动增援
-function _maybeReinforce(en,isElite){
-  if(!en||!en.combatPower)return en;
-  const fp=chapter.floor||1;
-  const rank=window._mapRank||7;
-  const tierScale=calcTierScale(fp,rank);
-  const cs=CP_SCALE[en.combatPower]||CP_SCALE['健康'];
-  const shouldHp=Math.round(player.maxHp*enemyHpFactor(isElite,false)*cs.h*tierScale);
-  // 若实际HP不足期望的65%，认定太弱，增援至期望的85%
-  if(en.hp>=shouldHp*.65)return en;
-  const targetHp=Math.round(shouldHp*.85);
-  const atkRatio=Math.sqrt(targetHp/en.hp);
-  return{...en,hp:targetHp,
-    actions:en.actions.map(a=>a.t==='a'?{...a,v:Math.round(a.v*atkRatio)}:a)};
-}
 function startBattle(isElite,isBoss){
   if(!chapter.usedEnemies)chapter.usedEnemies=new Set();
   const pm=isBoss?(window._bossPowerMult||1):1;
@@ -2102,11 +2090,9 @@ function startBattle(isElite,isBoss){
   battle.deck=battle.deck.filter(c=>!!c);
   let en;
   try{
-    if(!isBoss&&window._mapCard?.preEnemy){
-      // 宿命已定：使用预演算的敌人，但战前评估是否需要增援
-      en=_maybeReinforce(window._mapCard.preEnemy,isElite);
-      chapter.usedEnemies.add(en.name);
-    }else if(!isBoss&&window._mapCard?._hasDims){
+    if(!isBoss&&window._mapCard?._hasDims){
+      // 战斗力/特性在地图上就已锁定（宿命已定），但现在改为进战斗这一刻才真正生成血量和招式，
+      // 用的是当下最新的玩家状态，不需要再额外判断"敌人是不是变得太弱了"来补强
       en=buildEnemyFromDims(window._mapCard,isElite,calcPS());
       chapter.usedEnemies.add(en.name);
     }else{
@@ -2901,6 +2887,8 @@ function showGameOver(){
 function getPlayerTitle(dk){
   // 继承人模式：整局固定显示"XX的继承者"，不再走下面按牌组构成算称号那一套
   if(window._heirMode&&window._heirParentTitle)return{title:`「${window._heirParentTitle}」的继承者`,icon:'⬡',color:'var(--violet)'};
+  // 开局选的称号：只在第1章生效，之后交给下面的算法按牌组真实构成自然演变
+  if(window._chosenStartTitle&&(chapter?.floor||1)===1)return window._chosenStartTitle;
   const deck=dk||battle.deck;
   if(!deck||!deck.length)return{title:'无名旅者',icon:'🗡',color:'var(--text)'};
   const n=deck.length;const cnt={atk:0,def:0,skl:0,pwr:0,crs:0};
@@ -4296,26 +4284,29 @@ function initGame(){
   window._mapRank=7;
   window._lastShownTitle=null;
   window._heirMode=false;window._heirParentTitle=null;
+  window._chosenStartTitle=null;
   document.getElementById('mb').style.display='none';
   showRunStart();
 }
-// ── 开局特色选择：没有固定角色，但可以在这里为这一局挑一份"特色卡包"来定调子；
+// ── 开局称号选择：没有固定角色，但可以在这里挑一个"称号"来定这一局的调子——
+// 称号就是游戏里本来就有的那套称号（击杀构筑够久也会自然算出同一个），选了就直接获得对应的2张标志性卡牌，
+// 第1章会先显示这个称号，之后牌组真正长成什么样，称号也会自然跟着演变，不会一直锁死。
 // 如果上一局死亡时选择了传承，这里还会多一个"成为XX的继承者"选项——继承卡包+称号，但本局难度会提高
-const _STARTER_ARCHETYPES=[
-  {key:'berserk',title:'狂战徽记',icon:'⚔',desc:'为了更快更痛的胜利',cards:['berserker','chain_slash']},
-  {key:'guard',  title:'铁壁徽记',icon:'🛡',desc:'先立于不败之地，再谈胜负',cards:['regen','jugg']},
-  {key:'poison', title:'蛊毒徽记',icon:'☣',desc:'不急，慢慢耗死对手',cards:['venom_blade','poison_flask']},
-  {key:'tempo',  title:'节奏徽记',icon:'✨',desc:'牌多一张，赢面就多一分',cards:['adrenaline','catalyze']},
-  {key:'blood',  title:'嗜血徽记',icon:'🩸',desc:'伤敌亦是养己',cards:['vampire_oath','blood_pact']},
+const _STARTER_TITLES=[
+  {title:'嗜血的残忍斗士',icon:'⚔',color:'var(--gore2)',desc:'为了更快更痛的胜利',cards:['berserker','chain_slash']},
+  {title:'坚不可摧的铁壁守护',icon:'🛡',color:'var(--frost)',desc:'先立于不败之地，再谈胜负',cards:['regen','jugg']},
+  {title:'狡猾的毒刃行者',icon:'☣',color:'var(--slime)',desc:'不急，慢慢耗死对手',cards:['venom_blade','poison_flask']},
+  {title:'诡计多端的暗影行者',icon:'🎭',color:'var(--violet)',desc:'牌多一张，赢面就多一分',cards:['adrenaline','catalyze']},
+  {title:'渴血的黑暗贵族',icon:'🧛',color:'var(--blood)',desc:'伤敌亦是养己',cards:['vampire_oath','blood_pact']},
 ];
 function showRunStart(){
   phase=PH.OV;
-  window._runStartOpts=shuf(_STARTER_ARCHETYPES).slice(0,3);
+  window._runStartOpts=shuf(_STARTER_TITLES).slice(0,3);
   window._runStartLegacy=loadLegacy();
   window._runStartSel=null;
   document.getElementById('ovtag').textContent='✦  踏入深渊之前';
-  document.getElementById('ovtit').textContent='选择你的起手特色';
-  setSceneArt('🧭','背包已经收拾好，但你还想再带点什么在身上……');
+  document.getElementById('ovtit').textContent='选择你的称号';
+  setSceneArt('🧭','背包已经收拾好，但你想好要以什么身份踏入深渊了吗……');
   renderRunStart();
   showView('ov');renderHud();renderTokens();
 }
@@ -4328,9 +4319,9 @@ function renderRunStart(){
     const isSel=sel==='a'+i;
     const rot=(i-1)*7;
     return`<div class="ccard${isSel?' cc-sel':''}" style="transform:rotate(${rot}deg) translateY(${Math.abs(rot)*1.2}px)" onclick="selectRunStart('a${i}')">
-      <div class="ccard-top"></div>
+      <div class="ccard-top" style="background:linear-gradient(90deg,transparent,${a.color},transparent)"></div>
       <div class="ccard-icon">${a.icon}</div>
-      <div class="ccard-text">${a.title}</div>
+      <div class="ccard-text" style="color:${a.color}">${a.title}</div>
       <div class="ccard-sub">${a.desc}<br><span style="color:var(--text3)">+${cardNames}</span></div>
     </div>`;
   }).join('');
@@ -4344,9 +4335,9 @@ function renderRunStart(){
   if(sel){
     const isLegacy=sel==='legacy';
     const label=isLegacy?`「${legacy.title}」的继承者`:opts[+sel[1]].title;
-    confirmHtml=`<button class="ovbtn gd" style="margin-top:10px" onclick="confirmRunStart()">✓ 就决定是「${label}」了</button>`;
+    confirmHtml=`<button class="ovbtn gd" style="margin-top:10px" onclick="confirmRunStart()">✓ 就是「${label}」了</button>`;
   }
-  const h=`<div class="ovd">这一局，你想带着什么样的特色出发？（只能选一个）</div>
+  const h=`<div class="ovd">这一局，你想以什么称号踏入深渊？（只能选一个）</div>
   <div class="tcards-table">${archHtml}${legacyHtml}</div>
   ${confirmHtml}`;
   document.getElementById('ovb').innerHTML=h;
@@ -4361,7 +4352,12 @@ function confirmRunStart(){
     toast(`⬡ 你成为了「${legacy?.title}」的继承者！`,'g');
   }else{
     const a=(window._runStartOpts||[])[+sel[1]];
-    if(a)a.cards.forEach(id=>{const c=gc(id);if(c)battle.deck.push(c);});
+    if(a){
+      a.cards.forEach(id=>{const c=gc(id);if(c)battle.deck.push(c);});
+      // 只在第1章显示这个选的称号，之后交给牌组构成自然演变（见 getPlayerTitle）
+      window._chosenStartTitle={title:a.title,icon:a.icon,color:a.color};
+      toast(`✦ 你选择了成为「${a.title}」！`,'g');
+    }
   }
   clearLegacy();
   window._runStartOpts=null;window._runStartLegacy=null;window._runStartSel=null;
