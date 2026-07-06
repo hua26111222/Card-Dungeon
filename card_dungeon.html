@@ -1349,14 +1349,20 @@ function calcTierScale(floor,rank){
   const heirMult=window._heirMode?1.15:1; // 继承人模式：继承了上一位的力量，深渊也相应更警惕你
   return(1+(fp-1)*.1)*rankMult*heirMult;
 }
+// 敌人强度的两个核心系数：生成敌人、地图预览、战前提示、战前补强检查……所有地方都从这两个函数取数，
+// 不再各写一份（以前分散抄了5处，容易改漏）。以后想整体调"战斗好不好打"，改这两个数字就够了。
+// 2026-07：原来的数值太低——小怪基本1刀就死，玩家完全不用管敌人是什么、也不用管格挡，随便点都能赢，
+// 这里把血量基本翻倍、每回合威胁也调高一些，让大多数战斗至少要打2~4回合，格挡/削弱/治疗才有意义。
+function enemyHpFactor(isElite,isBoss){return isBoss?3.0:isElite?1.8:1.0;}
+function enemyDangerPct(isElite,isBoss){return isBoss?.24:isElite?.18:.14;}
 function buildEnemyFromDims(card,isElite,ps){
   const {combatPower='健康',cardDmg='磨损',trait='流浪者'}=card;
   const td=TRAIT_DEFS[trait]||TRAIT_DEFS['流浪者'];
   const cs=CP_SCALE[combatPower]||CP_SCALE['健康'];
   const fp=chapter.floor||1;const rank=window._mapRank||7;
   const tierScale=calcTierScale(fp,rank);const em=window._mapEffectMult||1;
-  const hp=Math.round(player.maxHp*(isElite?0.9:0.5)*cs.h*tierScale*(em>1&&!isElite?em:1));
-  const atk=Math.round(player.maxHp*(isElite?.14:.11)*cs.a*tierScale);
+  const hp=Math.round(player.maxHp*enemyHpFactor(isElite,false)*cs.h*tierScale*(em>1&&!isElite?em:1));
+  const atk=Math.round(player.maxHp*enemyDangerPct(isElite,false)*cs.a*tierScale);
   const finalAtk=Math.round(Math.max(3,atk));
   const baseActs=td.acts(finalAtk);
   const cdExtra=_cdActs(cardDmg,finalAtk);
@@ -1661,11 +1667,11 @@ function buildEnemy(tmpl,isElite,isBoss){
   const tierScale=calcTierScale(fp,rank);
   const effectMult=window._mapEffectMult||1;
   // HP: tier base × normalized hpMult (each tier's avg hpMult treated as 1.0)
-  const hpBase=player.maxHp*(isBoss?1.4:isElite?0.9:0.5);
+  const hpBase=player.maxHp*enemyHpFactor(isElite,isBoss);
   const hpNorm=isBoss?3.0:isElite?1.6:1.0;
   const hp=Math.round(hpBase*(tmpl.hpMult/hpNorm)*tierScale*(effectMult>1&&!isBoss?effectMult:1));
   // Target attack per turn: % of player maxHP (keeps fights fair)
-  const dangerPct=isBoss?.19:isElite?.14:.11;
+  const dangerPct=enemyDangerPct(isElite,isBoss);
   const targetAtkPerTurn=Math.round(player.maxHp*dangerPct*tierScale);
   // Scale action values so average damage output ≈ targetAtkPerTurn
   const tmplActions=tmpl.actions||[];
@@ -1918,8 +1924,8 @@ function renderMap(){
       const cs=CP_SCALE[pcard.combatPower]||CP_SCALE['健康'];
       const isE=pcard.type==='elite';
       const tierScale=calcTierScale(fp,rank);
-      const estHp=Math.round(player.maxHp*(isE?0.9:0.5)*cs.h*tierScale);
-      const estAtk=Math.round(player.maxHp*(isE?.14:.11)*cs.a*tierScale);
+      const estHp=Math.round(player.maxHp*enemyHpFactor(isE,false)*cs.h*tierScale);
+      const estAtk=Math.round(player.maxHp*enemyDangerPct(isE,false)*cs.a*tierScale);
       info=`<div style="flex:1;min-width:0">
         <div style="font-size:10px;color:var(--bone);font-weight:700;letter-spacing:.5px">${pcard.enemyArt} ${pcard.enemyName}${elBadge}</div>
         <div style="font-size:9px;margin-top:2px;display:flex;gap:6px;flex-wrap:wrap">
@@ -2022,11 +2028,11 @@ function showPreBattle(isElite,isBoss){
   const fp=chapter.floor;const rank=window._mapRank||7;
   const tierScale=calcTierScale(fp,rank);const em=window._mapEffectMult||1;
   const pm=isBoss?(window._bossPowerMult||1):1;
-  const hpBase=player.maxHp*(isBoss?1.4:isElite?0.9:0.5);
+  const hpBase=player.maxHp*enemyHpFactor(isElite,isBoss);
   const hpNorm=isBoss?3.0:isElite?1.6:1.0;
   const hpAvg=isBoss?3.0:isElite?1.6:0.85;
   const estHp=Math.round(hpBase*(hpAvg/hpNorm)*tierScale*(em>1&&!isBoss?em:1)*pm);
-  const dangerPct=isBoss?.19:isElite?.14:.11;
+  const dangerPct=enemyDangerPct(isElite,isBoss);
   const estAtk=Math.round(player.maxHp*dangerPct*tierScale*pm);
   // Boss special label
   const bv=window._bossVariant;
@@ -2064,7 +2070,7 @@ function _maybeReinforce(en,isElite){
   const rank=window._mapRank||7;
   const tierScale=calcTierScale(fp,rank);
   const cs=CP_SCALE[en.combatPower]||CP_SCALE['健康'];
-  const shouldHp=Math.round(player.maxHp*(isElite?0.9:0.5)*cs.h*tierScale);
+  const shouldHp=Math.round(player.maxHp*enemyHpFactor(isElite,false)*cs.h*tierScale);
   // 若实际HP不足期望的65%，认定太弱，增援至期望的85%
   if(en.hp>=shouldHp*.65)return en;
   const targetHp=Math.round(shouldHp*.85);
