@@ -993,7 +993,8 @@ const ET=[
    actions:[{t:'p',v:2,n:'深海毒素'},{t:'z',v:1,n:'触手缠绕·眩晕'},{t:'steal',v:1,n:'触手攫取'},{t:'a',v:12,n:'吞噬'},{t:'h',v:6,n:'深海复原'},{t:'a',v:10,n:'恐怖触手'}]},
 ];
 // ── 敌人三维体系 ──
-const CP_SCALE={孱弱:{h:.30,a:.50},健康:{h:.55,a:.80},强壮:{h:.80,a:1.10},暴虐:{h:1.10,a:1.40},恐怖:{h:1.50,a:1.80}};
+// n = 战斗力越高，进入战斗前从该特性的"招式池"里能被发到手里的招式越多（详见 dealEnemyActions）
+const CP_SCALE={孱弱:{h:.30,a:.50,n:3},健康:{h:.55,a:.80,n:4},强壮:{h:.80,a:1.10,n:4},暴虐:{h:1.10,a:1.40,n:5},恐怖:{h:1.50,a:1.80,n:6}};
 const CP_COL={孱弱:'#5a8a5a',健康:'#7a8a5a',强壮:'#cc7020',暴虐:'#cc3020',恐怖:'#8a0a8a'};
 const CD_DESC={磨损:'偶尔磨损你的卡牌数值',折痕:'持续折损多张卡牌',撕裂:'从手牌撕走卡牌',破碎:'破碎牌组中的卡牌',焚毁:'彻底焚毁卡牌并投入诅咒'};
 const CD_COL={磨损:'#6a6a4a',折痕:'#8a6a2a',撕裂:'#aa4a2a',破碎:'#cc2a0a',焚毁:'#8a0a0a'};
@@ -1305,7 +1306,9 @@ const EnemyGen={
       names.push(adj2+noun2);
     }
     const moveKeys=Object.keys(this.MOVES);
-    const pickCount=3+Math.floor(Math.random()*3); // 3~5个招式，加上随机数值/随机招式名，组合数接近无限
+    // 这里生成的是"这个特性认识的招式池"（比实际一场战斗会用到的更多），
+    // 具体每次战斗发到手里几招、发哪几招，交给 dealEnemyActions() 在进入战斗前按战斗力决定
+    const pickCount=5+Math.floor(Math.random()*4); // 池子5~8个招式，加上随机数值/随机招式名，组合数接近无限
     const picked=['a']; // 保底一个普通攻击，避免生成出"完全不会打人"的怪
     while(picked.length<pickCount){
       const k=moveKeys[0|Math.random()*moveKeys.length];
@@ -1355,6 +1358,20 @@ function calcTierScale(floor,rank){
 // 这里把血量基本翻倍、每回合威胁也调高一些，让大多数战斗至少要打2~4回合，格挡/削弱/治疗才有意义。
 function enemyHpFactor(isElite,isBoss){return isBoss?3.0:isElite?1.8:1.0;}
 function enemyDangerPct(isElite,isBoss){return isBoss?.24:isElite?.18:.14;}
+// ── 发牌系统 ──
+// 敌人的"战斗力/特性"在地图生成阶段就定了（玩家在地图上看到的就是这些），
+// 但具体会拿到手里的招式，要等真正进入战斗前才从这个特性认识的招式池里抽——
+// 战斗力越高，能抽到的招式越多、越全；战斗力越低，招式越单一。同一种特性两次遭遇，
+// 抽到的招式组合也可能不完全一样，"这只到底会用什么"直到打之前都留了一点悬念。
+function dealEnemyActions(pool,dealCount){
+  if(!pool||!pool.length)return[];
+  if(dealCount>=pool.length)return shuf([...pool]);
+  const atkIdx=pool.findIndex(a=>a.t==='a'||a.t==='execute'||a.t==='multi_a');
+  const dealt=atkIdx>=0?[pool[atkIdx]]:[];
+  const restPool=shuf(pool.filter((a,i)=>i!==atkIdx));
+  for(const mv of restPool){if(dealt.length>=dealCount)break;dealt.push(mv);}
+  return shuf(dealt);
+}
 function buildEnemyFromDims(card,isElite,ps){
   const {combatPower='健康',cardDmg='磨损',trait='流浪者'}=card;
   const td=TRAIT_DEFS[trait]||TRAIT_DEFS['流浪者'];
@@ -1364,7 +1381,8 @@ function buildEnemyFromDims(card,isElite,ps){
   const hp=Math.round(player.maxHp*enemyHpFactor(isElite,false)*cs.h*tierScale*(em>1&&!isElite?em:1));
   const atk=Math.round(player.maxHp*enemyDangerPct(isElite,false)*cs.a*tierScale);
   const finalAtk=Math.round(Math.max(3,atk));
-  const baseActs=td.acts(finalAtk);
+  const movePool=td.acts(finalAtk);
+  const baseActs=dealEnemyActions(movePool,cs.n||4);
   const cdExtra=_cdActs(cardDmg,finalAtk);
   const actions=shuf([...baseActs,...cdExtra]);
   const nm=card.enemyName||td.names[0|Math.random()*td.names.length];
@@ -1774,14 +1792,12 @@ function genCardInfo(step,nodeRank){
     const col=CP_COL[combatPower]||'#aa2222';
     const bg=isElite?'rgba(140,40,0,.35)':'rgba(80,20,20,.30)';
     const enemyName=td.names[0|Math.random()*td.names.length];
-    // 预演算：立即生成敌人实体，宿命已定
-    const savedRank=window._mapRank;
-    window._mapRank=nodeRank||7;
-    const preEnemy=buildEnemyFromDims({combatPower,cardDmg,trait,enemyName},isElite,calcPS());
-    window._mapRank=savedRank;
+    // 战斗力/卡牌破坏/特性在地图生成这一刻就锁定了（地图上看到的就是这些，宿命已定）；
+    // 具体会拿到手里的招式，留到真正进入战斗前再按战斗力从这个特性的招式池里发（见 dealEnemyActions），
+    // 这样也顺便省掉了"预生成后玩家变强了要回头补强敌人"的麻烦——进战斗前用的都是当下最新的数值
     return{type:tier,suit:'⚔',col,bg,_hasDims:true,
       combatPower,cardDmg,trait,
-      enemyArt:td.art,enemyName,preEnemy};
+      enemyArt:td.art,enemyName};
   }
   const nr=Math.random();let type;
   if(step<6)      type=nr<.18?'tavern':nr<.22?'blackmarket':nr<.40?'event':nr<.54?'campfire':nr<.68?'blacksmith':nr<.83?'gamble':nr<.91?'altar':'chest';
