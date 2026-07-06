@@ -1801,13 +1801,16 @@ function genMapRow(step){
        suit:'?',rank:14,label:'',col:'#8b0000',bg:'rgba(150,5,5,.48)'},
     ];
   }
-  // MAP_COLS 列，3张随机暗牌（不让暗牌把两侧边缘都堵死，保留看得见的路）
+  // MAP_COLS 列，3张随机暗牌；规则改成"任何两张暗牌都不能挨着"（间隔至少2格）——
+  // 不管玩家从哪个方向走过来，能走到的3连续格范围内必然至少有一张明牌，不会被逼盲选
+  // （之前只检查最左/最右两个边缘，玩家实际所在位置如果刚好落在中间，暗牌仍可能把视野全堵死）
   const blindCount=3;
   const blinds=new Set();
-  while(blinds.size<blindCount){blinds.add(Math.floor(Math.random()*MAP_COLS));}
-  const mid=Math.floor(MAP_COLS/2);
-  if(blinds.has(0)&&blinds.has(1)){blinds.delete(1);blinds.add(mid);}
-  if(blinds.has(MAP_COLS-2)&&blinds.has(MAP_COLS-1)){blinds.delete(MAP_COLS-2);blinds.add(mid);}
+  while(blinds.size<blindCount){
+    const c=Math.floor(Math.random()*MAP_COLS);
+    if([...blinds].some(b=>Math.abs(b-c)<2))continue;
+    blinds.add(c);
+  }
   return Array.from({length:MAP_COLS},(_,c)=>c).map(c=>({...genCardInfo(step,rank),rank,label:lbl,isHidden:blinds.has(c),revealed:false}));
 }
 function genCardInfo(step,nodeRank){
@@ -1969,7 +1972,9 @@ function renderMap(){
       const td=TRAIT_DEFS[pcard.trait]||{};
       const trCol=td.col||'#6a6a6a';
       const elBadge=pcard.type==='elite'?` <span style="color:var(--amber);font-size:9px">✦精英</span>`:'';
-      const fp=chapter.floor||1;const rank=window._mapRank||7;
+      // 用这张卡片自己的rank，而不是window._mapRank——后者是"上一次点击"时留下的，
+      // 如果这张卡跟上一步不在同一层级，之前会显示错的预估强度
+      const fp=chapter.floor||1;const rank=pcard.rank||7;
       const cs=CP_SCALE[pcard.combatPower]||CP_SCALE['健康'];
       const isE=pcard.type==='elite';
       const tierScale=calcTierScale(fp,rank);
@@ -2721,10 +2726,12 @@ function showReward(gold){
     // 没有专属于玩家的"战利品清单"——直接把刚打赢的这个敌人自己用过的招式，转换成玩家能用的卡牌。
     // 敌人和玩家本质上是同一套"角色属性"系统的产物，敌人用什么打你，你赢了就学会同一招反过来用。
     const srcActions=(battle.enemy?.actions||[]).filter(a=>a&&a.t);
-    const seenT=new Set();
+    // 按"招式名字"去重，不按"机制类型"去重——弱小怪常常发到的3招清一色都是"普通攻击"这个机制类型，
+    // 之前按类型去重会导致这类最常见的战斗经常凑不出3张真正的战利品，只能靠通用生成卡补位
+    const seenN=new Set();
     shuf(srcActions).forEach(mv=>{
-      if(picked.length>=3||seenT.has(mv.t))return;
-      seenT.add(mv.t);
+      if(picked.length>=3||seenN.has(mv.n))return;
+      seenN.add(mv.n);
       const c=cardFromMove(mv,tier);
       if(!used.has(c.id)){picked.push(c);used.add(c.id);}
     });
@@ -4030,10 +4037,10 @@ function showBossReward(){
   // 3张卡牌：优先把Boss自己用过的招式转换成卡牌（和普通战斗奖励同一套逻辑），
   // 招式种类不够3种时，用商人体系（DB稀有/罕见 + CardGen）补足
   const used=new Set(battle.deck.map(c=>c.id));
-  const cardPicks=[];const seenT=new Set();
+  const cardPicks=[];const seenN=new Set(); // 按招式名字去重，理由同 showReward()
   shuf((battle.enemy?.actions||[]).filter(a=>a&&a.t)).forEach(mv=>{
-    if(cardPicks.length>=3||seenT.has(mv.t))return;
-    seenT.add(mv.t);
+    if(cardPicks.length>=3||seenN.has(mv.n))return;
+    seenN.add(mv.n);
     const c=cardFromMove(mv,'boss');
     if(!used.has(c.id)){cardPicks.push(c);used.add(c.id);}
   });
