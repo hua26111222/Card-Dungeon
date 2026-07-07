@@ -1204,6 +1204,53 @@ const THEMES=[
   {name:'混沌神殿',sub:'法则破碎，现实扭曲'},{name:'锈铁要塞',sub:'战争遗迹与腐朽机械'},
   {name:'深海遗迹',sub:'黑暗压力与失落文明'},{name:'星界裂缝',sub:'维度撕裂，虚空涌入'},
 ];
+// ── 故事生成模块 StoryGen ──
+// 思路和 CardGen/EnemyGen/EquipGen 完全一致：不再手写有限的几条文案，而是搭一套"词库+组合规则"，
+// 让章节主题、首领称号、事件遭遇能像西方奇幻的经典套路（龙与地下城的地下城命名习惯、
+// 指环王式"XX之XX"的头衔句式、英雄无敌3的领主称号感）一样，无限组合下去、永不重复。
+// 注意：只借用这些作品共有的"文类套路"（词根、句式结构），不使用任何具体的专有名词/角色名，
+// 后面这些词库都是自己攒的通用奇幻词汇，不涉及任何受版权保护的具体名字。
+const StoryGen={
+  LOC_ADJ:['被遗忘的','诅咒的','沉没的','破碎的','低语的','凋零的','永冻的','焚毁的','失落的','腐朽的',
+    '荒废的','血色的','无光的','悬空的','扭曲的','亡语的','铁锈的','深埋的','幽闭的','残破的'],
+  LOC_NOUN:['回廊','圣所','密穴','墓园','尖塔','神殿','要塞','矿脉','深渊','群岛',
+    '荒原','王座厅','竞技场','藏经阁','兵营遗址','祭祀场','巢穴','迷宫','陵寝','熔炉',
+    '冰窟','裂隙','遗迹','密林','断桥','钟楼'],
+  LOC_OF:['亡者','群龙','群星','终焉','巨人','暗影','遗忘者','低语者','无名者','千魂',
+    '枯骨','烈焰','永夜','深渊主','雾中人','断誓者'],
+  ATMO_A:['阴影','尘埃','寒霜','硫磺','腐朽','回响','静默','血锈','雾气','亡语','蛛丝','余烬'],
+  ATMO_B:['领地','所在','边境','牢笼','圣域','坟茔','囚笼','国度','墓场','裂境'],
+  TITLE_DOMAIN:['炎焰','虚空','深渊','永夜','寒冰','腐朽','雷霆','血色','枯骨','群星',
+    '终焉','风暴','瘟疫','黄昏','梦魇','荒芜','烈日','幽冥','铁锈','雾都'],
+  TITLE_WORD:['霸主','凝视者','编织者','吞噬者','收割者','君王','古神','主宰','裂界者','噬魂者',
+    '审判者','看守者','低语者','统御者','亡魂王','饕餮','背弃者','缚灵者','食梦者','终结者'],
+  POWER_WORD:['毁灭','永恒','无解','腐化','混沌','吞噬','轮回','寂灭','禁忌','不朽',
+    '深渊','虚无','不灭','复苏','湮灭','诅咒','狂怒','寂静','凋零','重生'],
+  EVENT_SUBJ:['一位游荡的德鲁伊','一名断剑的骑士','一个迷途的矮人工匠','一位沉默的游侠','一个疯癫的先知',
+    '一名逃亡的囚徒','一个蒙面的猎人','一位独眼的老兵','一个迷失的法师学徒','一名背弃誓言的卫兵',
+    '一群啃食尸骸的乌鸦','一具尚未彻底冷却的尸体','一位卖艺的说书人','一个自称先知的疯子'],
+  EVENT_ACT:['蹲坐在将熄的篝火旁','低声吟唱着无人能懂的咒语','正与看不见的东西交谈','守着一具尚未冷却的尸体',
+    '在废墟中翻找着什么','直勾勾地盯着你手中的牌','用炭笔在墙上刻画着符文','把一枚戒指埋进了土里',
+    '对着虚空喃喃自语','数着手里所剩不多的路费','磨着一把早已卷刃的剑','望着来时的方向一动不动'],
+  _pick(arr){return arr[0|Math.random()*arr.length];},
+  _pick2(arr){const a=this._pick(arr);let b=this._pick(arr);if(b===a)b=arr[(arr.indexOf(a)+1)%arr.length];return[a,b];},
+  // 章节/地牢主题：60%两段式"形容词+地点"，40%三段式再加一个"之XX"后缀，越往后越像"指环王式"的正式头衔
+  dungeonTheme(){
+    const adj=this._pick(this.LOC_ADJ),noun=this._pick(this.LOC_NOUN);
+    const name=Math.random()<.4?`${adj}${noun}·${this._pick(this.LOC_OF)}之地`:`${adj}${noun}`;
+    const[a1,a2]=this._pick2(this.ATMO_A);
+    const sub=`${a1}与${a2}的${this._pick(this.ATMO_B)}`;
+    return{name,sub};
+  },
+  // 首领称号：[领域词]+[身份词]的头衔，加一组三词短语副标题——跟现有手写的几个boss称号是同一套句式
+  bossEpithet(){
+    const epithet=`${this._pick(this.TITLE_DOMAIN)}${this._pick(this.TITLE_WORD)}`;
+    const words=shuf([...this.POWER_WORD]).slice(0,3);
+    return{epithet,epithetSub:words.join('·')};
+  },
+  // 地图上"事件"节点的遭遇闪回，一句话式的奇幻小品文，D&D式的"你在路上遇到了……"
+  eventFlavor(){return`${this._pick(this.EVENT_SUBJ)}，${this._pick(this.EVENT_ACT)}。`;},
+};
 // 注：fight/elite 层级的敌人已全部改由 buildEnemyFromDims()（战斗力/卡牌破坏/特性 三维组合）预生成，
 // 这里只保留仍在实际使用的 Boss 模板；原先12种固定 fight/elite 模板已不会被抽到，故删除。
 const ET=[
@@ -1961,11 +2008,15 @@ function buildEnemy(tmpl,isElite,isBoss){
   return e;
 }
 function generateChapter(){
-  const theme=THEMES[0|Math.random()*THEMES.length];
+  // 主题30%用精选的8个手写主题（保留最有记忆点的那几个），70%交给StoryGen现场组词——
+  // 和CardGen/EnemyGen/EquipGen同一套"精选+生成"配比，主题理论上不会撞车
+  const theme=Math.random()<.3?THEMES[0|Math.random()*THEMES.length]:StoryGen.dungeonTheme();
   const mod=MODS[0|Math.random()*MODS.length];
   const bossTmpls=shuf(ET.filter(e=>e.tier==='boss'));
-  const boss=bossTmpls[0];
-  const boss2=bossTmpls[1]||bossTmpls[0];
+  // 首领的机制（名字/图标/招式/血量倍率）保持固定的5个模板不变，但称号60%概率现场重新生成——
+  // 同一只"深渊魔龙"在不同章节撞上时，称号和副标题会不一样，不会每次都是那句一模一样的台词
+  const boss={...bossTmpls[0],...(Math.random()<.6?StoryGen.bossEpithet():{})};
+  const boss2={...(bossTmpls[1]||bossTmpls[0]),...(Math.random()<.6?StoryGen.bossEpithet():{})};
   chapter.theme=theme;chapter.modifier=mod;chapter.boss=boss;chapter.boss2=boss2;
   chapter.usedEnemies=new Set();
   return{theme,mod,boss,boss2,ps:calcPS(),floor:chapter.floor};
@@ -3956,7 +4007,9 @@ function genCardStory(card){
     return`${pw[card.combatPower]||'眼神锐利'}。${dm[card.cardDmg]||''}。${t==='elite'?' ✦精英遭遇，风险更高。':''}`;
   }
   if(t==='boss')return'脚步声令地面颤抖。这是章节的终极守卫——没有退路了。';
-  const s={tavern:'一位行商在路旁摆开摊位，几张卡牌整齐放在布上，朝你招手："看看，都是好货！"',blackmarket:'一个蒙面人靠在阴暗角落，低声说："好东西……有没有兴趣？但别问太多。"那些包裹看不出内容。',campfire:'林间一堆火在夜风中跳动。旁边有块平整的石头，适合坐下来喘口气，也许还能做点什么。',blacksmith:'叮叮当当的声音从远处传来——炉火正旺，也许能在这里打磨一下你的武器。',gamble:'一张圆桌，几盏油灯，一个笑眯眯的人推开椅子："坐下来，要不要赌一把？"',altar:'一座无名祭坛横亘于此，表面刻满古老符文，散发着若有若无的光芒，仿佛在等待某种献祭。',event:'前方有动静，不知是祸是福。',boss:'沉重的脚步声令大地颤抖。空气中弥漫着某种压迫，你知道这场遭遇无法回避。'};
+  // 事件节点原本只有一句静态文案，现在交给 StoryGen 现场组一段D&D式的"路上遇到了……"小品文，不会一直重复
+  if(t==='event')return StoryGen.eventFlavor();
+  const s={tavern:'一位行商在路旁摆开摊位，几张卡牌整齐放在布上，朝你招手："看看，都是好货！"',blackmarket:'一个蒙面人靠在阴暗角落，低声说："好东西……有没有兴趣？但别问太多。"那些包裹看不出内容。',campfire:'林间一堆火在夜风中跳动。旁边有块平整的石头，适合坐下来喘口气，也许还能做点什么。',blacksmith:'叮叮当当的声音从远处传来——炉火正旺，也许能在这里打磨一下你的武器。',gamble:'一张圆桌，几盏油灯，一个笑眯眯的人推开椅子："坐下来，要不要赌一把？"',altar:'一座无名祭坛横亘于此，表面刻满古老符文，散发着若有若无的光芒，仿佛在等待某种献祭。',boss:'沉重的脚步声令大地颤抖。空气中弥漫着某种压迫，你知道这场遭遇无法回避。'};
   return s[t]||'未知的遭遇正在等待。';
 }
 // ── 赌馆 ──
