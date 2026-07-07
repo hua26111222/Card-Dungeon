@@ -752,8 +752,9 @@ html,body{background:var(--void);color:var(--text);font-family:var(--fm);font-si
     <div class="mprompt" id="mprompt">选择前进的路：</div>
     <div id="mwrap"><div id="mchooser"></div></div>
     <div class="mhist" id="mhist"></div>
-    <div style="padding:6px 10px 10px">
-      <button class="ovbtn" style="width:100%;padding:8px 10px;font-size:11px;margin:0;border-color:var(--crack2);color:var(--text2);letter-spacing:2px" onclick="showDeck()">📋 查看牌组</button>
+    <div style="padding:6px 10px 10px;display:flex;gap:6px">
+      <button class="ovbtn" style="flex:1;padding:8px 10px;font-size:11px;margin:0;border-color:var(--crack2);color:var(--text2);letter-spacing:2px" onclick="showDeck()">📋 查看牌组</button>
+      <button class="ovbtn" style="flex:1;padding:8px 10px;font-size:11px;margin:0;border-color:var(--crack2);color:var(--text2);letter-spacing:2px" onclick="showEquipment()">🎽 装备</button>
     </div>
   </div>
   <div id="bv">
@@ -867,7 +868,17 @@ html,body{background:var(--void);color:var(--text);font-family:var(--fm);font-si
     <div id="dm-cards"></div>
   </div>
 </div>
-<div id="relicmodal" style="display:none"></div>
+<div id="equipmodal" style="display:none;position:fixed;inset:0;z-index:9000;background:rgba(7,5,10,.96);overflow-y:auto;padding:16px 12px">
+  <div style="max-width:420px;margin:0 auto">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--crack)">
+      <div style="font-family:var(--fs);color:var(--bone);font-size:14px;letter-spacing:3px;text-shadow:0 0 12px rgba(200,169,110,.3)">装备</div>
+      <button class="btn" style="flex:none;padding:5px 16px;font-size:10px" onclick="closeEquipment()">✕ 关闭</button>
+    </div>
+    <div id="eq-slots"></div>
+    <div style="font-size:9px;color:var(--text2);letter-spacing:2px;padding:14px 4px 6px;border-top:1px solid var(--crack)">背包 · 点击装备</div>
+    <div id="eq-backpack"></div>
+  </div>
+</div>
 <script>
 const NT={FIGHT:0,ELITE:1,EVENT:2,SHOP:3,REST:4,BOSS:5};
 const PH={INTRO:0,MAP:1,BATTLE:2,OV:3,DEAD:4};
@@ -1000,8 +1011,114 @@ const MODS=[
   {id:'darkness',icon:'🌑',name:'黑暗深渊',color:'#605858',desc:'手牌上限-1，稀有牌概率×2',apply:()=>{},handLimit:4},
   {id:'blessed',icon:'✨',name:'神明庇佑',color:'#7ab8d0',desc:'进章回复20%最大HP，商店8折',apply:()=>{},onChapterStart:(p)=>{p.hp=Math.min(p.maxHp,p.hp+Math.floor(p.maxHp*.2));toast(`+${Math.floor(p.maxHp*.2)} HP`,'g')},shopDiscount:.8},
 ];
-// 道具系统已移除，保留空存根避免旧代码报错
-function applyRelicHooks(){}
+// ── 装备系统（参考暗黑破坏神2风格：分槽位可穿戴装备，同一时间每个槽位限穿1件）──
+// 和卡牌不同，装备提供的是"整局持续生效"的被动效果——这是卡牌系统做不到的另一个强度维度，
+// 灵感来自杀戮尖塔的"遗物"，但包装成更直觉的"穿装备"形式
+const EQUIP_SLOTS=['weapon','armor','helm','amulet','ring','boots'];
+const EQUIP_SLOT_NAME={weapon:'武器',armor:'护甲',helm:'头盔',amulet:'护符',ring:'戒指',boots:'靴子'};
+const EQUIP_SLOT_ICON={weapon:'⚔',armor:'🛡',helm:'⛑',amulet:'📿',ring:'💍',boots:'🥾'};
+const EQUIP_DB=[
+  // 武器：进攻向
+  {id:'eq_whetstone',slot:'weapon',rar:'common',icon:'🗡',name:'磨刃石',desc:'战斗开始时获得1点力量',
+    onBattleStart(b){b.str=(b.str||0)+1;toast('🗡 磨刃石：+1力量','g');}},
+  {id:'eq_pdagger',slot:'weapon',rar:'common',icon:'🔪',name:'淬毒匕首',desc:'造成伤害时，25%几率额外施加1层中毒',
+    onCardDamage(b,p,dmg){if(dmg>0&&Math.random()<.25){b.enemyPoison=Math.min(12,(b.enemyPoison||0)+1);toast('🔪 淬毒匕首：+1层中毒','g');}}},
+  {id:'eq_bloodaxe',slot:'weapon',rar:'uncommon',icon:'🪓',name:'嗜血战斧',desc:'造成伤害的8%转化为生命',
+    onCardDamage(b,p,dmg){if(dmg>0){const h=Math.max(1,Math.round(dmg*.08));p.hp=Math.min(p.maxHp,p.hp+h);}}},
+  {id:'eq_slayer',slot:'weapon',rar:'rare',icon:'⚔',name:'屠戮之刃',desc:'造成伤害后，若敌人生命低于30%，额外造成6点伤害',
+    onCardDamage(b,p,dmg){if(dmg>0&&b.enemyHp>0&&b.enemyHp/(b.enemyMaxHp||1)<.3){b.enemyHp=Math.max(0,b.enemyHp-6);floatDmg(6,'#ff6a3a');toast('⚔ 屠戮之刃：斩杀追击 +6伤害','g');}}},
+  // 护甲：防御向
+  {id:'eq_ironmail',slot:'armor',rar:'common',icon:'🛡',name:'铁皮甲',desc:'战斗开始时获得6点格挡',
+    onBattleStart(b){b.blk=(b.blk||0)+6;toast('🛡 铁皮甲：+6格挡','g');}},
+  {id:'eq_thorns',slot:'armor',rar:'common',icon:'🌵',name:'荆棘外套',desc:'受到伤害时，反弹2点伤害给敌人',
+    onDamageTaken(b,p,dmg){if(dmg>0&&b.enemyHp>0){b.enemyHp=Math.max(0,b.enemyHp-2);floatDmg(2,'#8b1a1a');}}},
+  {id:'eq_vengeance',slot:'armor',rar:'uncommon',icon:'⚡',name:'复仇之甲',desc:'受到伤害时，20%几率使敌人眩晕1回合',
+    onDamageTaken(b,p,dmg){if(dmg>0&&Math.random()<.2){b.enemyStun=(b.enemyStun||0)+1;toast('⚡ 复仇之甲：敌人被震慑！','g');}}},
+  {id:'eq_bulwark',slot:'armor',rar:'rare',icon:'🏰',name:'坚韧核心',desc:'战斗开始时获得2层"坚固"（接下来2次受到的攻击伤害减半）',
+    onBattleStart(b){b.fortified=(b.fortified||0)+2;toast('🏰 坚韧核心：+2层坚固','g');}},
+  // 头盔：手牌/节奏向
+  {id:'eq_hood',slot:'helm',rar:'common',icon:'🎓',name:'学徒兜帽',desc:'每回合开始多摸1张牌',
+    onTurnStart(){drawCards(1);}},
+  {id:'eq_crown',slot:'helm',rar:'common',icon:'👑',name:'沉思之冠',desc:'战斗开始时获得1点力量',
+    onBattleStart(b){b.str=(b.str||0)+1;toast('👑 沉思之冠：+1力量','g');}},
+  {id:'eq_oracle',slot:'helm',rar:'uncommon',icon:'👁',name:'先知之眼',desc:'战斗开始时摸2张牌',
+    onBattleStart(){drawCards(2);}},
+  {id:'eq_timecrown',slot:'helm',rar:'rare',icon:'⏳',name:'顿悟之冠',desc:'每回合开始时，25%几率下一张牌费用归零',
+    onTurnStart(b){if(Math.random()<.25){b.nextFreeCount=(b.nextFreeCount||0)+1;toast('⏳ 顿悟之冠：下一张牌免费！','g');}}},
+  // 护符：状态/异常向
+  {id:'eq_hexmark',slot:'amulet',rar:'common',icon:'📿',name:'蛊惑徽记',desc:'战斗开始时给敌人施加2层中毒',
+    onBattleStart(b){b.enemyPoison=(b.enemyPoison||0)+2;toast('📿 蛊惑徽记：敌人中毒+2层','g');}},
+  {id:'eq_witherlocket',slot:'amulet',rar:'uncommon',icon:'💜',name:'凋零挂坠',desc:'造成伤害时，15%几率使敌人虚弱1回合',
+    onCardDamage(b,p,dmg){if(dmg>0&&Math.random()<.15){b.enemyWeak=(b.enemyWeak||0)+1;toast('💜 凋零挂坠：敌人虚弱！','g');}}},
+  {id:'eq_hexeye',slot:'amulet',rar:'uncommon',icon:'🔮',name:'破魔护符',desc:'战斗开始时使敌人易伤1回合',
+    onBattleStart(b){b.enemyVuln=(b.enemyVuln||0)+1;toast('🔮 破魔护符：敌人易伤！','g');}},
+  {id:'eq_chaospend',slot:'amulet',rar:'rare',icon:'🌀',name:'混沌坠饰',desc:'回合结束时，50%几率获得1层力量',
+    onTurnEnd(b){if(Math.random()<.5){b.str=(b.str||0)+1;toast('🌀 混沌坠饰：+1力量','g');}}},
+  // 戒指：资源/经济向
+  {id:'eq_luckring',slot:'ring',rar:'common',icon:'💍',name:'幸运指环',desc:'击败敌人后，额外获得15%金币',
+    onKill(b,p,goldEarned){const bonus=Math.round((goldEarned||0)*.15);if(bonus>0){p.gold+=bonus;toast(`💍 幸运指环：额外+${bonus}金币`,'g');}}},
+  {id:'eq_energyring',slot:'ring',rar:'common',icon:'⚡',name:'铜心之戒',desc:'战斗开始时获得1点本场行动力',
+    onBattleStart(b){b.apLeft=(b.apLeft||0)+1;toast('⚡ 铜心之戒：+1行动力','g');}},
+  {id:'eq_greedring',slot:'ring',rar:'uncommon',icon:'🪙',name:'贪婪之戒',desc:'击败敌人后，30%几率额外获得10金币',
+    onKill(b,p){if(Math.random()<.3){p.gold+=10;toast('🪙 贪婪之戒：额外+10金币','g');}}},
+  {id:'eq_perpetual',slot:'ring',rar:'rare',icon:'♾',name:'永动之戒',desc:'每逢第3回合开始，额外获得1点行动力',
+    onTurnStart(b){if(b.turn>0&&b.turn%3===0){b.apLeft=(b.apLeft||0)+1;toast('♾ 永动之戒：+1行动力','g');}}},
+  // 靴子：生存向
+  {id:'eq_fleetboots',slot:'boots',rar:'common',icon:'🥾',name:'疾行靴',desc:'最大生命+15（穿上/卸下立即生效）',
+    onEquip(p){p.maxHp+=15;p.hp+=15;},onUnequip(p){p.maxHp=Math.max(10,p.maxHp-15);p.hp=Math.min(p.hp,p.maxHp);}},
+  {id:'eq_steadyboots',slot:'boots',rar:'common',icon:'👢',name:'稳健之靴',desc:'战斗开始时获得3点格挡',
+    onBattleStart(b){b.blk=(b.blk||0)+3;toast('👢 稳健之靴：+3格挡','g');}},
+  {id:'eq_lifespring',slot:'boots',rar:'uncommon',icon:'💧',name:'生命之泉',desc:'回合结束时回复2点生命',
+    onTurnEnd(b,p){p.hp=Math.min(p.maxHp,p.hp+2);}},
+  {id:'eq_nirvana',slot:'boots',rar:'rare',icon:'🕊',name:'涅槃之靴',desc:'生命低于25%时，回合结束额外回复8点生命',
+    onTurnEnd(b,p){if(p.hp/p.maxHp<.25){p.hp=Math.min(p.maxHp,p.hp+8);toast('🕊 涅槃之靴：+8HP','g');}}},
+];
+let equipment={weapon:null,armor:null,helm:null,amulet:null,ring:null,boots:null};
+let equipBackpack=[];
+// 战斗引擎在各个关键时刻调用这个函数，让当前穿着的装备各自的对应钩子生效——
+// 不认识的钩子名字直接跳过，装备之间互不干扰
+function applyRelicHooks(hookName,battle,player,extra){
+  EQUIP_SLOTS.forEach(slot=>{
+    const item=equipment[slot];
+    if(item&&typeof item[hookName]==='function'){
+      try{item[hookName](battle,player,extra);}catch(e){}
+    }
+  });
+}
+function equipItem(i){
+  const item=equipBackpack[i];if(!item)return;
+  const slot=item.slot;const old=equipment[slot];
+  if(old&&old.onUnequip)old.onUnequip(player);
+  equipment[slot]=item;equipBackpack.splice(i,1);
+  if(old)equipBackpack.push(old);
+  if(item.onEquip)item.onEquip(player);
+  toast(`已装备：${item.icon} ${item.name}`,'g');
+  renderHud();if(document.getElementById('equipmodal')?.style.display==='block')renderEquipment();
+}
+function unequipItem(slot){
+  const item=equipment[slot];if(!item)return;
+  if(item.onUnequip)item.onUnequip(player);
+  equipment[slot]=null;equipBackpack.push(item);
+  toast(`已卸下：${item.name}`,'g');
+  renderHud();if(document.getElementById('equipmodal')?.style.display==='block')renderEquipment();
+}
+function discardEquip(i){
+  const item=equipBackpack[i];if(!item)return;
+  equipBackpack.splice(i,1);toast(`丢弃了：${item.name}`,'r');renderEquipment();
+}
+// 装备掉落：精英40%概率掉、首领必掉，且首领掉落的稀有度更高——呼应暗黑2"强敌掉好装"的直觉
+function maybeGrantEquipment(tier){
+  const isBoss=tier==='boss',isElite=tier==='elite';
+  if(!isBoss&&!isElite)return;
+  if(isElite&&Math.random()>=.4)return;
+  const r=Math.random();
+  const rar=isBoss?(r<.5?'rare':'uncommon'):(r<.15?'rare':r<.55?'uncommon':'common');
+  const pool=EQUIP_DB.filter(e=>e.rar===rar);
+  const src=pool.length?pool:EQUIP_DB;
+  const item=src[0|Math.random()*src.length];
+  equipBackpack.push(item);
+  toast(`🎁 获得装备：${item.icon} ${item.name}！`,'g');
+}
 const THEMES=[
   {name:'地下墓穴',sub:'腐骨与阴影的领地'},{name:'熔岩矿坑',sub:'炽热与窒息的深处'},
   {name:'幽灵森林',sub:'枯木与怨灵低语之所'},{name:'冰封塔楼',sub:'永恒严寒中的沉睡'},
@@ -1523,7 +1640,11 @@ const SM={
         chapter:{...chapter,usedEnemies:[...(chapter.usedEnemies||[])]},
         rs:{...rs},
         heirMode:window._heirMode||false,heirParentTitle:window._heirParentTitle||null,
-        chosenStartTitle:window._chosenStartTitle||null
+        chosenStartTitle:window._chosenStartTitle||null,
+        // 装备只存id——装备本身（含onXxx这些函数）是写死在EQUIP_DB里的固定目录，读档时按id反查即可，
+        // 不能直接把整个装备对象存进JSON（函数没法被序列化）
+        equipment:Object.fromEntries(EQUIP_SLOTS.map(s=>[s,equipment[s]?equipment[s].id:null])),
+        equipBackpack:equipBackpack.map(it=>it.id)
       }));this._slot=s;return true;
     }catch(e){return false;}
   },
@@ -1541,6 +1662,9 @@ const SM={
       window._mapRank=7;
       window._heirMode=sv.heirMode||false;window._heirParentTitle=sv.heirParentTitle||null;
       window._chosenStartTitle=sv.chosenStartTitle||null;
+      const _geq=id=>EQUIP_DB.find(e=>e.id===id)||null;
+      equipment=Object.fromEntries(EQUIP_SLOTS.map(s=>[s,_geq(sv.equipment?.[s])]));
+      equipBackpack=(sv.equipBackpack||[]).map(_geq).filter(Boolean);
       document.getElementById('mb').style.display='none';
       phase=PH.MAP;navClear();showView('mv');renderMap();renderHud();renderTokens();
       return true;
@@ -2228,6 +2352,7 @@ function applySingleCard(c,mult){
     if(totalDmg>0){
       floatDmg(totalDmg,'#c0392b');sfx(180+totalDmg*1.2,.15,'sawtooth',.1,-60);
       hitFX(true,totalDmg);
+      applyRelicHooks('onCardDamage',battle,player,totalDmg);
       if(totalDmg>=20)showBatText('暴击！','#ffcc44');
       const hpRatio=battle.enemyHp/(battle.enemyMaxHp||1);
       if(totalDmg>=12&&Math.random()<.45)enemySpeech('hurt');
@@ -2319,6 +2444,7 @@ function _enemyPickAction(){
   return acts[acts.length-1];
 }
 function endTurn(){
+  applyRelicHooks('onTurnEnd',battle,player);
   battle.hand.forEach(c=>{if(c.curseTick)player.hp=Math.max(1,player.hp-c.curseTick);});
   battle.discardPile.push(...battle.hand);battle.hand=[];
   // Bleed tick
@@ -2339,7 +2465,7 @@ function endTurn(){
       let eatk=act.v+(battle.enemyStr||0);if(battle.enemyWeak>0)eatk=Math.floor(eatk*.75);
       if(battle.fortified>0){eatk=Math.floor(eatk*.5);battle.fortified--;toast('🛡 坚固减伤');}
       const hadBlk=battle.blk>0;
-      const dmg=Math.max(0,eatk-battle.blk);player.hp=Math.max(0,player.hp-dmg);battle.blk=Math.max(0,battle.blk-eatk);rs.dmgTaken+=dmg;_eDmg=dmg;
+      const dmg=Math.max(0,eatk-battle.blk);player.hp=Math.max(0,player.hp-dmg);battle.blk=Math.max(0,battle.blk-eatk);rs.dmgTaken+=dmg;if(dmg>0)applyRelicHooks('onDamageTaken',battle,player,dmg);_eDmg=dmg;
       if(dmg>0){floatDmg(dmg,'#8b1a1a',true);sfx(80+dmg*.8,.24,'sawtooth',.13,-55);hitFX(false,dmg);if(dmg>=18)showBatText('重伤！','#ff4444');if(dmg>=18&&Math.random()<.4)enemySpeech('win');}
       else if(hadBlk){blockFX();sfx(520,.1,'triangle',.14,180);showBatText('完美防御','#44ddaa');}
     }else if(act.t==='d'){battle.enemyBlk=(battle.enemyBlk||0)+act.v;toast(`${battle.enemy.name} 获得 ${act.v} 格挡`);
@@ -2444,7 +2570,7 @@ function endTurn(){
       if(battle.fortified>0){eatk=Math.floor(eatk*.5);battle.fortified--;toast('🛡 坚固减伤');}
       eatk=Math.round(eatk);
       const hadBlk=battle.blk>0;
-      const dmg=Math.max(0,eatk-battle.blk);player.hp=Math.max(0,player.hp-dmg);battle.blk=Math.max(0,battle.blk-eatk);rs.dmgTaken+=dmg;_eDmg=dmg;
+      const dmg=Math.max(0,eatk-battle.blk);player.hp=Math.max(0,player.hp-dmg);battle.blk=Math.max(0,battle.blk-eatk);rs.dmgTaken+=dmg;if(dmg>0)applyRelicHooks('onDamageTaken',battle,player,dmg);_eDmg=dmg;
       if(dmg>0){floatDmg(dmg,'#8b1a1a',true);sfx(80+dmg*.8,.24,'sawtooth',.13,-55);hitFX(false,dmg);if(isExec){showBatText('处决！','#ff0000');sfx(90,.35,'sawtooth',.16,-60);setTimeout(()=>sfx(60,.3,'sawtooth',.15,-40),120);}else if(dmg>=18)showBatText('重伤！','#ff4444');if(Math.random()<.4)enemySpeech('win');}
       else if(hadBlk){blockFX();sfx(520,.1,'triangle',.14,180);showBatText('完美防御','#44ddaa');}
       if(isExec)toast(`💀 ${act.n}！你残血状态触发处决，遭受毁灭性打击！`,'r');
@@ -2455,7 +2581,7 @@ function endTurn(){
         let eatk=act.v+(battle.enemyStr||0);if(battle.enemyWeak>0)eatk=Math.floor(eatk*.75);
         if(battle.fortified>0){eatk=Math.floor(eatk*.5);battle.fortified--;}
         eatk=Math.round(eatk);
-        const dmg=Math.max(0,eatk-battle.blk);player.hp=Math.max(0,player.hp-dmg);battle.blk=Math.max(0,battle.blk-eatk);rs.dmgTaken+=dmg;totalDmg+=dmg;
+        const dmg=Math.max(0,eatk-battle.blk);player.hp=Math.max(0,player.hp-dmg);battle.blk=Math.max(0,battle.blk-eatk);rs.dmgTaken+=dmg;if(dmg>0)applyRelicHooks('onDamageTaken',battle,player,dmg);totalDmg+=dmg;
         if(dmg>0){floatDmg(dmg,'#8b1a1a',true);hitFX(false,dmg);}
       }
       _eDmg=totalDmg;
@@ -2474,7 +2600,7 @@ function endTurn(){
     let eatk=(battle.enemy.atk||8)+(battle.enemyStr||0);if(battle.enemyWeak>0)eatk=Math.floor(eatk*.75);
     if(battle.fortified>0){eatk=Math.floor(eatk*.5);battle.fortified--;}
     const hadBlk2=battle.blk>0;
-    const dmg=Math.max(0,eatk-battle.blk);player.hp=Math.max(0,player.hp-dmg);battle.blk=Math.max(0,battle.blk-eatk);rs.dmgTaken+=dmg;_eDmg=dmg;
+    const dmg=Math.max(0,eatk-battle.blk);player.hp=Math.max(0,player.hp-dmg);battle.blk=Math.max(0,battle.blk-eatk);rs.dmgTaken+=dmg;if(dmg>0)applyRelicHooks('onDamageTaken',battle,player,dmg);_eDmg=dmg;
     if(dmg>0){floatDmg(dmg,'#8b1a1a',true);sfx(80+dmg*.8,.24,'sawtooth',.13,-55);hitFX(false,dmg);}
     else if(hadBlk2){blockFX();sfx(520,.1,'triangle',.14,180);showBatText('完美防御','#44ddaa');}
   }
@@ -2503,6 +2629,7 @@ function endTurn(){
   battle.apLeft=Math.max(1,battle.maxAp-_apDrain);
   if(_apDrain>0)toast(`💜 能量被侵蚀，本回合只有 ${battle.apLeft} 点行动力！`,'r');
   battle.selectedCards=[];battle.firstCard=true;
+  applyRelicHooks('onTurnStart',battle,player);
   const drawN=chapter.modifier?.handLimit?Math.min(player.drawCount||5,chapter.modifier.handLimit):player.drawCount||5;
   drawCards(drawN);
   renderBattle();document.getElementById('dtn').textContent=battle.turn;
@@ -2537,6 +2664,8 @@ function endBattle(won){
     const gm=(chapter.modifier?.goldMult||1)*em;
     const g=Math.round((battle.enemy.goldMin+Math.random()*(battle.enemy.goldMax-battle.enemy.goldMin))*gm);
     player.gold+=g;
+    applyRelicHooks('onKill',battle,player,g);
+    maybeGrantEquipment(battle.enemy.tier);
     if(battle.enemy.tier==='boss'){
       rs.chaptersCleared++;
       // "财富守护"暗牌变体：之前只在地图上承诺"高额金币奖励"，却从没真正给过金币，这里补上双倍金币
@@ -3616,7 +3745,44 @@ function confirmBMLot(){
   window._bmBought.add(i);window._bmSel=null;
   renderBlackMarket();renderHud();renderTokens();
 }
-function renderRelics(){}// stub — relic system removed
+// ── 装备界面（暗黑2风格：槽位 + 背包）──
+function showEquipment(){renderEquipment();document.getElementById('equipmodal').style.display='block';}
+function closeEquipment(){document.getElementById('equipmodal').style.display='none';}
+function renderEquipment(){
+  const rCol={rare:'var(--amber)',uncommon:'var(--frost)',common:'var(--text3)'};
+  const slotsHtml=EQUIP_SLOTS.map(slot=>{
+    const item=equipment[slot];const label=EQUIP_SLOT_NAME[slot];
+    if(!item){
+      return`<div style="display:flex;align-items:center;gap:10px;padding:10px;border:1px dashed var(--crack2);margin-bottom:6px;opacity:.55">
+        <div style="font-size:22px;width:32px;text-align:center">${EQUIP_SLOT_ICON[slot]}</div>
+        <div style="flex:1;font-size:11px;color:var(--text3)">${label} · 空</div>
+      </div>`;
+    }
+    const col=rCol[item.rar]||'var(--crack2)';
+    return`<div style="display:flex;align-items:center;gap:10px;padding:10px;border:1px solid ${col};margin-bottom:6px;cursor:pointer;background:rgba(255,255,255,.02)" onclick="unequipItem('${slot}')">
+      <div style="font-size:22px;width:32px;text-align:center">${item.icon}</div>
+      <div style="flex:1">
+        <div style="font-size:11px;color:${col};font-weight:700">${item.name} <span style="color:var(--text3);font-size:9px">（${label}）</span></div>
+        <div style="font-size:9px;color:var(--text2);margin-top:2px">${item.desc}</div>
+      </div>
+      <div style="font-size:9px;color:var(--gore2);flex:none">卸下</div>
+    </div>`;
+  }).join('');
+  const bpHtml=equipBackpack.length?equipBackpack.map((item,i)=>{
+    const col=rCol[item.rar]||'var(--crack2)';
+    return`<div style="display:flex;align-items:center;gap:10px;padding:10px;border:1px solid ${col};margin-bottom:6px">
+      <div style="font-size:20px;width:30px;text-align:center;cursor:pointer" onclick="equipItem(${i})">${item.icon}</div>
+      <div style="flex:1;cursor:pointer" onclick="equipItem(${i})">
+        <div style="font-size:11px;color:${col}">${item.name} <span style="color:var(--text3);font-size:9px">（${EQUIP_SLOT_NAME[item.slot]}）</span></div>
+        <div style="font-size:9px;color:var(--text2);margin-top:2px">${item.desc}</div>
+      </div>
+      <div style="font-size:9px;color:var(--slime);flex:none;cursor:pointer;padding:2px 4px" onclick="equipItem(${i})">装备</div>
+      <div style="font-size:9px;color:var(--text3);flex:none;cursor:pointer;padding:2px 4px" onclick="discardEquip(${i})">丢弃</div>
+    </div>`;
+  }).join(''):'<div style="text-align:center;color:var(--text3);font-size:11px;padding:16px 0">背包空空如也——击败精英或首领有机会获得装备</div>';
+  document.getElementById('eq-slots').innerHTML=slotsHtml;
+  document.getElementById('eq-backpack').innerHTML=bpHtml;
+}
 // ── 场景画面工具 ──
 function setSceneArt(art,story){
   const el=document.getElementById('ov-art');if(el){el.textContent=art||'';}
@@ -4376,6 +4542,7 @@ function initGame(){
   window._lastShownTitle=null;
   window._heirMode=false;window._heirParentTitle=null;
   window._chosenStartTitle=null;
+  equipment={weapon:null,armor:null,helm:null,amulet:null,ring:null,boots:null};equipBackpack=[];
   document.getElementById('mb').style.display='none';
   showRunStart();
 }
