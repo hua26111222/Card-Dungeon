@@ -715,7 +715,7 @@ html,body{background:var(--void);color:var(--text);font-family:var(--fm);font-si
       <div class="hvdiv"></div>
       <div class="hv-btns">
         <button class="hvbtn hvbtn-c" id="hv-cont" onclick="onContAdventure()">继续冒险</button>
-        <button class="hvbtn hvbtn-n" onclick="onNewGame()">全新开始</button>
+        <button class="hvbtn hvbtn-n" onclick="showModeSelect()">全新开始</button>
       </div>
       <button class="ovbtn" style="margin-top:14px;padding:6px 14px;font-size:11px" onclick="showLeaderboard('hv')">🏆 探险排行榜</button>
     </div>
@@ -826,8 +826,8 @@ html,body{background:var(--void);color:var(--text);font-family:var(--fm);font-si
       <div id="legacy-cards"></div>
       <button id="legacy-btn" class="ovbtn gd" style="width:100%;margin-top:6px;opacity:.5" onclick="confirmLegacy()" disabled>点选卡牌传给下一局（最多3张）</button>
     </div>
-    <button class="ovbtn" style="width:100%;max-width:360px;margin:0 0 10px" onclick="showLeaderboard('gov')">🏆 查看探险排行榜</button>
-    <button class="brst" onclick="initGame()">再次挑战</button>
+    <button class="ovbtn" id="gov-lb-btn" style="width:100%;max-width:360px;margin:0 0 10px" onclick="showLeaderboard('gov')">🏆 查看探险排行榜</button>
+    <button class="brst" id="gov-retry-btn" onclick="initGame()">再次挑战</button>
   </div>
   <div id="lbv" style="display:none;flex-direction:column;align-items:center;justify-content:flex-start;min-height:calc(100vh - 88px);text-align:center;padding:24px;background:radial-gradient(ellipse at 50% 30%,rgba(106,58,154,.25),transparent 60%),var(--void)">
     <div class="goico" style="filter:drop-shadow(0 0 28px rgba(154,90,191,.8))">🏆</div>
@@ -1775,8 +1775,27 @@ const SM={
       }catch(e){return{slot:s,empty:true};}
     });
   },
-  auto(){if(phase!==PH.BATTLE&&phase!==PH.DEAD)this.save();}
+  auto(){if(window._gameMode==='story')return;if(phase!==PH.BATTLE&&phase!==PH.DEAD)this.save();}
 };
+
+// ── 剧情远征·营地持久存档 (独立于上面无限地牢用的3个存档槽) ──
+// 只存"家里"的东西：卡组/金币/装备库存/已出征次数。出征途中的地图/战斗进度不在这里持久化——
+// 一次出征要么打穿12层安全带回，要么死亡后按标记规则结算，都会在结束的那一刻才写回这里
+const StoryHome={
+  KEY:'cd_story_save',V:1,
+  fresh(){return{v:this.V,expeditionCount:0,homeDeck:[],homeGold:0,homeEquipStash:[],marksPerExpedition:3};},
+  load(){
+    try{
+      const raw=localStorage.getItem(this.KEY);if(!raw)return this.fresh();
+      const d=JSON.parse(raw);if(d.v!==this.V)return this.fresh();
+      return d;
+    }catch(e){return this.fresh();}
+  },
+  save(data){try{localStorage.setItem(this.KEY,JSON.stringify(data));}catch(e){}},
+  exists(){try{return!!localStorage.getItem(this.KEY);}catch(e){return false;}},
+  clear(){try{localStorage.removeItem(this.KEY);}catch(e){}}
+};
+let storyData=null;
 
 // ── 卡牌动态生成器 ──
 // 生成时用到的数值上限，原本是十几个分散在各条分支里的硬编码数字（48/26/14/16...），
@@ -2071,7 +2090,7 @@ function genCardInfo(step,nodeRank){
 }
 function renderMap(){
   const{rows,step,playerCol,history}=mapData;
-  document.getElementById('flab').textContent=`第 ${toR(chapter.floor)} 章  ${chapter.theme?.name||''}`;
+  document.getElementById('flab').textContent=window._gameMode==='story'?`第 ${(storyData?.expeditionCount||0)+1} 次远征  ${chapter.theme?.name||''}`:`第 ${toR(chapter.floor)} 章  ${chapter.theme?.name||''}`;
   const ps=calcPS();
   const diff2=ps<20?'平静':ps<40?'凶险':ps<65?'危机':ps<90?'绝境':'地狱';
   const dc=ps<20?'#5a7aaa':ps<40?'#4a7a3a':ps<65?'#aa7020':'#8b1a1a';
@@ -2773,7 +2792,7 @@ function endBattle(won){
       setTimeout(()=>showBossReward(),1000);
     }
     else{const _isElite=battle.enemy?.tier==='elite';setTimeout(()=>{showReward(g);SM.auto();},_isElite?420:280);}
-  }else{sfx(80,.4,'sawtooth',.15,-30);showGameOver();SM.clear();}
+  }else{sfx(80,.4,'sawtooth',.15,-30);showGameOver();if(window._gameMode!=='story')SM.clear();}
 }
 const _FLOOR_NARRATIVE=[
   '黑暗的入口在背后轰然关闭。深渊不会放你离开——唯一的出路，是穿越它。',
@@ -2783,9 +2802,10 @@ const _FLOOR_NARRATIVE=[
 function showChapterIntro(){
   const info=generateChapter();const mod=info.mod;
   const fl=info.floor;
-  const narrative=_FLOOR_NARRATIVE[fl-1]||`地下第 ${fl} 层——越往深处，现实越扭曲，退路早已封死，唯有不断下潜。`;
+  const isStory=window._gameMode==='story';
+  const narrative=isStory?'你再次踏入深渊——这一次的路途，无人知晓终点在何处。':(_FLOOR_NARRATIVE[fl-1]||`地下第 ${fl} 层——越往深处，现实越扭曲，退路早已封死，唯有不断下潜。`);
   document.getElementById('cid').textContent=narrative;
-  document.getElementById('cif').textContent=`地下 · 第 ${toR(fl)} 层`;
+  document.getElementById('cif').textContent=isStory?`剧情远征 · 第 ${(storyData?.expeditionCount||0)+1} 次出征`:`地下 · 第 ${toR(fl)} 层`;
   document.getElementById('cin').textContent=info.theme.name;
   document.getElementById('cit').textContent=info.theme.sub;
   document.getElementById('cim').style.borderColor=mod.color;document.getElementById('cim').style.color=mod.color;
@@ -3145,14 +3165,25 @@ function doRest(act){
 }
 function showGameOver(){
   phase=PH.DEAD;const ps=calcPS();
-  recordRun();
+  const isStory=window._gameMode==='story';
+  if(!isStory)recordRun();
   document.getElementById('goico').textContent='☠';
   document.getElementById('gotit').textContent='你已陨落';document.getElementById('gotit').style.color='var(--gore2)';
   document.getElementById('gosub').textContent=`第 ${toR(chapter.floor)} 章  ·  ${chapter.theme?.name||''}  ·  凄风中的传说`;
   document.getElementById('gost').innerHTML=`<div class="gor"><span class="gol">通关章节</span><span class="gov2">${rs.chaptersCleared}</span></div><div class="gor"><span class="gol">当前章节</span><span class="gov2">第 ${toR(chapter.floor)} 章</span></div><div class="gor"><span class="gol">最终 PS</span><span class="gov2">${ps}</span></div><div class="gor"><span class="gol">击杀数</span><span class="gov2">${player.kills}</span></div><div class="gor"><span class="gol">造成伤害</span><span class="gov2">${rs.dmgDealt}</span></div><div class="gor"><span class="gol">承受伤害</span><span class="gov2">${rs.dmgTaken}</span></div><div class="gor"><span class="gol">使用卡牌</span><span class="gov2">${rs.cardsPlayed}</span></div><div class="gor"><span class="gol">经历回合</span><span class="gov2">${rs.turns}</span></div>`;
-  window._legacySel=new Set();
+  const retryBtn=document.getElementById('gov-retry-btn');
+  const lbBtn=document.getElementById('gov-lb-btn');
+  if(isStory){
+    document.getElementById('legacy-section').style.display='none';
+    if(lbBtn)lbBtn.style.display='none';
+    if(retryBtn){retryBtn.textContent='🏕 带着标记的遗物回家';retryBtn.onclick=finishExpeditionOnDeath;}
+  }else{
+    if(lbBtn)lbBtn.style.display='';
+    if(retryBtn){retryBtn.textContent='再次挑战';retryBtn.onclick=initGame;}
+    window._legacySel=new Set();
+    renderLegacyPicker();
+  }
   showView('gov');
-  renderLegacyPicker();
 }
 function getPlayerTitle(dk){
   // 继承人模式：整局固定显示"XX的继承者"，不再走下面按牌组构成算称号那一套
@@ -3361,7 +3392,10 @@ function showView(name){
   const flex=new Set(['hv','ci','gov','lbv']);
   Object.entries(map).forEach(([k,sel])=>{const el=document.querySelector(sel);if(!el)return;const show=k===name;el.style.display=show?(k==='bv'?'flex':flex.has(k)?'flex':'block'):'none';if(show)el.classList.add('vi');});
 }
-function backToMap(){phase=PH.MAP;showView('mv');renderMap();renderHud();renderTokens();saveGame();startBGM('map');}
+function backToMap(){
+  if(window._inCamp){showCamp();return;} // 在营地里点开的商店/铁匠/黑市/装备，退出时要回营地而不是地图
+  phase=PH.MAP;showView('mv');renderMap();renderHud();renderTokens();saveGame();startBGM('map');
+}
 function toast(msg,type=''){const el=document.getElementById('toast');el.textContent=msg;el.className='toast on'+(type?' '+type:'');clearTimeout(window._tt);window._tt=setTimeout(()=>el.className='toast',2200);if(phase===PH.BATTLE)logBattle(msg,type==='r'?'en':'sys');}
 function logBattle(msg,who='sys'){
   if(!battle.log)battle.log=[];
@@ -4355,7 +4389,42 @@ function confirmBossReward(){
   if(selType==='card'){const c=cardPicks[sel];if(c)battle.deck.push({...c});toast('获得：'+(c?.name||''),'g');}
   else if(selType==='ability'){abilities[sel]?.apply();}
   window._bossReward=null;
+  if(window._gameMode==='story'){setTimeout(finishExpedition,600);return;}
   chapter.floor++;setTimeout(()=>showCutscene('floor'+chapter.floor,showChapterIntro),600);
+}
+// ── 剧情远征：出征结算 ──
+// 通关（打穿第12层boss）：这次出征的全部收获（卡组/金币/装备）无损带回营地
+function finishExpedition(){
+  const s=storyData||StoryHome.load();
+  s.homeDeck=battle.deck.filter(c=>!!c).map(c=>({...c}));
+  s.homeGold=player.gold;
+  s.homeEquipStash=[...EQUIP_SLOTS.map(sl=>equipment[sl]).filter(Boolean),...equipBackpack].map(serializeEquip);
+  s.expeditionCount=(s.expeditionCount||0)+1;
+  StoryHome.save(s);storyData=s;
+  showExpeditionResult(true);
+}
+// 死亡：目前先按"全部带回"处理（骨架阶段），真正"只保留标记物品"的贪婪规则由标记机制补上
+function finishExpeditionOnDeath(){
+  const s=storyData||StoryHome.load();
+  const marked=battle.deck.filter(c=>c&&c.__marked);
+  const equipped=EQUIP_SLOTS.map(sl=>equipment[sl]).filter(Boolean);
+  const kept=marked.length?[...marked]:battle.deck.filter(c=>!!c).map(c=>({...c}));
+  s.homeDeck=kept.map(c=>({...c}));
+  s.homeGold=marked.length?0:player.gold;
+  s.homeEquipStash=[...equipped,...(marked.length?[]:equipBackpack)].map(serializeEquip);
+  s.expeditionCount=(s.expeditionCount||0)+1;
+  StoryHome.save(s);storyData=s;
+  showExpeditionResult(false);
+}
+function showExpeditionResult(success){
+  phase=PH.OV;
+  document.getElementById('ovtag').textContent=success?'✓  远征归来':'☠  远征失败';
+  document.getElementById('ovtit').textContent=success?'满载而归':'铩羽而归';
+  setSceneArt(success?'🏆':'💀',success?'你带着这一路的收获，走出了深渊的入口……':'深渊没有放你完整地离开——只有标记过的东西，跟你一起回来了。');
+  const h=`<div class="ovd">${success?'本次远征的全部收获都安全带回了营地。':'未被标记的卡牌与散落的财物，永远留在了深渊里。'}</div>
+  <button class="ovbtn gd" onclick="showCamp()">🏕 返回营地</button>`;
+  document.getElementById('ovb').innerHTML=h;
+  showView('ov');renderHud();renderTokens();
 }
 // ── 探险排行榜 ──
 function loadLeaderboard(){try{const l=localStorage.getItem('cd_leaderboard');return l?JSON.parse(l):[];}catch(e){return[];}}
@@ -4413,7 +4482,7 @@ function confirmLegacy(){
   const lsEl=document.getElementById('legacy-section');if(lsEl)lsEl.style.display='none';
 }
 // ── 存档系统（SM封装）──
-function saveGame(){SM.save();}
+function saveGame(){if(window._gameMode==='story')return;SM.save();}
 function loadGame(){const ok=SM.load();if(ok)toast('存档已加载','g');return ok;}
 function clearSave(){SM.clear();}
 // ── 音效系统 ──
@@ -4625,6 +4694,7 @@ function finishCutscene(){
 }
 function initGame(){
   stopBGM();navClear();
+  window._gameMode='endless';window._inCamp=false;MAP_TOTAL_STEPS=19;
   player={hp:50,maxHp:50,gold:80,floor:1,kills:0,steps:0,drawCount:5,maxAp:3};
   chapter={floor:1,theme:null,modifier:null,boss:null};
   const startDeck=buildStarterDeck();
@@ -4714,6 +4784,87 @@ function confirmRunStart(){
   window._runStartOpts=null;window._runStartLegacy=null;window._runStartSel=null;
   showCutscene('intro',showChapterIntro);
 }
+// ── 剧情远征：英雄之旅12阶段（对应第1~12次出征，第13次起进入循环尾声）──
+const _EXPEDITION_NARRATIVE=[
+  {title:'✦ 篇章一 · 平凡之界',    blurb:'战乱吞噬了这片边境。你不过是又一个苟活的幸存者——直到那一夜，大地裂开了一道缝。'},
+  {title:'✦ 篇章二 · 深渊的召唤',  blurb:'深渊的低语从裂缝中渗出，一遍遍念着你的名字。没有人能对此充耳不闻。'},
+  {title:'✦ 篇章三 · 拒绝与踌躇',  blurb:'先行者一个接一个消失在裂缝之下，无一归来。你在门槛前，站了很久很久。'},
+  {title:'✦ 篇章四 · 导师的低语',  blurb:'一个浑身浴血的老兵拦住了你，塞给你一样东西——「拿着，也许能让你多活一天。」'},
+  {title:'✦ 篇章五 · 越过门槛',    blurb:'身后的入口轰然关闭。深渊不会放你离开——唯一的出路，是穿越它。'},
+  {title:'✦ 篇章六 · 试炼与同伴',  blurb:'你渐渐摸清了深渊的规则。营地里，也渐渐有了几张愿意与你对视的面孔。'},
+  {title:'✦ 篇章七 · 靠近最深处',  blurb:'地形愈发扭曲，脚下的路开始违反常理。某种低语，愈来愈清晰了。'},
+  {title:'✦ 篇章八 · 磨难',        blurb:'一场惨败几乎要了你的命——营地本身，也在这场灾难里失去了什么。'},
+  {title:'✦ 篇章九 · 获得',        blurb:'你从深渊最深处，夺回了本不属于凡人的东西。它在你手中，安静得可怕。'},
+  {title:'✦ 篇章十 · 归途',        blurb:'深渊不想让你带着战利品离开。回程，比来路更凶险。'},
+  {title:'✦ 篇章十一 · 复活',      blurb:'这是最后的考验——此前学到的一切，都要在这一刻兑现，否则万劫不复。'},
+  {title:'✦ 篇章十二 · 携灵药而归',blurb:'你带回了深渊夺走的东西。世界因此改变了——你也是。但代价，才刚刚显现。'},
+];
+const _EXPEDITION_EPILOGUE={title:'✦ 尾声 · 无尽回响',blurb:'传说已经写完，但深渊从未真正安静。它仍在等你——一次又一次。'};
+// ── 剧情远征：模式选择 / 营地枢纽 ──
+function showModeSelect(){
+  phase=PH.OV;
+  document.getElementById('ovtag').textContent='✦  选择冒险方式';
+  document.getElementById('ovtit').textContent='深渊有两条路';
+  setSceneArt('🧭','踏入深渊之前，先决定这一次要走哪条路。');
+  const h=`<div class="ovd">这一次，你想怎么闯？</div>
+  <div class="tcards-table">
+    <div class="ccard" style="transform:rotate(-6deg) translateY(8px)" onclick="onNewGame()">
+      <div class="ccard-top" style="background:linear-gradient(90deg,transparent,rgba(139,26,26,.5),transparent)"></div>
+      <div class="ccard-icon">♾</div>
+      <div class="ccard-text" style="color:var(--gore2)">无限地牢</div>
+      <div class="ccard-sub">一路下潜，直到陨落。没有终点，只有排行榜上的名字。</div>
+    </div>
+    <div class="ccard" style="transform:rotate(6deg) translateY(8px)" onclick="onStoryMode()">
+      <div class="ccard-top" style="background:linear-gradient(90deg,transparent,rgba(200,169,110,.5),transparent)"></div>
+      <div class="ccard-icon">🏕</div>
+      <div class="ccard-text" style="color:var(--amber)">剧情远征</div>
+      <div class="ccard-sub">固定12层的远征，打完回家整备，再出发下一次。有营地，有故事。</div>
+    </div>
+  </div>`;
+  document.getElementById('ovb').innerHTML=h;
+  showView('ov');renderHud();renderTokens();
+}
+function onStoryMode(){window._gameMode='story';window._inCamp=false;enterStoryHome();}
+function enterStoryHome(){
+  stopBGM();navClear();
+  storyData=StoryHome.load();
+  MAP_TOTAL_STEPS=13;
+  player={hp:50,maxHp:50,gold:storyData.homeGold||0,floor:1,kills:0,steps:0,drawCount:5,maxAp:3};
+  chapter={floor:1,theme:null,modifier:null,boss:null};
+  const homeDeck=(storyData.homeDeck&&storyData.homeDeck.length)?storyData.homeDeck.map(c=>({...c})):buildStarterDeck();
+  window._playerSeed=null;window._playerAppear=null;
+  battle={enemy:null,enemyHp:0,enemyMaxHp:0,enemyBlk:0,enemyStr:0,enemyWeak:0,enemyVuln:0,enemyPoison:0,enemyBleed:0,enemyStun:0,enemyActions:[],enemyActionIdx:0,nextEnemyAction:null,deck:homeDeck,drawPile:[],hand:[],discardPile:[],exhPile:[],apLeft:3,maxAp:3,blk:0,str:0,jugg:false,lifestealMode:false,playerPoison:0,playerWeak:0,playerStun:0,playerDisarm:0,fortified:0,turn:1,selectedCards:[],firstCard:true,nextFreeCount:0};
+  rs={dmgDealt:0,dmgTaken:0,cardsPlayed:0,turns:0,chaptersCleared:0,killsByTrait:{}};
+  window._mapRank=7;window._lastShownTitle=null;
+  window._heirMode=false;window._heirParentTitle=null;window._chosenStartTitle=null;
+  equipment=Object.fromEntries(EQUIP_SLOTS.map(s=>[s,null]));
+  equipBackpack=(storyData.homeEquipStash||[]).map(deserializeEquip).filter(Boolean);
+  document.getElementById('mb').style.display='none';
+  showCamp();
+}
+function showCamp(){
+  phase=PH.CAMP;window._inCamp=true;
+  const s=storyData||(storyData=StoryHome.load());
+  const narr=s.expeditionCount>=_EXPEDITION_NARRATIVE.length?_EXPEDITION_EPILOGUE:_EXPEDITION_NARRATIVE[s.expeditionCount];
+  document.getElementById('ovtag').textContent='🏕  营地';
+  document.getElementById('ovtit').textContent=narr.title;
+  setSceneArt('🏕',narr.blurb);
+  const h=`<div class="ovd">${narr.blurb}</div>
+  <div style="font-size:10px;color:var(--text3);letter-spacing:2px;margin:2px 0 14px;text-align:center">已出征 ${s.expeditionCount} 次 · 金币 ${player.gold} · 家中卡组 ${battle.deck.length} 张</div>
+  <button class="ovbtn" onclick="startTavern()">🛒 商店</button>
+  <button class="ovbtn" onclick="startBlacksmith()">⚒ 铁匠</button>
+  <button class="ovbtn" onclick="startBlackMarket()">🌑 黑市</button>
+  <button class="ovbtn" onclick="showEquipment()">🛡 装备</button>
+  <button class="ovbtn gd" style="margin-top:10px" onclick="beginExpedition()">⚔ 出发远征</button>`;
+  document.getElementById('ovb').innerHTML=h;
+  showView('ov');renderHud();renderTokens();
+}
+function beginExpedition(){
+  window._inCamp=false;
+  MAP_TOTAL_STEPS=13;
+  chapter={floor:1,theme:null,modifier:null,boss:null};
+  showChapterIntro();
+}
 // ── 主菜单系统 ──
 function showHome(){
   const hasSave=SM.exists();
@@ -4724,12 +4875,14 @@ function showHome(){
   showView('hv');
 }
 function onContAdventure(){
+  window._gameMode='endless';window._inCamp=false;MAP_TOTAL_STEPS=19;
   const saves=SM.listAll().filter(s=>!s.empty);
   if(!saves.length)return;
   if(saves.length===1){loadSlot(saves[0].slot);}
   else{showSaveSelect();}
 }
 function onNewGame(){
+  window._gameMode='endless';window._inCamp=false;MAP_TOTAL_STEPS=19;
   const all=SM.listAll();
   const empty=all.find(s=>s.empty);
   const slot=empty?empty.slot:all.reduce((a,b)=>((!a.ts||b.ts<a.ts)?b:a)).slot;
