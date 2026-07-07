@@ -1783,7 +1783,9 @@ const SM={
 // 一次出征要么打穿12层安全带回，要么死亡后按标记规则结算，都会在结束的那一刻才写回这里
 const StoryHome={
   KEY:'cd_story_save',V:1,
-  fresh(){return{v:this.V,expeditionCount:0,homeDeck:[],homeGold:0,homeEquipStash:[],marksPerExpedition:3};},
+  // 新建剧情远征存档时给一笔启动资金——营地里的铁匠/商店/黑市都要花钱，
+  // 第一次出征前如果一分钱没有，这些设施等于摆设，跟无限地牢开局的80金币对齐
+  fresh(){return{v:this.V,expeditionCount:0,homeDeck:[],homeGold:80,homeEquipStash:[],marksPerExpedition:3};},
   load(){
     try{
       const raw=localStorage.getItem(this.KEY);if(!raw)return this.fresh();
