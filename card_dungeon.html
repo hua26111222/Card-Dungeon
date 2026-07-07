@@ -935,6 +935,21 @@ function cardValue(c){
   const rm=c.rar==='rare'?1.5:c.rar==='uncommon'?1.2:1;
   return Math.max(5,Math.round(base*cm*rm*(1+(c.upgradeCount||0)*.18)));
 }
+// ── 统一定价标准：全游戏所有花钱的地方都从这一份换算表来，不再各自瞎编价格 ──
+// 唯一的基准是"1点卡牌评分(cardValue) 约等于 VALUE_TO_GOLD 金币"；具体某个场景收多少钱，
+// 就是"基准价 × 这个场景的系数"，系数只反映场景本身的风险/便利差异，不是另起一套价格体系
+const VALUE_TO_GOLD=2;
+const PRICE_MULT={
+  buy:1,                 // 商店：明码标价买一张看得见的牌，基准价
+  blackmarket:.75,        // 黑市：东西蒙着卖，可能是骗局，比商店便宜一些补偿风险
+  gambleBet:1.1,          // 赌馆·指定稀有度：3选1比商店盲买划算，比基准价稍贵
+  gambleAllOrNothing:1,   // 赌馆·全或无：博的是"翻倍"，按最低档基准价算
+  upgrade:1.2,            // 铁匠·锻造：按"变强的那部分"收费，外加一点工钱
+  fusion:.4,              // 铁匠·熔合：被消耗的牌本身已是代价，金币只收一笔工本费
+  remove:.5,              // 铁匠·移除：按被移除那张牌的身价收一笔"清理费"
+};
+function priceForValue(value,mult){return Math.max(1,Math.round((value||0)*VALUE_TO_GOLD*(mult||1)));}
+const TYPICAL_VALUE_BY_RAR={common:20,uncommon:35,rare:60}; // 黑市/赌馆看不到真实卡面数值时，用这份"典型评分"估价
 function upgradeCard(c){
   if(!c||c.rar==='curse')return;
   if(c.special){
@@ -3086,7 +3101,7 @@ function genTavernCards(){
   const pool=DB.filter(c=>c.rar!=='curse');
   const used=new Set(battle.deck.map(c=>c.id));
   function weightedPick(){const av=pool.filter(c=>!used.has(c.id));if(!av.length)return null;const w=av.map(c=>c.rar==='rare'?rc*4:c.rar==='uncommon'?uc*2.5:1);const tot=w.reduce((s,x)=>s+x,0);let r=Math.random()*tot;for(let i=0;i<av.length;i++){r-=w[i];if(r<=0){used.add(av[i].id);return av[i];}}const c=av[av.length-1];used.add(c.id);return c;}
-  const priceOf=c=>c.rar==='rare'?Math.round(105*disc):c.rar==='uncommon'?Math.round(65*disc):Math.round(38*disc);
+  const priceOf=c=>Math.round(priceForValue(cardValue(c),PRICE_MULT.buy)*disc);
   const cards=[];for(let i=0;i<4;i++){const c=weightedPick();if(c)cards.push({card:c,price:priceOf(c)});}
   return cards;
 }
@@ -3683,6 +3698,18 @@ function showCardPicker(act,cards,cancelFn){
   window._pickCards=cards;window._pickCancel=cancelFn||null;window._pickAct=act;window._pickSel=null;
   renderPickerUI();
 }
+// 铁匠的锻造/移除都要收钱，篝火那种免费的"领悟升级"(fromCamp)和标记(mark)不收——
+// 统一走 priceForValue()，价格跟着卡牌本身的评分走，不再各写各的数字
+function pickCostFor(act,c){
+  if(act==='mark')return 0;
+  if(act==='upgrade'){
+    if(window._upgradeFromCamp)return 0;
+    const copy=JSON.parse(JSON.stringify(c));upgradeCard(copy);
+    const gain=Math.max(0,cardValue(copy)-cardValue(c));
+    return priceForValue(gain,PRICE_MULT.upgrade);
+  }
+  return priceForValue(cardValue(c),PRICE_MULT.remove); // remove
+}
 function renderPickerUI(){
   const act=window._pickAct;const cards=window._pickCards;const sel=window._pickSel;
   const fromCamp=window._upgradeFromCamp;
@@ -3692,6 +3719,8 @@ function renderPickerUI(){
   let confirmHtml='';
   if(sel!==null&&sel<cards.length){
     const c=cards[sel];
+    const cost=pickCostFor(act,c);
+    const notEnough=cost>0&&player.gold<cost;
     let upgradePanel='';
     if(act==='upgrade'){
       const copy=JSON.parse(JSON.stringify(c));upgradeCard(copy);
@@ -3730,11 +3759,12 @@ function renderPickerUI(){
         </div>`
         :`<div style="padding:6px 8px;font-size:10px;color:var(--text3);text-align:center;margin-bottom:6px">（属性无明显数值变化，效果描述可能改变）</div>`;
     }
+    const costLine=cost>0?`<br><span style="font-size:10px;color:${notEnough?'var(--gore2)':'var(--amber)'}">花费 ${cost} 金币${notEnough?'（金币不足）':''}</span>`:'';
     confirmHtml=`${upgradePanel}<div style="margin:0 0 8px;padding:7px 10px;border:1px solid rgba(200,169,110,.25);font-size:11px;color:var(--bone);text-align:center">
-      ${act==='upgrade'?'锻造':act==='mark'?'标记':'移除'} <b>${c.name}</b>？
+      ${act==='upgrade'?'锻造':act==='mark'?'标记':'移除'} <b>${c.name}</b>？${costLine}
     </div>
     <div style="display:flex;gap:8px">
-      <button class="ovbtn gd" style="flex:1;margin:0" onclick="confirmPick()">✓ 确认</button>
+      <button class="ovbtn gd" style="flex:1;margin:0" onclick="confirmPick()" ${notEnough?'disabled':''}>✓ 确认</button>
       <button class="ovbtn" style="flex:1;margin:0" onclick="window._pickSel=null;renderPickerUI()">✗ 重选</button>
     </div>`;
   }
@@ -3748,9 +3778,12 @@ function renderPickerUI(){
 function selectPickCard(i){window._pickSel=i;renderPickerUI();}
 function confirmPick(){
   const act=window._pickAct;const i=window._pickSel;const c=window._pickCards?.[i];if(!c)return;
-  if(act==='upgrade'){upgradeCard(c);toast(`${window._upgradeFromCamp?'升级':'锻造'}：${c.name}`,'g');}
+  const cost=pickCostFor(act,c);
+  if(cost>0&&player.gold<cost){toast('金币不足','r');return;}
+  if(cost>0)player.gold-=cost;
+  if(act==='upgrade'){upgradeCard(c);toast(`${window._upgradeFromCamp?'升级':'锻造'}：${c.name}${cost>0?`（花费${cost}金币）`:''}`,'g');}
   else if(act==='mark'){c.__marked=true;window._marksUsed=(window._marksUsed||0)+1;toast(`📌 已标记：${c.name}`,'g');}
-  else{const idx=battle.deck.indexOf(c);if(idx>=0)battle.deck.splice(idx,1);toast(`移除：${c.name}`);}
+  else{const idx=battle.deck.indexOf(c);if(idx>=0)battle.deck.splice(idx,1);toast(`移除：${c.name}${cost>0?`（花费${cost}金币）`:''}`);}
   window._pickSel=null;window._pickCancel=null;window._upgradeFromCamp=false;
   renderHud();renderTokens();setTimeout(backToMap,600);
 }
@@ -3799,7 +3832,7 @@ function _bmMakeLot(ps){
     const adjectives=['相当实用的','颇具威力的','颇受好评的','稳定输出的','出奇制胜的'];
     fakeDesc=`${adjectives[0|Math.random()*adjectives.length]}${kinds[fakeKind]||''}牌`;
   }
-  const basePrice={common:30,uncommon:55,rare:90,curse:0}[fakeRar]||40;
+  const basePrice=priceForValue(TYPICAL_VALUE_BY_RAR[fakeRar]||TYPICAL_VALUE_BY_RAR.common,PRICE_MULT.blackmarket);
   const price=Math.round(basePrice*(1+ps/150)*(0.9+Math.random()*.25));
   return{realCard,isScam,fakeKind,fakeRar,fakeName,fakeDesc,price};
 }
@@ -3929,7 +3962,12 @@ function genCardStory(card){
 // ── 赌馆 ──
 function startGamble(){
   phase=PH.OV;
-  window._gambleCost={c:20,u:55,r:90,x:40};
+  window._gambleCost={
+    c:priceForValue(TYPICAL_VALUE_BY_RAR.common,PRICE_MULT.gambleBet),
+    u:priceForValue(TYPICAL_VALUE_BY_RAR.uncommon,PRICE_MULT.gambleBet),
+    r:priceForValue(TYPICAL_VALUE_BY_RAR.rare,PRICE_MULT.gambleBet),
+    x:priceForValue(TYPICAL_VALUE_BY_RAR.common,PRICE_MULT.gambleAllOrNothing),
+  };
   document.getElementById('ovtag').textContent='🎲  赌馆';
   document.getElementById('ovtit').textContent='命运之局';
   setSceneArt('🎰','油灯昏暗，一个戴帽子的人把骰盅推向你：「来，赌一把？输赢都是命。」');
@@ -3960,7 +3998,12 @@ function startGamble(){
 }
 function playGamble(tier){
   // 费用统一从 startGamble() 设的 window._gambleCost 读取，不再各写一份，避免以后调价只改了一处
-  const cost=(window._gambleCost||{c:20,u:55,r:90,x:40})[tier];
+  const cost=(window._gambleCost||{
+    c:priceForValue(TYPICAL_VALUE_BY_RAR.common,PRICE_MULT.gambleBet),
+    u:priceForValue(TYPICAL_VALUE_BY_RAR.uncommon,PRICE_MULT.gambleBet),
+    r:priceForValue(TYPICAL_VALUE_BY_RAR.rare,PRICE_MULT.gambleBet),
+    x:priceForValue(TYPICAL_VALUE_BY_RAR.common,PRICE_MULT.gambleAllOrNothing),
+  })[tier];
   if(player.gold<cost){toast('金币不足','r');return;}
   player.gold-=cost;renderHud();
   if(tier==='x'){
@@ -4241,6 +4284,7 @@ function renderFusionUI(){
   if(sel.length)h+=sel.map(i=>`<span style="color:var(--amber);margin:0 3px">${battle.deck[i]?.name||'?'}</span>`).join('+');
   else h+='（无）';
   h+='</div>';
+  let fusionCost=0,notEnough=false;
   if(sel.length>=2){
     const sc=sel.map(i=>battle.deck[i]);const vals=sc.map(c=>cardValue(c));
     const totalV=vals.reduce((s,v)=>s+v,0),avgV=totalV/sc.length;
@@ -4249,7 +4293,8 @@ function renderFusionUI(){
     const stab=Math.max(0,1-nameDivers*.7-kindDivers*.3);
     const{min:_mn,max:_mx}=fusionModRange(stab);
     const minR=Math.round(totalV*.7*_mn),maxR=Math.round(totalV*.7*_mx);
-    h+=`<div style="margin:0 0 8px;padding:5px 10px;border:1px solid var(--crack2);font-size:9px;color:var(--text2)">稳定性 ${Math.round(stab*100)}% · 总价值 ${totalV}g · 预估 ${minR}~${maxR}g</div>`;
+    fusionCost=priceForValue(totalV,PRICE_MULT.fusion);notEnough=player.gold<fusionCost;
+    h+=`<div style="margin:0 0 8px;padding:5px 10px;border:1px solid var(--crack2);font-size:9px;color:var(--text2)">稳定性 ${Math.round(stab*100)}% · 总价值 ${totalV}g · 预估 ${minR}~${maxR}g<br><span style="color:${notEnough?'var(--gore2)':'var(--amber)'}">工本费 ${fusionCost} 金币${notEnough?'（金币不足）':''}</span></div>`;
   }
   validCards.forEach((c,ci)=>{
     const ri=battle.deck.indexOf(c);const isSel=sel.includes(ri);
@@ -4262,7 +4307,7 @@ function renderFusionUI(){
     </div>`;
   });
   h+=`<div style="display:flex;gap:8px;margin-top:10px">
-    <button class="ovbtn" style="flex:1;margin:0" onclick="executeFusion()" ${sel.length<2?'disabled':''}>🔮 熔合 (${sel.length}张)</button>
+    <button class="ovbtn" style="flex:1;margin:0" onclick="executeFusion()" ${sel.length<2||notEnough?'disabled':''}>🔮 熔合 (${sel.length}张)${fusionCost?` · ${fusionCost}●`:''}</button>
     <button class="ovbtn" style="flex:1;margin:0" onclick="renderBlacksmithMain()">取消</button>
   </div>`;
   document.getElementById('ovb').innerHTML=h;
@@ -4278,6 +4323,9 @@ function executeFusion(){
   const sel=window._fusionSel||[];if(sel.length<2){toast('至少选2张','r');return;}
   const sc=sel.map(i=>battle.deck[i]);
   const vals=sc.map(c=>cardValue(c));const totalV=vals.reduce((s,v)=>s+v,0);
+  const fusionCost=priceForValue(totalV,PRICE_MULT.fusion);
+  if(player.gold<fusionCost){toast('金币不足','r');return;}
+  player.gold-=fusionCost;
   const nameDivers=new Set(sc.map(c=>c.name)).size/sc.length;
   const kindDivers=new Set(sc.map(c=>c.kind)).size/sc.length;
   const stab=Math.max(0,1-nameDivers*.7-kindDivers*.3);
@@ -4294,8 +4342,9 @@ function executeFusion(){
   }else{
     const result=buildFusionCard(sc,targetV);battle.deck.push(result);
     const grade=mod>=2?'⚡ 神铸':mod>=1.3?'✓ 精良':mod<0.5?'⚠ 粗糙':'普通';
-    toast(`熔合${grade}：${result.name} ≈${targetV}g`,mod>=1?'g':'');
+    toast(`熔合${grade}：${result.name} ≈${targetV}g（花费${fusionCost}金币）`,mod>=1?'g':'');
   }
+  renderHud();
   setTimeout(backToMap,600);
 }
 function buildFusionCard(sources,val){
