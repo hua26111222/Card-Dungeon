@@ -1017,62 +1017,151 @@ const MODS=[
 const EQUIP_SLOTS=['weapon','armor','helm','amulet','ring','boots'];
 const EQUIP_SLOT_NAME={weapon:'武器',armor:'护甲',helm:'头盔',amulet:'护符',ring:'戒指',boots:'靴子'};
 const EQUIP_SLOT_ICON={weapon:'⚔',armor:'🛡',helm:'⛑',amulet:'📿',ring:'💍',boots:'🥾'};
+// 装备不分"普通/罕见/稀有"这种文字档位——用一个连续的数值(val)来衡量强度，
+// 数值越高颜色越从白色往"很酷"的紫红色渐变，且这个渐变没有硬性上限，配合下面的EquipGen，
+// 装备的强度和外观理论上可以无限延伸，呼应这个游戏"无限流"的整体基调
+function equipColor(val){
+  const v=Math.max(0,val||0);
+  const t=Math.min(1,v/60);           // 0~60：白色 -> 鲜艳的紫色
+  const extra=Math.max(0,v-60)/90;    // 60以上：颜色继续往品红/绯红方向漂移，越强越"酷"，没有封顶
+  const hue=270+Math.min(70,extra*70);
+  const sat=t*88;
+  const light=100-t*45;
+  return`hsl(${hue.toFixed(0)},${sat.toFixed(0)}%,${light.toFixed(0)}%)`;
+}
 const EQUIP_DB=[
   // 武器：进攻向
-  {id:'eq_whetstone',slot:'weapon',rar:'common',icon:'🗡',name:'磨刃石',desc:'战斗开始时获得1点力量',
+  {id:'eq_whetstone',slot:'weapon',val:12,icon:'🗡',name:'磨刃石',desc:'战斗开始时获得1点力量',
     onBattleStart(b){b.str=(b.str||0)+1;toast('🗡 磨刃石：+1力量','g');}},
-  {id:'eq_pdagger',slot:'weapon',rar:'common',icon:'🔪',name:'淬毒匕首',desc:'造成伤害时，25%几率额外施加1层中毒',
+  {id:'eq_pdagger',slot:'weapon',val:16,icon:'🔪',name:'淬毒匕首',desc:'造成伤害时，25%几率额外施加1层中毒',
     onCardDamage(b,p,dmg){if(dmg>0&&Math.random()<.25){b.enemyPoison=Math.min(12,(b.enemyPoison||0)+1);toast('🔪 淬毒匕首：+1层中毒','g');}}},
-  {id:'eq_bloodaxe',slot:'weapon',rar:'uncommon',icon:'🪓',name:'嗜血战斧',desc:'造成伤害的8%转化为生命',
+  {id:'eq_bloodaxe',slot:'weapon',val:32,icon:'🪓',name:'嗜血战斧',desc:'造成伤害的8%转化为生命',
     onCardDamage(b,p,dmg){if(dmg>0){const h=Math.max(1,Math.round(dmg*.08));p.hp=Math.min(p.maxHp,p.hp+h);}}},
-  {id:'eq_slayer',slot:'weapon',rar:'rare',icon:'⚔',name:'屠戮之刃',desc:'造成伤害后，若敌人生命低于30%，额外造成6点伤害',
+  {id:'eq_slayer',slot:'weapon',val:48,icon:'⚔',name:'屠戮之刃',desc:'造成伤害后，若敌人生命低于30%，额外造成6点伤害',
     onCardDamage(b,p,dmg){if(dmg>0&&b.enemyHp>0&&b.enemyHp/(b.enemyMaxHp||1)<.3){b.enemyHp=Math.max(0,b.enemyHp-6);floatDmg(6,'#ff6a3a');toast('⚔ 屠戮之刃：斩杀追击 +6伤害','g');}}},
   // 护甲：防御向
-  {id:'eq_ironmail',slot:'armor',rar:'common',icon:'🛡',name:'铁皮甲',desc:'战斗开始时获得6点格挡',
+  {id:'eq_ironmail',slot:'armor',val:14,icon:'🛡',name:'铁皮甲',desc:'战斗开始时获得6点格挡',
     onBattleStart(b){b.blk=(b.blk||0)+6;toast('🛡 铁皮甲：+6格挡','g');}},
-  {id:'eq_thorns',slot:'armor',rar:'common',icon:'🌵',name:'荆棘外套',desc:'受到伤害时，反弹2点伤害给敌人',
+  {id:'eq_thorns',slot:'armor',val:18,icon:'🌵',name:'荆棘外套',desc:'受到伤害时，反弹2点伤害给敌人',
     onDamageTaken(b,p,dmg){if(dmg>0&&b.enemyHp>0){b.enemyHp=Math.max(0,b.enemyHp-2);floatDmg(2,'#8b1a1a');}}},
-  {id:'eq_vengeance',slot:'armor',rar:'uncommon',icon:'⚡',name:'复仇之甲',desc:'受到伤害时，20%几率使敌人眩晕1回合',
+  {id:'eq_vengeance',slot:'armor',val:34,icon:'⚡',name:'复仇之甲',desc:'受到伤害时，20%几率使敌人眩晕1回合',
     onDamageTaken(b,p,dmg){if(dmg>0&&Math.random()<.2){b.enemyStun=(b.enemyStun||0)+1;toast('⚡ 复仇之甲：敌人被震慑！','g');}}},
-  {id:'eq_bulwark',slot:'armor',rar:'rare',icon:'🏰',name:'坚韧核心',desc:'战斗开始时获得2层"坚固"（接下来2次受到的攻击伤害减半）',
+  {id:'eq_bulwark',slot:'armor',val:50,icon:'🏰',name:'坚韧核心',desc:'战斗开始时获得2层"坚固"（接下来2次受到的攻击伤害减半）',
     onBattleStart(b){b.fortified=(b.fortified||0)+2;toast('🏰 坚韧核心：+2层坚固','g');}},
   // 头盔：手牌/节奏向
-  {id:'eq_hood',slot:'helm',rar:'common',icon:'🎓',name:'学徒兜帽',desc:'每回合开始多摸1张牌',
+  {id:'eq_hood',slot:'helm',val:20,icon:'🎓',name:'学徒兜帽',desc:'每回合开始多摸1张牌',
     onTurnStart(){drawCards(1);}},
-  {id:'eq_crown',slot:'helm',rar:'common',icon:'👑',name:'沉思之冠',desc:'战斗开始时获得1点力量',
+  {id:'eq_crown',slot:'helm',val:12,icon:'👑',name:'沉思之冠',desc:'战斗开始时获得1点力量',
     onBattleStart(b){b.str=(b.str||0)+1;toast('👑 沉思之冠：+1力量','g');}},
-  {id:'eq_oracle',slot:'helm',rar:'uncommon',icon:'👁',name:'先知之眼',desc:'战斗开始时摸2张牌',
+  {id:'eq_oracle',slot:'helm',val:30,icon:'👁',name:'先知之眼',desc:'战斗开始时摸2张牌',
     onBattleStart(){drawCards(2);}},
-  {id:'eq_timecrown',slot:'helm',rar:'rare',icon:'⏳',name:'顿悟之冠',desc:'每回合开始时，25%几率下一张牌费用归零',
+  {id:'eq_timecrown',slot:'helm',val:46,icon:'⏳',name:'顿悟之冠',desc:'每回合开始时，25%几率下一张牌费用归零',
     onTurnStart(b){if(Math.random()<.25){b.nextFreeCount=(b.nextFreeCount||0)+1;toast('⏳ 顿悟之冠：下一张牌免费！','g');}}},
   // 护符：状态/异常向
-  {id:'eq_hexmark',slot:'amulet',rar:'common',icon:'📿',name:'蛊惑徽记',desc:'战斗开始时给敌人施加2层中毒',
+  {id:'eq_hexmark',slot:'amulet',val:15,icon:'📿',name:'蛊惑徽记',desc:'战斗开始时给敌人施加2层中毒',
     onBattleStart(b){b.enemyPoison=(b.enemyPoison||0)+2;toast('📿 蛊惑徽记：敌人中毒+2层','g');}},
-  {id:'eq_witherlocket',slot:'amulet',rar:'uncommon',icon:'💜',name:'凋零挂坠',desc:'造成伤害时，15%几率使敌人虚弱1回合',
+  {id:'eq_witherlocket',slot:'amulet',val:28,icon:'💜',name:'凋零挂坠',desc:'造成伤害时，15%几率使敌人虚弱1回合',
     onCardDamage(b,p,dmg){if(dmg>0&&Math.random()<.15){b.enemyWeak=(b.enemyWeak||0)+1;toast('💜 凋零挂坠：敌人虚弱！','g');}}},
-  {id:'eq_hexeye',slot:'amulet',rar:'uncommon',icon:'🔮',name:'破魔护符',desc:'战斗开始时使敌人易伤1回合',
+  {id:'eq_hexeye',slot:'amulet',val:26,icon:'🔮',name:'破魔护符',desc:'战斗开始时使敌人易伤1回合',
     onBattleStart(b){b.enemyVuln=(b.enemyVuln||0)+1;toast('🔮 破魔护符：敌人易伤！','g');}},
-  {id:'eq_chaospend',slot:'amulet',rar:'rare',icon:'🌀',name:'混沌坠饰',desc:'回合结束时，50%几率获得1层力量',
+  {id:'eq_chaospend',slot:'amulet',val:44,icon:'🌀',name:'混沌坠饰',desc:'回合结束时，50%几率获得1层力量',
     onTurnEnd(b){if(Math.random()<.5){b.str=(b.str||0)+1;toast('🌀 混沌坠饰：+1力量','g');}}},
   // 戒指：资源/经济向
-  {id:'eq_luckring',slot:'ring',rar:'common',icon:'💍',name:'幸运指环',desc:'击败敌人后，额外获得15%金币',
+  {id:'eq_luckring',slot:'ring',val:14,icon:'💍',name:'幸运指环',desc:'击败敌人后，额外获得15%金币',
     onKill(b,p,goldEarned){const bonus=Math.round((goldEarned||0)*.15);if(bonus>0){p.gold+=bonus;toast(`💍 幸运指环：额外+${bonus}金币`,'g');}}},
-  {id:'eq_energyring',slot:'ring',rar:'common',icon:'⚡',name:'铜心之戒',desc:'战斗开始时获得1点本场行动力',
+  {id:'eq_energyring',slot:'ring',val:22,icon:'⚡',name:'铜心之戒',desc:'战斗开始时获得1点本场行动力',
     onBattleStart(b){b.apLeft=(b.apLeft||0)+1;toast('⚡ 铜心之戒：+1行动力','g');}},
-  {id:'eq_greedring',slot:'ring',rar:'uncommon',icon:'🪙',name:'贪婪之戒',desc:'击败敌人后，30%几率额外获得10金币',
+  {id:'eq_greedring',slot:'ring',val:18,icon:'🪙',name:'贪婪之戒',desc:'击败敌人后，30%几率额外获得10金币',
     onKill(b,p){if(Math.random()<.3){p.gold+=10;toast('🪙 贪婪之戒：额外+10金币','g');}}},
-  {id:'eq_perpetual',slot:'ring',rar:'rare',icon:'♾',name:'永动之戒',desc:'每逢第3回合开始，额外获得1点行动力',
+  {id:'eq_perpetual',slot:'ring',val:42,icon:'♾',name:'永动之戒',desc:'每逢第3回合开始，额外获得1点行动力',
     onTurnStart(b){if(b.turn>0&&b.turn%3===0){b.apLeft=(b.apLeft||0)+1;toast('♾ 永动之戒：+1行动力','g');}}},
   // 靴子：生存向
-  {id:'eq_fleetboots',slot:'boots',rar:'common',icon:'🥾',name:'疾行靴',desc:'最大生命+15（穿上/卸下立即生效）',
+  {id:'eq_fleetboots',slot:'boots',val:20,icon:'🥾',name:'疾行靴',desc:'最大生命+15（穿上/卸下立即生效）',
     onEquip(p){p.maxHp+=15;p.hp+=15;},onUnequip(p){p.maxHp=Math.max(10,p.maxHp-15);p.hp=Math.min(p.hp,p.maxHp);}},
-  {id:'eq_steadyboots',slot:'boots',rar:'common',icon:'👢',name:'稳健之靴',desc:'战斗开始时获得3点格挡',
+  {id:'eq_steadyboots',slot:'boots',val:10,icon:'👢',name:'稳健之靴',desc:'战斗开始时获得3点格挡',
     onBattleStart(b){b.blk=(b.blk||0)+3;toast('👢 稳健之靴：+3格挡','g');}},
-  {id:'eq_lifespring',slot:'boots',rar:'uncommon',icon:'💧',name:'生命之泉',desc:'回合结束时回复2点生命',
+  {id:'eq_lifespring',slot:'boots',val:26,icon:'💧',name:'生命之泉',desc:'回合结束时回复2点生命',
     onTurnEnd(b,p){p.hp=Math.min(p.maxHp,p.hp+2);}},
-  {id:'eq_nirvana',slot:'boots',rar:'rare',icon:'🕊',name:'涅槃之靴',desc:'生命低于25%时，回合结束额外回复8点生命',
+  {id:'eq_nirvana',slot:'boots',val:38,icon:'🕊',name:'涅槃之靴',desc:'生命低于25%时，回合结束额外回复8点生命',
     onTurnEnd(b,p){if(p.hp/p.maxHp<.25){p.hp=Math.min(p.maxHp,p.hp+8);toast('🕊 涅槃之靴：+8HP','g');}}},
 ];
+// ── 装备生成器 EquipGen：和卡牌(CardGen)、敌人(EnemyGen)同一套思路——
+// 数值预算(budget)直接就是这件装备的val评分，不同"效果原型"按预算换算出具体数值，
+// 数值有多大、装备就有多"值钱"，理论上budget可以无限大，装备也就能无限种下去
+const EquipGen={
+  TEMPLATES:[
+    {tid:'str',mk(v,n){return{onBattleStart(b){b.str=(b.str||0)+n;toast(`⚔ ${this.__nm||'装备'}：+${n}力量`,'g');},desc:`战斗开始时获得${n}点力量`};}},
+    {tid:'blk',mk(v,n){return{onBattleStart(b){b.blk=(b.blk||0)+n;toast(`🛡 +${n}格挡`,'g');},desc:`战斗开始时获得${n}点格挡`};}},
+    {tid:'ap', mk(v,n){return{onBattleStart(b){b.apLeft=(b.apLeft||0)+n;toast(`⚡ +${n}行动力`,'g');},desc:`战斗开始时获得${n}点本场行动力`};}},
+    {tid:'draw',mk(v,n){return{onBattleStart(){drawCards(n);},desc:`战斗开始时摸${n}张牌`};}},
+    {tid:'poison0',mk(v,n){return{onBattleStart(b){b.enemyPoison=(b.enemyPoison||0)+n;toast(`☠ 敌人中毒+${n}层`,'g');},desc:`战斗开始时给敌人施加${n}层中毒`};}},
+    {tid:'vuln0',mk(v,n){return{onBattleStart(b){b.enemyVuln=(b.enemyVuln||0)+n;toast(`🔮 敌人易伤+${n}回合`,'g');},desc:`战斗开始时使敌人易伤${n}回合`};}},
+    {tid:'dmgpoison',mk(v,n,chance){return{onCardDamage(b,p,dmg){if(dmg>0&&Math.random()<chance){b.enemyPoison=Math.min(12,(b.enemyPoison||0)+n);toast(`☠ +${n}层中毒`,'g');}},desc:`造成伤害时，${Math.round(chance*100)}%几率额外施加${n}层中毒`};}},
+    {tid:'dmgweak',mk(v,n,chance){return{onCardDamage(b,p,dmg){if(dmg>0&&Math.random()<chance){b.enemyWeak=(b.enemyWeak||0)+n;toast(`💜 敌人虚弱+${n}`,'g');}},desc:`造成伤害时，${Math.round(chance*100)}%几率使敌人虚弱${n}回合`};}},
+    {tid:'thorns',mk(v,n){return{onDamageTaken(b,p,dmg){if(dmg>0&&b.enemyHp>0){b.enemyHp=Math.max(0,b.enemyHp-n);floatDmg(n,'#8b1a1a');}},desc:`受到伤害时，反弹${n}点伤害给敌人`};}},
+    {tid:'turnheal',mk(v,n){return{onTurnEnd(b,p){p.hp=Math.min(p.maxHp,p.hp+n);},desc:`回合结束时回复${n}点生命`};}},
+    {tid:'turnstr',mk(v,n,chance){return{onTurnEnd(b){if(Math.random()<chance){b.str=(b.str||0)+n;toast(`🌀 +${n}力量`,'g');}},desc:`回合结束时，${Math.round(chance*100)}%几率获得${n}层力量`};}},
+    {tid:'killgold',mk(v,n,chance){return{onKill(b,p){if(Math.random()<chance){p.gold+=n;toast(`🪙 额外+${n}金币`,'g');}},desc:`击败敌人后，${Math.round(chance*100)}%几率额外获得${n}金币`};}},
+    {tid:'maxhp',mk(v,n){return{onEquip(p){p.maxHp+=n;p.hp+=n;},onUnequip(p){p.maxHp=Math.max(10,p.maxHp-n);p.hp=Math.min(p.hp,p.maxHp);},desc:`最大生命+${n}（穿上/卸下立即生效）`};}},
+  ],
+  PREFIX:['锋锐','贪婪','不朽','虚空','远古','狂暴','寂静','荣光','腐朽','霜寒','烈焰','幽邃','浩瀚','悖论','深渊','秘银','龙裔','星辰','诅咒','恩泽','嗜魂','逐日','裂天','归墟'],
+  BASE:{
+    weapon:['之刃','战刃','匕首','战斧','长枪','战锤'],
+    armor:['战甲','铠甲','法袍','胸甲','战衣'],
+    helm:['头冠','兜帽','头盔','面具','角盔'],
+    amulet:['护符','坠饰','徽记','项链','法印'],
+    ring:['指环','戒指','戒环','指轮'],
+    boots:['战靴','行靴','靴子','脚环','履']
+  },
+  ICON:{weapon:['🗡','⚔','🪓','🔪'],armor:['🛡','🏰','⚡','🌵'],helm:['🎓','👑','👁','⏳'],amulet:['📿','💜','🔮','🌀'],ring:['💍','⚡','🪙','♾'],boots:['🥾','👢','💧','🕊']},
+  one(budget){
+    const slot=EQUIP_SLOTS[0|Math.random()*EQUIP_SLOTS.length];
+    const tpl=this.TEMPLATES[0|Math.random()*this.TEMPLATES.length];
+    const val=Math.max(6,Math.round(budget));
+    // 每种效果原型换算数值/概率的比例不同：数值型效果(str/blk/heal等)大约"1点预算=0.1~0.2个数值"，
+    // 概率型效果(dmgpoison等)预算主要转化成触发几率，基础数值保持较小但稳定
+    let n,chance;
+    if(tpl.tid==='str')n=Math.max(1,Math.round(val/10));
+    else if(tpl.tid==='blk')n=Math.max(2,Math.round(val/1.7));
+    else if(tpl.tid==='ap')n=Math.max(1,Math.min(3,Math.round(val/22)));
+    else if(tpl.tid==='draw')n=Math.max(1,Math.min(3,Math.round(val/18)));
+    else if(tpl.tid==='poison0'||tpl.tid==='vuln0')n=Math.max(1,Math.round(val/9));
+    else if(tpl.tid==='dmgpoison'||tpl.tid==='dmgweak'){chance=Math.min(.65,.1+val*.012);n=Math.max(1,Math.round(val/28));}
+    else if(tpl.tid==='thorns')n=Math.max(1,Math.round(val/7));
+    else if(tpl.tid==='turnheal')n=Math.max(1,Math.round(val/6));
+    else if(tpl.tid==='turnstr'){chance=Math.min(.75,.15+val*.01);n=1;}
+    else if(tpl.tid==='killgold'){chance=Math.min(.8,.2+val*.01);n=Math.max(4,Math.round(val/2.2));}
+    else if(tpl.tid==='maxhp')n=Math.max(5,Math.round(val*.85));
+    const built=tpl.mk(val,n,chance);
+    const prefix=this.PREFIX[0|Math.random()*this.PREFIX.length];
+    const base=this.BASE[slot][0|Math.random()*this.BASE[slot].length];
+    const icon=this.ICON[slot][0|Math.random()*this.ICON[slot].length];
+    const id='geq_'+Date.now().toString(36)+(Math.random()*1e6|0).toString(36);
+    return{id,slot,val,icon,name:prefix+base,desc:built.desc,__gen:{tid:tpl.tid,n,chance},
+      ...Object.fromEntries(Object.entries(built).filter(([k])=>k!=='desc'))};
+  }
+};
+// 按模板id+参数原样重建一件生成装备的钩子函数——存档只存这几个数字，读档时"重新生产"一遍，
+// 效果和当初拿到的时候完全一致（钩子函数本身没法直接存进JSON，所以不能只存最终对象）
+function rebuildGenEquip(saved){
+  const tpl=EquipGen.TEMPLATES.find(t=>t.tid===saved.tid);if(!tpl)return null;
+  const built=tpl.mk(saved.val,saved.n,saved.chance);
+  return{id:saved.id,slot:saved.slot,val:saved.val,icon:saved.icon,name:saved.name,desc:built.desc,__gen:{tid:saved.tid,n:saved.n,chance:saved.chance},
+    ...Object.fromEntries(Object.entries(built).filter(([k])=>k!=='desc'))};
+}
+// 存档用：精选装备（在EQUIP_DB里）只需存一个id字符串；现场生成的装备把"配方"（模板id+数值+id+名字）存成一个小对象，
+// 读档时靠 rebuildGenEquip 按配方重新产出一遍，效果和当初拿到时完全一致
+function serializeEquip(item){
+  if(!item)return null;
+  if(item.__gen)return{id:item.id,slot:item.slot,val:item.val,icon:item.icon,name:item.name,tid:item.__gen.tid,n:item.__gen.n,chance:item.__gen.chance};
+  return item.id;
+}
+function deserializeEquip(saved){
+  if(!saved)return null;
+  if(typeof saved==='string')return EQUIP_DB.find(e=>e.id===saved)||null;
+  if(saved.tid)return rebuildGenEquip(saved);
+  return null;
+}
 let equipment={weapon:null,armor:null,helm:null,amulet:null,ring:null,boots:null};
 let equipBackpack=[];
 // 战斗引擎在各个关键时刻调用这个函数，让当前穿着的装备各自的对应钩子生效——
@@ -1106,18 +1195,17 @@ function discardEquip(i){
   const item=equipBackpack[i];if(!item)return;
   equipBackpack.splice(i,1);toast(`丢弃了：${item.name}`,'r');renderEquipment();
 }
-// 装备掉落：精英40%概率掉、首领必掉，且首领掉落的稀有度更高——呼应暗黑2"强敌掉好装"的直觉
+// 装备掉落：精英40%概率掉、首领必掉；掉落的"预算"跟着敌方战斗力(calcPS)和层数走，越往后掉的装备越强，
+// 且大部分(70%)直接现场生成——只有30%会从精选清单里出，这样装备种类才能真正做到"无限"
 function maybeGrantEquipment(tier){
   const isBoss=tier==='boss',isElite=tier==='elite';
   if(!isBoss&&!isElite)return;
   if(isElite&&Math.random()>=.4)return;
-  const r=Math.random();
-  const rar=isBoss?(r<.5?'rare':'uncommon'):(r<.15?'rare':r<.55?'uncommon':'common');
-  const pool=EQUIP_DB.filter(e=>e.rar===rar);
-  const src=pool.length?pool:EQUIP_DB;
-  const item=src[0|Math.random()*src.length];
+  const ps=calcPS();
+  const budget=(isBoss?28:16)+ps*.35+Math.random()*(isBoss?26:16);
+  const item=Math.random()<.3?EQUIP_DB[0|Math.random()*EQUIP_DB.length]:EquipGen.one(budget);
   equipBackpack.push(item);
-  toast(`🎁 获得装备：${item.icon} ${item.name}！`,'g');
+  toast(`🎁 获得装备：${item.icon} ${item.name}（✦${item.val}）！`,'g');
 }
 const THEMES=[
   {name:'地下墓穴',sub:'腐骨与阴影的领地'},{name:'熔岩矿坑',sub:'炽热与窒息的深处'},
@@ -1641,10 +1729,9 @@ const SM={
         rs:{...rs},
         heirMode:window._heirMode||false,heirParentTitle:window._heirParentTitle||null,
         chosenStartTitle:window._chosenStartTitle||null,
-        // 装备只存id——装备本身（含onXxx这些函数）是写死在EQUIP_DB里的固定目录，读档时按id反查即可，
-        // 不能直接把整个装备对象存进JSON（函数没法被序列化）
-        equipment:Object.fromEntries(EQUIP_SLOTS.map(s=>[s,equipment[s]?equipment[s].id:null])),
-        equipBackpack:equipBackpack.map(it=>it.id)
+        // 精选装备只存id；现场生成的装备存"配方"（见 serializeEquip）——因为装备本身带的onXxx钩子函数没法直接塞进JSON
+        equipment:Object.fromEntries(EQUIP_SLOTS.map(s=>[s,serializeEquip(equipment[s])])),
+        equipBackpack:equipBackpack.map(serializeEquip)
       }));this._slot=s;return true;
     }catch(e){return false;}
   },
@@ -1662,9 +1749,8 @@ const SM={
       window._mapRank=7;
       window._heirMode=sv.heirMode||false;window._heirParentTitle=sv.heirParentTitle||null;
       window._chosenStartTitle=sv.chosenStartTitle||null;
-      const _geq=id=>EQUIP_DB.find(e=>e.id===id)||null;
-      equipment=Object.fromEntries(EQUIP_SLOTS.map(s=>[s,_geq(sv.equipment?.[s])]));
-      equipBackpack=(sv.equipBackpack||[]).map(_geq).filter(Boolean);
+      equipment=Object.fromEntries(EQUIP_SLOTS.map(s=>[s,deserializeEquip(sv.equipment?.[s])]));
+      equipBackpack=(sv.equipBackpack||[]).map(deserializeEquip).filter(Boolean);
       document.getElementById('mb').style.display='none';
       phase=PH.MAP;navClear();showView('mv');renderMap();renderHud();renderTokens();
       return true;
@@ -3749,7 +3835,6 @@ function confirmBMLot(){
 function showEquipment(){renderEquipment();document.getElementById('equipmodal').style.display='block';}
 function closeEquipment(){document.getElementById('equipmodal').style.display='none';}
 function renderEquipment(){
-  const rCol={rare:'var(--amber)',uncommon:'var(--frost)',common:'var(--text3)'};
   const slotsHtml=EQUIP_SLOTS.map(slot=>{
     const item=equipment[slot];const label=EQUIP_SLOT_NAME[slot];
     if(!item){
@@ -3758,22 +3843,22 @@ function renderEquipment(){
         <div style="flex:1;font-size:11px;color:var(--text3)">${label} · 空</div>
       </div>`;
     }
-    const col=rCol[item.rar]||'var(--crack2)';
-    return`<div style="display:flex;align-items:center;gap:10px;padding:10px;border:1px solid ${col};margin-bottom:6px;cursor:pointer;background:rgba(255,255,255,.02)" onclick="unequipItem('${slot}')">
+    const col=equipColor(item.val);
+    return`<div style="display:flex;align-items:center;gap:10px;padding:10px;border:1px solid ${col};margin-bottom:6px;cursor:pointer;background:rgba(255,255,255,.02);box-shadow:0 0 8px ${col}55" onclick="unequipItem('${slot}')">
       <div style="font-size:22px;width:32px;text-align:center">${item.icon}</div>
       <div style="flex:1">
-        <div style="font-size:11px;color:${col};font-weight:700">${item.name} <span style="color:var(--text3);font-size:9px">（${label}）</span></div>
+        <div style="font-size:11px;color:${col};font-weight:700">${item.name} <span style="color:var(--text3);font-size:9px">（${label}）</span> <span style="color:${col}">✦${item.val}</span></div>
         <div style="font-size:9px;color:var(--text2);margin-top:2px">${item.desc}</div>
       </div>
       <div style="font-size:9px;color:var(--gore2);flex:none">卸下</div>
     </div>`;
   }).join('');
   const bpHtml=equipBackpack.length?equipBackpack.map((item,i)=>{
-    const col=rCol[item.rar]||'var(--crack2)';
-    return`<div style="display:flex;align-items:center;gap:10px;padding:10px;border:1px solid ${col};margin-bottom:6px">
+    const col=equipColor(item.val);
+    return`<div style="display:flex;align-items:center;gap:10px;padding:10px;border:1px solid ${col};margin-bottom:6px;box-shadow:0 0 8px ${col}55">
       <div style="font-size:20px;width:30px;text-align:center;cursor:pointer" onclick="equipItem(${i})">${item.icon}</div>
       <div style="flex:1;cursor:pointer" onclick="equipItem(${i})">
-        <div style="font-size:11px;color:${col}">${item.name} <span style="color:var(--text3);font-size:9px">（${EQUIP_SLOT_NAME[item.slot]}）</span></div>
+        <div style="font-size:11px;color:${col}">${item.name} <span style="color:var(--text3);font-size:9px">（${EQUIP_SLOT_NAME[item.slot]}）</span> <span style="color:${col}">✦${item.val}</span></div>
         <div style="font-size:9px;color:var(--text2);margin-top:2px">${item.desc}</div>
       </div>
       <div style="font-size:9px;color:var(--slime);flex:none;cursor:pointer;padding:2px 4px" onclick="equipItem(${i})">装备</div>
