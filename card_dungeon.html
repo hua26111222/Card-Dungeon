@@ -881,7 +881,7 @@ html,body{background:var(--void);color:var(--text);font-family:var(--fm);font-si
 </div>
 <script>
 const NT={FIGHT:0,ELITE:1,EVENT:2,SHOP:3,REST:4,BOSS:5};
-const PH={INTRO:0,MAP:1,BATTLE:2,OV:3,DEAD:4};
+const PH={INTRO:0,MAP:1,BATTLE:2,OV:3,DEAD:4,CAMP:5};
 const DB=[
   /* ── 攻击牌 (atk): 只造成普通伤害 ── */
   {id:'strike',      name:'打击',    cost:1,kind:'atk',art:'⚔',rar:'common',   desc:'造成 <b>{atk}</b> 伤害',atk:8},
@@ -1969,6 +1969,9 @@ const _FLOOR_PERSONA=[
   {key:'fierce',    title:'猛兽之层',    lines:['野蛮的力量充斥着这里','敌人以蛮力为骄傲','只有更强的力量才能制衡它们'],color:'#aa4422'},
 ];
 const MAP_COLS=9; // 普通行的列数（首领行固定4列，单独处理）
+// 地图总步数（含首领行）：无限地牢=19（18普通+1首领），剧情远征=12（11普通+1首领）——
+// buildMode()/showModeSelect() 会在开局时改写这个值，之后地图生成/渲染/选卡全部照这个数走
+let MAP_TOTAL_STEPS=19;
 // 从普通行（MAP_COLS列）走到首领行（bossCols列）时的可达范围：按玩家所在列的相对位置，
 // 映射到首领行里最近的3格——renderMap()和pickMapCard()共用同一份，不再各写一份重复的对照表
 function bossRowReach(pCol,srcCols,bossCols){
@@ -1977,15 +1980,16 @@ function bossRowReach(pCol,srcCols,bossCols){
 }
 function buildMap(){
   const rows=[];
-  for(let s=0;s<19;s++)rows.push(genMapRow(s));
+  for(let s=0;s<MAP_TOTAL_STEPS;s++)rows.push(genMapRow(s));
   const persona=_FLOOR_PERSONA[0|Math.random()*_FLOOR_PERSONA.length];
   mapData={rows,step:0,playerCol:Math.floor(MAP_COLS/2),history:[],persona};
   window._mapPending=null;
 }
 function genMapRow(step){
-  const rank=Math.max(1,Math.ceil((step+1)*13/18));
+  const normalSteps=MAP_TOTAL_STEPS-1;
+  const rank=Math.max(1,Math.ceil((step+1)*13/normalSteps));
   const lbl=['A','2','3','4','5','6','7','8','9','10','J','Q','K'][rank-1];
-  if(step===18){
+  if(step===normalSteps){
     // Boss row: [暗牌·半力, 大王·极, 小王·初, 暗牌·双倍]
     const b1=chapter.boss||ET.find(e=>e.tier==='boss');
     const b2=chapter.boss2||b1;
@@ -2024,13 +2028,17 @@ function genMapRow(step){
   return Array.from({length:MAP_COLS},(_,c)=>c).map(c=>({...genCardInfo(step,rank),rank,label:lbl,isHidden:blinds.has(c),revealed:false}));
 }
 function genCardInfo(step,nodeRank){
+  // 把 step 换算成"前/中/后段"三档（按当前地图总步数的比例，不再写死6/12）——
+  // 这样不管是无限地牢的19步地图还是剧情远征的13步地图，前中后段的难度曲线手感一致
+  const normalSteps=MAP_TOTAL_STEPS-1;
+  const band=step<normalSteps/3?0:step<normalSteps*2/3?1:2;
   const r=Math.random();
-  const btlChance=step<6?0.42:step<12?0.52:0.62;
+  const btlChance=band===0?0.42:band===1?0.52:0.62;
   if(r<btlChance){
     const er=Math.random();
-    const isElite=step<6?er<0.12:step<12?er<0.30:er<0.44;
+    const isElite=band===0?er<0.12:band===1?er<0.30:er<0.44;
     const tier=isElite?'elite':'fight';
-    const sb=step<6?0:step<12?1:2;
+    const sb=band;
     const combatPower=_cpPick(sb);
     const cardDmg=_cdPick(sb);
     const trait=pickTrait();
@@ -2046,9 +2054,9 @@ function genCardInfo(step,nodeRank){
       enemyArt:td.art,enemyName};
   }
   const nr=Math.random();let type;
-  if(step<6)      type=nr<.18?'tavern':nr<.22?'blackmarket':nr<.40?'event':nr<.54?'campfire':nr<.68?'blacksmith':nr<.83?'gamble':nr<.91?'altar':'chest';
-  else if(step<12)type=nr<.16?'tavern':nr<.20?'blackmarket':nr<.37?'event':nr<.51?'campfire':nr<.66?'blacksmith':nr<.82?'gamble':nr<.90?'altar':'chest';
-  else            type=nr<.14?'tavern':nr<.18?'blackmarket':nr<.35?'event':nr<.49?'campfire':nr<.64?'blacksmith':nr<.81?'gamble':nr<.89?'altar':'chest';
+  if(band===0)      type=nr<.18?'tavern':nr<.22?'blackmarket':nr<.40?'event':nr<.54?'campfire':nr<.68?'blacksmith':nr<.83?'gamble':nr<.91?'altar':'chest';
+  else if(band===1) type=nr<.16?'tavern':nr<.20?'blackmarket':nr<.37?'event':nr<.51?'campfire':nr<.66?'blacksmith':nr<.82?'gamble':nr<.90?'altar':'chest';
+  else               type=nr<.14?'tavern':nr<.18?'blackmarket':nr<.35?'event':nr<.49?'campfire':nr<.64?'blacksmith':nr<.81?'gamble':nr<.89?'altar':'chest';
   // 宝箱：预演算卡牌奖励
   if(type==='chest'){
     const ps=calcPS();
@@ -2068,10 +2076,10 @@ function renderMap(){
   const diff2=ps<20?'平静':ps<40?'凶险':ps<65?'危机':ps<90?'绝境':'地狱';
   const dc=ps<20?'#5a7aaa':ps<40?'#4a7a3a':ps<65?'#aa7020':'#8b1a1a';
   const pb=document.getElementById('psb');pb.textContent=diff2;pb.style.color=dc;pb.style.borderColor=dc;
-  document.getElementById('fpg').textContent=`第 ${step+1}/18 步`;
+  document.getElementById('fpg').textContent=`第 ${step+1}/${MAP_TOTAL_STEPS-1} 步`;
   const TI={fight:{ic:'⚔',nm:'战斗'},elite:{ic:'💀',nm:'精英'},event:{ic:'✦',nm:'事件'},tavern:{ic:'🛒',nm:'商店'},blackmarket:{ic:'🌑',nm:'黑市'},campfire:{ic:'🔥',nm:'篝火'},blacksmith:{ic:'⚒',nm:'铁匠'},boss:{ic:'👁',nm:'首领'},gamble:{ic:'🎲',nm:'赌场'},altar:{ic:'🔱',nm:'祭坛'},chest:{ic:'💎',nm:'宝箱'}};
   const SC={'♠':'#cc3333','♥':'#ee4444','♦':'#4488cc','♣':'#336633','🃏':'#9944cc'};
-  const isBossStep=step===18;
+  const isBossStep=step===MAP_TOTAL_STEPS-1;
   const bossColCount=4;
   const rowColCount=isBossStep?bossColCount:MAP_COLS;
 
@@ -2082,11 +2090,11 @@ function renderMap(){
   }
   const reach=calcReach(playerCol,rowColCount);
   // Path preview for d1/d2 rows
-  const nextColCount=(step+1===18)?bossColCount:MAP_COLS;
+  const nextColCount=(step+1===MAP_TOTAL_STEPS-1)?bossColCount:MAP_COLS;
   const potD1=new Set();reach.forEach(c=>[c-1,c,c+1].forEach(n=>{if(n>=0&&n<nextColCount)potD1.add(n);}));
   const potD2=new Set();potD1.forEach(c=>[c-1,c,c+1].forEach(n=>{if(n>=0&&n<MAP_COLS)potD2.add(n);}));
 
-  document.getElementById('mprompt').textContent=isBossStep?'☠ 首领降临，无路可退！':step>=16?`⚠ 首领将至，还有 ${18-step} 步`:'选择前进的路：';
+  document.getElementById('mprompt').textContent=isBossStep?'☠ 首领降临，无路可退！':step>=MAP_TOTAL_STEPS-3?`⚠ 首领将至，还有 ${MAP_TOTAL_STEPS-1-step} 步`:'选择前进的路：';
 
   // 5级稀有度系统（颜色决定卡牌边框，标签直接显示遇到概率，而非文字等级；定义见全局 VAL_TIERS/CP_VAL_IDX/TYPE_VAL_IDX）
   const VAL_T=VAL_TIERS;
@@ -2224,9 +2232,9 @@ function pickMapCard(col){
   if(phase!==PH.MAP)return; // 只在地图阶段允许操作，防止重复触发
   window._mapPending=null;
   const{rows,step,playerCol}=mapData;
-  if(step>18||!rows[step])return;
+  if(step>=MAP_TOTAL_STEPS||!rows[step])return;
   let reach;
-  if(step===18){reach=bossRowReach(playerCol,MAP_COLS,4);}
+  if(step===MAP_TOTAL_STEPS-1){reach=bossRowReach(playerCol,MAP_COLS,4);}
   else{reach=new Set([playerCol-1,playerCol,playerCol+1].filter(c=>c>=0&&c<MAP_COLS));}
   if(!reach.has(col))return;
   const card=rows[step][col];if(!card)return;
