@@ -3080,9 +3080,25 @@ function startCampfire(){
       <div class="ccard-text">升级卡牌</div>
       <div class="ccard-sub">按稀有度提升属性 · 稀有+28% · 罕见+22% · 普通+18%</div>
     </div>
+    ${markCardHtml()}
   </div>`;
   document.getElementById('ovb').innerHTML=h;
   showView('ov');renderHud();renderTokens();
+}
+// 剧情远征专属：篝火处可以"标记"随身卡牌，标记过的卡牌即使本次远征中途死亡也能带回营地——
+// 无限地牢模式不显示这个选项（那边通关就是"下一层"，没有"死亡只带走标记物"这回事）
+function markCardHtml(){
+  if(window._gameMode!=='story')return'';
+  const cap=(storyData||StoryHome.load()).marksPerExpedition||3;
+  const used=window._marksUsed||0;
+  const left=Math.max(0,cap-used);
+  const disabled=left<=0;
+  return`<div class="ccard${disabled?' cc-disabled':''}" style="transform:rotate(-1deg) translateY(3px);border-color:rgba(200,169,110,.5)" onclick="${disabled?'':'doRest(\'mark\')'}">
+      <div class="ccard-top" style="background:linear-gradient(90deg,transparent,rgba(200,169,110,.5),transparent)"></div>
+      <div class="ccard-icon">📌</div>
+      <div class="ccard-text" style="color:var(--amber)">标记随身物</div>
+      <div class="ccard-sub">${disabled?'本次远征的标记次数已用完':`标记一张卡牌，即使中途身死也能带回营地（剩余 ${left} 次）`}<br><span style="color:var(--text3)">当前装备的6件装备天然算已标记</span></div>
+    </div>`;
 }
 function genTavernCards(){
   const disc=(chapter.modifier?.shopDiscount||1)/(window._mapEffectMult||1);
@@ -3161,6 +3177,7 @@ function doRest(act){
   // 导致"休息"按钮实际回血比屏幕上承诺的少一截
   if(act==='heal'){const h=Math.floor(player.maxHp*.35*em);player.hp=Math.min(player.maxHp,player.hp+h);toast(`+${h} HP`,'g');setTimeout(backToMap,600);}
   else if(act==='upgrade'){const up=battle.deck.filter(c=>c.kind==='atk'||c.kind==='def'||c.kind==='skl'||c.kind==='pwr');if(up.length){window._upgradeFromCamp=true;return showCardPicker('upgrade',up);}toast('没有可强化的牌','r');}
+  else if(act==='mark'){const mk=battle.deck.filter(c=>c&&c.rar!=='curse'&&!c.__marked);if(mk.length){return showCardPicker('mark',mk);}toast('没有可标记的牌','r');}
   renderHud();renderTokens();
 }
 function showGameOver(){
@@ -3691,8 +3708,8 @@ function showCardPicker(act,cards,cancelFn){
 function renderPickerUI(){
   const act=window._pickAct;const cards=window._pickCards;const sel=window._pickSel;
   const fromCamp=window._upgradeFromCamp;
-  document.getElementById('ovtag').textContent=act==='upgrade'?(fromCamp?'⬆  领悟升级':'⚒  锻造强化'):'🗑  移除';
-  document.getElementById('ovtit').textContent=act==='upgrade'?(fromCamp?'选择一张牌升级':'选择一张牌锻造'):'选择移除的卡牌';
+  document.getElementById('ovtag').textContent=act==='upgrade'?(fromCamp?'⬆  领悟升级':'⚒  锻造强化'):act==='mark'?'📌  标记':'🗑  移除';
+  document.getElementById('ovtit').textContent=act==='upgrade'?(fromCamp?'选择一张牌升级':'选择一张牌锻造'):act==='mark'?'选择要标记的卡牌':'选择移除的卡牌';
   const tableHtml=cards.map((c,i)=>renderPokerCard(c,`selectPickCard(${i})`,{idx:i,total:cards.length,bought:false,sel:sel===i})).join('');
   let confirmHtml='';
   if(sel!==null&&sel<cards.length){
@@ -3736,7 +3753,7 @@ function renderPickerUI(){
         :`<div style="padding:6px 8px;font-size:10px;color:var(--text3);text-align:center;margin-bottom:6px">（属性无明显数值变化，效果描述可能改变）</div>`;
     }
     confirmHtml=`${upgradePanel}<div style="margin:0 0 8px;padding:7px 10px;border:1px solid rgba(200,169,110,.25);font-size:11px;color:var(--bone);text-align:center">
-      ${act==='upgrade'?'锻造':'移除'} <b>${c.name}</b>？
+      ${act==='upgrade'?'锻造':act==='mark'?'标记':'移除'} <b>${c.name}</b>？
     </div>
     <div style="display:flex;gap:8px">
       <button class="ovbtn gd" style="flex:1;margin:0" onclick="confirmPick()">✓ 确认</button>
@@ -3744,7 +3761,7 @@ function renderPickerUI(){
     </div>`;
   }
   const cancelTxt=window._pickCancel?'返回':'取消';
-  let h=`<div class="ovd">${act==='upgrade'?'选择一张牌进行锻造（永久强化属性）':'选择一张牌永久移除'}</div>
+  let h=`<div class="ovd">${act==='upgrade'?'选择一张牌进行锻造（永久强化属性）':act==='mark'?'选择一张牌标记——即使本次远征中途身死，标记过的牌也能带回营地':'选择一张牌永久移除'}</div>
   <div class="tcards-table">${tableHtml}</div>
   ${confirmHtml}
   <button class="ovbtn" style="margin-top:8px" onclick="window._pickCancel?window._pickCancel():backToMap()">${cancelTxt}</button>`;
@@ -3754,6 +3771,7 @@ function selectPickCard(i){window._pickSel=i;renderPickerUI();}
 function confirmPick(){
   const act=window._pickAct;const i=window._pickSel;const c=window._pickCards?.[i];if(!c)return;
   if(act==='upgrade'){upgradeCard(c);toast(`${window._upgradeFromCamp?'升级':'锻造'}：${c.name}`,'g');}
+  else if(act==='mark'){c.__marked=true;window._marksUsed=(window._marksUsed||0)+1;toast(`📌 已标记：${c.name}`,'g');}
   else{const idx=battle.deck.indexOf(c);if(idx>=0)battle.deck.splice(idx,1);toast(`移除：${c.name}`);}
   window._pickSel=null;window._pickCancel=null;window._upgradeFromCamp=false;
   renderHud();renderTokens();setTimeout(backToMap,600);
@@ -4394,26 +4412,42 @@ function confirmBossReward(){
 }
 // ── 剧情远征：出征结算 ──
 // 通关（打穿第12层boss）：这次出征的全部收获（卡组/金币/装备）无损带回营地
+// 把"这一趟出征最终决定带回家的东西"写回 storyData，并同步回内存里的 battle.deck/player/equipment——
+// 不然玩家如果在同一个浏览器会话里"结算→回营地→再出发"，内存里的牌组还是死前的旧引用，跟刚存的档对不上
+function resyncFromStoryHome(s){
+  // 万一某次远征死得太惨——没标记任何牌、身上也没装备——回营地时至少给一副新手起始牌组，不让玩家卡死
+  battle.deck=(s.homeDeck&&s.homeDeck.length)?s.homeDeck.map(c=>({...c})):buildStarterDeck();
+  player.gold=s.homeGold||0;
+  player.hp=player.maxHp; // 回到营地，安全地满血
+  equipment=Object.fromEntries(EQUIP_SLOTS.map(sl=>[sl,null]));
+  equipBackpack=[];
+  (s.homeEquipStash||[]).map(deserializeEquip).filter(Boolean).forEach(it=>{
+    if(!equipment[it.slot])equipment[it.slot]=it;else equipBackpack.push(it);
+  });
+}
+// 通关（打穿第12层boss）：这次出征的全部收获（卡组/金币/装备）无损带回营地
 function finishExpedition(){
   const s=storyData||StoryHome.load();
-  s.homeDeck=battle.deck.filter(c=>!!c).map(c=>({...c}));
+  s.homeDeck=battle.deck.filter(c=>!!c).map(c=>{const cc={...c};delete cc.__marked;return cc;});
   s.homeGold=player.gold;
   s.homeEquipStash=[...EQUIP_SLOTS.map(sl=>equipment[sl]).filter(Boolean),...equipBackpack].map(serializeEquip);
   s.expeditionCount=(s.expeditionCount||0)+1;
   StoryHome.save(s);storyData=s;
+  resyncFromStoryHome(s);
   showExpeditionResult(true);
 }
-// 死亡：目前先按"全部带回"处理（骨架阶段），真正"只保留标记物品"的贪婪规则由标记机制补上
+// 死亡：呼应贪婪洞窟的贪婪感——只有"标记"过的卡牌，和当下身上装着的装备（天然算已标记），能带出深渊；
+// 没标记的卡牌、背包里的散装装备、这一路挣的金币，全部留在了深渊里
 function finishExpeditionOnDeath(){
   const s=storyData||StoryHome.load();
-  const marked=battle.deck.filter(c=>c&&c.__marked);
+  const marked=battle.deck.filter(c=>c&&c.__marked).map(c=>{const cc={...c};delete cc.__marked;return cc;});
   const equipped=EQUIP_SLOTS.map(sl=>equipment[sl]).filter(Boolean);
-  const kept=marked.length?[...marked]:battle.deck.filter(c=>!!c).map(c=>({...c}));
-  s.homeDeck=kept.map(c=>({...c}));
-  s.homeGold=marked.length?0:player.gold;
-  s.homeEquipStash=[...equipped,...(marked.length?[]:equipBackpack)].map(serializeEquip);
+  s.homeDeck=marked;
+  s.homeGold=0;
+  s.homeEquipStash=equipped.map(serializeEquip);
   s.expeditionCount=(s.expeditionCount||0)+1;
   StoryHome.save(s);storyData=s;
+  resyncFromStoryHome(s);
   showExpeditionResult(false);
 }
 function showExpeditionResult(success){
@@ -4860,9 +4894,10 @@ function showCamp(){
   showView('ov');renderHud();renderTokens();
 }
 function beginExpedition(){
-  window._inCamp=false;
+  window._inCamp=false;window._marksUsed=0;
   MAP_TOTAL_STEPS=13;
   chapter={floor:1,theme:null,modifier:null,boss:null};
+  battle.deck.forEach(c=>{if(c)delete c.__marked;}); // 新一趟远征，上一趟的标记不再有效
   showChapterIntro();
 }
 // ── 主菜单系统 ──
