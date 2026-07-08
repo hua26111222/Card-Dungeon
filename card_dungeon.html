@@ -1076,6 +1076,35 @@ const EQUIP_DB=[
   {id:'eq_nirvana',slot:'boots',val:38,icon:'🕊',name:'涅槃之靴',desc:'生命低于25%时，回合结束额外回复8点生命',
     onTurnEnd(b,p){if(p.hp/p.maxHp<.25){p.hp=Math.min(p.maxHp,p.hp+8);toast('🕊 涅槃之靴：+8HP','g');}}},
 ];
+// ── 通用起名生成器 NameGen（独立模块，不属于任何一个具体系统，谁需要起名字都能拿它去用）──
+// 装备(EquipGen)、敌人(EnemyGen)、地牢/首领称号(StoryGen) 原本各自手写了一份几乎一样的
+// "前缀词库 + 词根词库，两两组合"逻辑，这次抽成一个公共模块：组合规则只维护这一份，
+// 各系统只需要提供自己的词库，想换起名风格/加"生成多个不重复变体"这类能力也只用改一处。
+const NameGen={
+  _pick(arr){return arr[0|Math.random()*arr.length];},
+  // 生成单个名字：前缀+词根两两组合；如果传了 ofBank，会有 ofChance 概率追加"·XX之XX"式的头衔后缀
+  // （指环王式"XX之XX"句式，StoryGen的地牢主题/首领称号都是靠这个开关来实现"偶尔更隆重"的效果）
+  one(prefixBank,rootBank,opts){
+    opts=opts||{};
+    const name=this._pick(prefixBank)+this._pick(rootBank);
+    if(opts.ofBank&&Math.random()<(opts.ofChance||0))return`${name}·${this._pick(opts.ofBank)}${opts.ofSuffix||'之裔'}`;
+    return name;
+  },
+  // 生成count个"词根不重复"的名字变体——EnemyGen原本自己写的那个while循环就是这个函数的通用版，
+  // 用于"同一件东西需要好几个候选称呼"的场景（比如一种敌人特性配好几个不同的具体名字随机抽）
+  variants(prefixBank,rootBank,count,firstPrefix,firstRoot){
+    const p0=firstPrefix||this._pick(prefixBank),r0=firstRoot||this._pick(rootBank);
+    const names=[p0+r0];const usedRoot=new Set([r0]);
+    let guard=0;
+    while(names.length<count&&guard++<count*20){
+      const p=Math.random()<.5?p0:this._pick(prefixBank);
+      const r=this._pick(rootBank);
+      if(usedRoot.has(r))continue;usedRoot.add(r);
+      names.push(p+r);
+    }
+    return names;
+  },
+};
 // ── 装备生成器 EquipGen：和卡牌(CardGen)、敌人(EnemyGen)同一套思路——
 // 数值预算(budget)直接就是这件装备的val评分，不同"效果原型"按预算换算出具体数值，
 // 数值有多大、装备就有多"值钱"，理论上budget可以无限大，装备也就能无限种下去
@@ -1124,11 +1153,10 @@ const EquipGen={
     else if(tpl.tid==='killgold'){chance=Math.min(.8,.2+val*.01);n=Math.max(4,Math.round(val/2.2));}
     else if(tpl.tid==='maxhp')n=Math.max(5,Math.round(val*.85));
     const built=tpl.mk(val,n,chance);
-    const prefix=this.PREFIX[0|Math.random()*this.PREFIX.length];
-    const base=this.BASE[slot][0|Math.random()*this.BASE[slot].length];
+    const name=NameGen.one(this.PREFIX,this.BASE[slot]);
     const icon=this.ICON[slot][0|Math.random()*this.ICON[slot].length];
     const id='geq_'+Date.now().toString(36)+(Math.random()*1e6|0).toString(36);
-    return{id,slot,val,icon,name:prefix+base,desc:built.desc,__gen:{tid:tpl.tid,n,chance},
+    return{id,slot,val,icon,name,desc:built.desc,__gen:{tid:tpl.tid,n,chance},
       ...Object.fromEntries(Object.entries(built).filter(([k])=>k!=='desc'))};
   }
 };
@@ -1236,15 +1264,14 @@ const StoryGen={
   _pick2(arr){const a=this._pick(arr);let b=this._pick(arr);if(b===a)b=arr[(arr.indexOf(a)+1)%arr.length];return[a,b];},
   // 章节/地牢主题：60%两段式"形容词+地点"，40%三段式再加一个"之XX"后缀，越往后越像"指环王式"的正式头衔
   dungeonTheme(){
-    const adj=this._pick(this.LOC_ADJ),noun=this._pick(this.LOC_NOUN);
-    const name=Math.random()<.4?`${adj}${noun}·${this._pick(this.LOC_OF)}之地`:`${adj}${noun}`;
+    const name=NameGen.one(this.LOC_ADJ,this.LOC_NOUN,{ofBank:this.LOC_OF,ofChance:.4,ofSuffix:'之地'});
     const[a1,a2]=this._pick2(this.ATMO_A);
     const sub=`${a1}与${a2}的${this._pick(this.ATMO_B)}`;
     return{name,sub};
   },
   // 首领称号：[领域词]+[身份词]的头衔，加一组三词短语副标题——跟现有手写的几个boss称号是同一套句式
   bossEpithet(){
-    const epithet=`${this._pick(this.TITLE_DOMAIN)}${this._pick(this.TITLE_WORD)}`;
+    const epithet=NameGen.one(this.TITLE_DOMAIN,this.TITLE_WORD);
     const words=shuf([...this.POWER_WORD]).slice(0,3);
     return{epithet,epithetSub:words.join('·')};
   },
@@ -1569,16 +1596,10 @@ const EnemyGen={
   // 现场生成一份全新的敌人特性，登记进 TRAIT_DEFS 并返回它的 key
   // 注：不再需要单独配一份"战利品池"——玩家打赢后，直接把这里 acts() 生成的招式转成卡牌（见 cardFromMove()）
   genTrait(){
-    const adj=this.ADJ[0|Math.random()*this.ADJ.length];
-    const noun=this.NOUN[0|Math.random()*this.NOUN.length];
-    const key=adj+noun; // 造出来的"词"，同时作为特性key和第一个候选名字
-    const names=[key];const usedNoun=new Set([noun]);
-    while(names.length<3){
-      const adj2=Math.random()<.5?adj:this.ADJ[0|Math.random()*this.ADJ.length];
-      const noun2=this.NOUN[0|Math.random()*this.NOUN.length];
-      if(usedNoun.has(noun2))continue;usedNoun.add(noun2);
-      names.push(adj2+noun2);
-    }
+    // 起名这一步交给公共的 NameGen（原本这里自己写了一份一模一样的"避免词根撞车"逻辑，
+    // 现在跟装备/地牢主题/首领称号共用同一个起名引擎，只是词库换成了 ADJ/NOUN 这两个怪物专用词库）
+    const names=NameGen.variants(this.ADJ,this.NOUN,3);
+    const key=names[0]; // 造出来的第一个名字，同时作为这个特性的key
     const moveKeys=Object.keys(this.MOVES);
     // 这里生成的是"这个特性认识的招式池"（比实际一场战斗会用到的更多），
     // 具体每次战斗发到手里几招、发哪几招，交给 dealEnemyActions() 在进入战斗前按战斗力决定
@@ -3181,12 +3202,22 @@ function startEvent(){
   phase=PH.OV;
   const ps=calcPS();const hpPct=player.hp/player.maxHp;
   const curseCnt=battle.deck.filter(c=>c.kind==='crs').length;
-  let pool;
-  if(hpPct<0.28||curseCnt>=3){pool=EVTS.filter(e=>e.difficulty!=='hard');}
-  else if(ps>75){pool=EVTS.filter(e=>e.difficulty!=='easy');}
-  else{pool=EVTS;}
-  if(!pool.length)pool=EVTS;
-  const ev=pool[0|Math.random()*pool.length];window._ev=ev;
+  const ALL_DIFF=['hard','easy','neutral'];
+  let allowDiff;
+  if(hpPct<0.28||curseCnt>=3)allowDiff=ALL_DIFF.filter(d=>d!=='hard');
+  else if(ps>75)allowDiff=ALL_DIFF.filter(d=>d!=='easy');
+  else allowDiff=ALL_DIFF;
+  // 30%用精选的十几条手写事件（保留最有记忆点的那几个），70%交给EventGen现场组装——
+  // 和其它生成器同一套精选/生成配比，事件理论上不会很快重复
+  let ev;
+  if(Math.random()<.3){
+    let pool=EVTS.filter(e=>allowDiff.includes(e.difficulty));
+    if(!pool.length)pool=EVTS;
+    ev=pool[0|Math.random()*pool.length];
+  }else{
+    ev=EventGen.one(allowDiff);
+  }
+  window._ev=ev;
   const rots=ev.choices.length<=1?[0]:ev.choices.length===2?[-5,5]:[-7,0,7];
   const cards=ev.choices.map((c,i)=>{
     const rot=rots[Math.min(i,rots.length-1)]||0;const yOff=Math.abs(rot)*1.4;
