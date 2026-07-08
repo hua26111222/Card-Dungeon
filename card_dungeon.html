@@ -1237,17 +1237,42 @@ function discardEquip(i){
   const item=equipBackpack[i];if(!item)return;
   equipBackpack.splice(i,1);toast(`丢弃了：${item.name}`,'r');renderEquipment();
 }
-// 装备掉落：精英40%概率掉、首领必掉；掉落的"预算"跟着敌方战斗力(calcPS)和层数走，越往后掉的装备越强，
-// 且大部分(70%)直接现场生成——只有30%会从精选清单里出，这样装备种类才能真正做到"无限"
+// 装备掉落评分分档：只是给"这次掉的东西够不够劲爆"一个直观的称呼和不同的庆祝力度，
+// val本身还是连续数值(见equipColor)，这里只是拿几个门槛把它切成"看得懂的档次"
+function equipRarityLabel(val){
+  if(val>=110)return{label:'传说',col:'#ff3040',toastType:'g'};
+  if(val>=70) return{label:'史诗',col:'#b858ff',toastType:'g'};
+  if(val>=40) return{label:'精良',col:'#58c8fc',toastType:'g'};
+  return{label:'普通',col:'#e8d8b8',toastType:''};
+}
+// 装备掉落：以前只有精英(40%)/首领(必掉)会掉，普通怪打了白打，一场仗经常只有boss那下才有惊喜——
+// 现在改成：普通怪也有小概率带东西回来，精英概率大幅提升还能"再掉一件"，首领必掉至少2件、
+// 有概率掉到3件，且首领的第一件装备是"两次预算取更高的那次"，保证首领掉落里至少有一次真正的惊喜；
+// 掉落的"预算"依然跟着敌方战斗力(calcPS)和层数走，越往后掉的装备越强，70%现场生成/30%精选，
+// 装备种类理论上无限——这些都延续了原本的设计，这次只是把"掉不掉、掉几件"的手感调得更慷慨、更有起伏
 function maybeGrantEquipment(tier){
-  const isBoss=tier==='boss',isElite=tier==='elite';
-  if(!isBoss&&!isElite)return;
-  if(isElite&&Math.random()>=.4)return;
+  const isBoss=tier==='boss',isElite=tier==='elite',isFight=!isBoss&&!isElite;
+  if(isFight&&Math.random()>=.15)return; // 普通怪：15%概率带件装备回来，不再是"打了也白打"
+  if(isElite&&Math.random()>=.7)return;  // 精英：40%→70%，明显更容易掉
   const ps=calcPS();
-  const budget=(isBoss?28:16)+ps*.35+Math.random()*(isBoss?26:16);
-  const item=Math.random()<.3?EQUIP_DB[0|Math.random()*EQUIP_DB.length]:EquipGen.one(budget);
-  equipBackpack.push(item);
-  toast(`🎁 获得装备：${item.icon} ${item.name}（✦${item.val}）！`,'g');
+  const baseBudget=(isBoss?32:isElite?18:9)+ps*(isBoss?.4:isElite?.32:.2);
+  const rollBudget=(takeHigher)=>{
+    const b=baseBudget+Math.random()*(isBoss?30:isElite?18:10);
+    if(!takeHigher)return b;
+    const b2=baseBudget+Math.random()*(isBoss?30:18);
+    return Math.max(b,b2); // 首领的头一件：掷两次预算取更高的那次，保证不会一直是平庸的货
+  };
+  const rollItem=(budget)=>Math.random()<.3?EQUIP_DB[0|Math.random()*EQUIP_DB.length]:EquipGen.one(budget);
+  const drops=[rollItem(rollBudget(isBoss))];
+  if(isBoss)drops.push(rollItem(rollBudget(false))); // 首领至少2件
+  if(isBoss&&Math.random()<.35)drops.push(rollItem(rollBudget(false))); // 35%概率再来第3件
+  if(isElite&&Math.random()<.15)drops.push(rollItem(rollBudget(false))); // 精英15%概率双件
+  drops.forEach(item=>{
+    equipBackpack.push(item);
+    const r=equipRarityLabel(item.val);
+    toast(`🎁 ${r.label}掉落：${item.icon} ${item.name}（✦${item.val}）！`,r.toastType);
+    if(item.val>=70)screenFlash('white'); // 史诗/传说级掉落，屏幕白闪一下，制造"开出好东西"的爽感
+  });
 }
 const THEMES=[
   {name:'地下墓穴',sub:'腐骨与阴影的领地'},{name:'熔岩矿坑',sub:'炽热与窒息的深处'},
@@ -4121,25 +4146,48 @@ function confirmBMLot(){
 // ── 装备界面（暗黑2风格：槽位 + 背包）──
 function showEquipment(){renderEquipment();document.getElementById('equipmodal').style.display='block';}
 function closeEquipment(){document.getElementById('equipmodal').style.display='none';}
+// 装备槽位在人形周围按"戴在身上哪个部位"摆放：头盔在头顶、靴子在脚下、
+// 武器/护符在人像两侧的上半身、戒指/护甲在两侧的下半身——比原来一排排列表更有"给角色穿装备"的实感
+const PD_AREA={helm:'helm',weapon:'weapon',amulet:'amulet',ring:'ring',armor:'armor',boots:'boots'};
+function pdTile(slot){
+  const item=equipment[slot];const label=EQUIP_SLOT_NAME[slot];
+  if(!item){
+    return`<div class="pd-slot pd-empty" style="grid-area:${PD_AREA[slot]}" title="${label}：空">
+      <div class="pd-ic" style="filter:var(--icon-outline-sm)">${EQUIP_SLOT_ICON[slot]}</div>
+      <div class="pd-lbl">${label}</div>
+    </div>`;
+  }
+  const col=equipColor(item.val);
+  return`<div class="pd-slot" style="grid-area:${PD_AREA[slot]};border-color:${col};box-shadow:2px 2px 0 var(--void),0 0 0 1px ${col} inset" onclick="unequipItem('${slot}')" title="${item.name}：${item.desc}">
+    <div class="pd-ic" style="filter:var(--icon-outline-sm)">${item.icon}</div>
+    <div class="pd-val" style="color:${col}">✦${item.val}</div>
+    <div class="pd-lbl">${label}</div>
+  </div>`;
+}
 function renderEquipment(){
-  const slotsHtml=EQUIP_SLOTS.map(slot=>{
-    const item=equipment[slot];const label=EQUIP_SLOT_NAME[slot];
-    if(!item){
-      return`<div style="display:flex;align-items:center;gap:10px;padding:10px;border:2px dashed var(--crack2);margin-bottom:6px;opacity:.55">
-        <div style="font-size:22px;width:32px;text-align:center;filter:var(--icon-outline-sm)">${EQUIP_SLOT_ICON[slot]}</div>
-        <div style="flex:1;font-size:11px;color:var(--text3)">${label} · 空</div>
-      </div>`;
-    }
-    const col=equipColor(item.val);
-    return`<div style="display:flex;align-items:center;gap:10px;padding:10px;border:2px solid ${col};margin-bottom:6px;cursor:pointer;background:rgba(255,255,255,.02);box-shadow:3px 3px 0 var(--void)" onclick="unequipItem('${slot}')">
-      <div style="font-size:22px;width:32px;text-align:center;filter:var(--icon-outline-sm)">${item.icon}</div>
+  const figSvg=drawHumanoid(window._playerAppear||genPlayerAppearance(),96,148);
+  const paperdoll=`<div class="paperdoll">
+    ${pdTile('helm')}
+    ${pdTile('weapon')}
+    <div class="pd-figure">${figSvg}</div>
+    ${pdTile('amulet')}
+    ${pdTile('ring')}
+    ${pdTile('armor')}
+    ${pdTile('boots')}
+  </div>`;
+  const equipped=EQUIP_SLOTS.filter(s=>equipment[s]);
+  const detailHtml=equipped.length?equipped.map(slot=>{
+    const item=equipment[slot];const label=EQUIP_SLOT_NAME[slot];const col=equipColor(item.val);
+    return`<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;border:2px solid ${col};margin-bottom:6px;cursor:pointer;background:rgba(255,255,255,.02);box-shadow:3px 3px 0 var(--void)" onclick="unequipItem('${slot}')">
+      <div style="font-size:20px;width:28px;text-align:center;filter:var(--icon-outline-sm)">${item.icon}</div>
       <div style="flex:1">
         <div style="font-size:11px;color:${col};font-weight:700">${item.name} <span style="color:var(--text3);font-size:9px">（${label}）</span> <span style="color:${col}">✦${item.val}</span></div>
         <div style="font-size:9px;color:var(--text2);margin-top:2px">${item.desc}</div>
       </div>
       <div style="font-size:9px;color:var(--gore2);flex:none">卸下</div>
     </div>`;
-  }).join('');
+  }).join(''):'<div style="text-align:center;color:var(--text3);font-size:11px;padding:8px 0">还没穿上任何装备——点下面背包里的东西试试</div>';
+  const slotsHtml=paperdoll+`<div style="font-size:9px;color:var(--text2);letter-spacing:2px;padding:12px 4px 6px;border-top:1px solid var(--crack)">已装备</div>`+detailHtml;
   const bpHtml=equipBackpack.length?equipBackpack.map((item,i)=>{
     const col=equipColor(item.val);
     return`<div style="display:flex;align-items:center;gap:10px;padding:10px;border:2px solid ${col};margin-bottom:6px;box-shadow:3px 3px 0 var(--void)">
