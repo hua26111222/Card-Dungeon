@@ -5179,6 +5179,9 @@ function showCamp(){
   phase=PH.CAMP;window._inCamp=true;
   setSceneAccent('__camp__'); // 营地是"安全屋"，用固定的暖色调，跟外面随主题变化的远征场景区分开
   const s=storyData||(storyData=StoryHome.load());
+  // 之前只有"完成一次出征"才会真正写盘——如果玩家开局后只逛了营地就退出，"继续冒险"会误判成"没有存档"。
+  // 落地营地这一刻就先存一次，保证哪怕一次出征都没打过，下次回来也能正确识别出"有这份营地"
+  if(!StoryHome.exists())StoryHome.save(s);
   const narr=s.expeditionCount>=_EXPEDITION_NARRATIVE.length?_EXPEDITION_EPILOGUE:_EXPEDITION_NARRATIVE[s.expeditionCount];
   document.getElementById('ovtag').textContent='🏕  营地';
   document.getElementById('ovtit').textContent=narr.title;
