@@ -46,9 +46,8 @@
     radial-gradient(1.2px 1.2px at 81% 7%,var(--scene-dot) 0,transparent 60%),
     radial-gradient(1.6px 1.6px at 93% 16%,var(--scene-dot) 0,transparent 60%),
     radial-gradient(1.2px 1.2px at 45% 22%,var(--scene-dot) 0,transparent 60%),
-    linear-gradient(200deg,transparent 60%,var(--scene-ridge1) 60.8%,var(--scene-ridge1) 63%,transparent 63.8%),
-    linear-gradient(158deg,transparent 68%,var(--scene-ridge2) 68.8%,var(--scene-ridge2) 71%,transparent 71.8%),
-    linear-gradient(205deg,transparent 78%,var(--scene-ridge1) 78.8%,var(--scene-ridge1) 82%,transparent 82.8%);
+    linear-gradient(0deg,var(--scene-ridge1) 0%,transparent 22%),
+    linear-gradient(0deg,var(--scene-ridge2) 0%,transparent 40%);
   background-repeat:no-repeat;background-size:100% 100%}
 html,body{background:var(--void);color:var(--text);font-family:var(--fm);font-size:15px;min-height:100vh;overflow-x:hidden}
 /* 全局CRT扫描线纹理，叠一层若隐若现的横线，模拟老电视质感 */
@@ -3384,6 +3383,7 @@ function doRest(act){
 }
 function showGameOver(){
   phase=PH.DEAD;const ps=calcPS();
+  setSceneAccent('__death__');
   const isStory=window._gameMode==='story';
   if(!isStory)recordRun();
   document.getElementById('goico').textContent='☠';
@@ -5129,6 +5129,7 @@ function enterStoryHome(){
 }
 function showCamp(){
   phase=PH.CAMP;window._inCamp=true;
+  setSceneAccent('__camp__'); // 营地是"安全屋"，用固定的暖色调，跟外面随主题变化的远征场景区分开
   const s=storyData||(storyData=StoryHome.load());
   const narr=s.expeditionCount>=_EXPEDITION_NARRATIVE.length?_EXPEDITION_EPILOGUE:_EXPEDITION_NARRATIVE[s.expeditionCount];
   document.getElementById('ovtag').textContent='🏕  营地';
