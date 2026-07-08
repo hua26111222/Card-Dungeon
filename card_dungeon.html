@@ -334,6 +334,27 @@ body::after{content:'';position:fixed;inset:0;z-index:9998;pointer-events:none;
 .rwn{font-family:var(--fs);font-size:14px;font-weight:700;color:var(--bone);margin-bottom:2px}
 .rwd{font-size:11px;color:var(--text2);margin-top:2px;font-style:italic}
 .rwd b{color:var(--bone);font-style:normal}
+/* ═══ 装备人形槽位（paperdoll）══
+   槽位围着人像摆放，头盔在头顶、靴子在脚下、武器/护符/戒指/护甲分列两侧——
+   比原来一条一条列出来更像"真的在给这个角色穿装备" */
+.paperdoll{display:grid;
+  grid-template-columns:64px 1fr 64px;
+  grid-template-rows:auto auto auto auto;
+  grid-template-areas:
+    ".      helm   ."
+    "weapon fig    amulet"
+    "ring   fig    armor"
+    ".      boots  .";
+  gap:6px;justify-items:center;align-items:center;padding:10px 2px 6px;max-width:280px;margin:0 auto}
+.pd-figure{grid-area:fig;display:flex;align-items:center;justify-content:center;min-height:100px}
+.pd-figure svg{filter:var(--icon-outline-sm)}
+.pd-slot{width:60px;height:60px;background:var(--s2);border:2px dashed var(--crack2);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;cursor:pointer}
+.pd-slot:not(.pd-empty){border-style:solid;cursor:pointer}
+.pd-slot.pd-empty{opacity:.55;cursor:default}
+.pd-ic{font-size:20px;line-height:1}
+.pd-val{font-family:var(--fp);font-size:6px;margin-top:1px}
+.pd-lbl{font-size:7px;color:var(--text3);letter-spacing:.5px}
 /* ═══ 道具栏 ═══ */
 .rslot-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:12px}
 .rslot{border:1px dashed var(--crack2);border-radius:4px;padding:8px 6px;text-align:center;min-height:70px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;transition:border-color .15s,background .15s}
@@ -4165,7 +4186,8 @@ function pdTile(slot){
   </div>`;
 }
 function renderEquipment(){
-  const figSvg=drawHumanoid(window._playerAppear||genPlayerAppearance(),96,148);
+  if(!window._playerAppear)window._playerAppear=genPlayerAppearance();
+  const figSvg=drawHumanoid(window._playerAppear,96,148);
   const paperdoll=`<div class="paperdoll">
     ${pdTile('helm')}
     ${pdTile('weapon')}
