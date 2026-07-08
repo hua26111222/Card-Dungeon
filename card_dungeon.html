@@ -735,14 +735,8 @@ body::after{content:'';position:fixed;inset:0;z-index:9998;pointer-events:none;
       <div class="hvdiv"></div>
       <div class="hv-btns">
         <button class="hvbtn hvbtn-c" id="hv-cont" onclick="onContAdventure()">继续冒险</button>
-        <button class="hvbtn hvbtn-n" onclick="showModeSelect()">全新开始</button>
+        <button class="hvbtn hvbtn-n" onclick="onNewGame()">全新开始</button>
       </div>
-      <button class="ovbtn" style="margin-top:14px;padding:6px 14px;font-size:11px" onclick="showLeaderboard('hv')">🏆 探险排行榜</button>
-    </div>
-    <div id="hv-saves">
-      <div style="font-size:10px;color:var(--text3);letter-spacing:3px;margin-bottom:16px">✦ 选择存档 ✦</div>
-      <div class="sv-wrap" id="sv-wrap"></div>
-      <button class="hv-back" onclick="showHome()">← 返回</button>
     </div>
   </div>
   <div id="ci" class="scenebg">
@@ -847,7 +841,7 @@ body::after{content:'';position:fixed;inset:0;z-index:9998;pointer-events:none;
       <button id="legacy-btn" class="ovbtn gd" style="width:100%;margin-top:6px;opacity:.5" onclick="confirmLegacy()" disabled>点选卡牌传给下一局（最多3张）</button>
     </div>
     <button class="ovbtn" id="gov-lb-btn" style="width:100%;max-width:360px;margin:0 0 10px" onclick="showLeaderboard('gov')">🏆 查看探险排行榜</button>
-    <button class="brst" id="gov-retry-btn" onclick="initGame()">再次挑战</button>
+    <button class="brst" id="gov-retry-btn" onclick="showHome()">再次挑战</button>
   </div>
   <div id="lbv" style="display:none;flex-direction:column;align-items:center;justify-content:flex-start;min-height:calc(100vh - 88px);text-align:center;padding:24px;background:radial-gradient(ellipse at 50% 30%,rgba(106,58,154,.25),transparent 60%),var(--void)">
     <div class="goico" style="filter:drop-shadow(0 0 28px rgba(154,90,191,.8))">🏆</div>
@@ -2231,9 +2225,9 @@ const _FLOOR_PERSONA=[
   {key:'fierce',    title:'猛兽之层',    lines:['野蛮的力量充斥着这里','敌人以蛮力为骄傲','只有更强的力量才能制衡它们'],color:'#aa4422'},
 ];
 const MAP_COLS=9; // 普通行的列数（首领行固定4列，单独处理）
-// 地图总步数（含首领行）：无限地牢=19（18普通+1首领），剧情远征=12（11普通+1首领）——
-// buildMode()/showModeSelect() 会在开局时改写这个值，之后地图生成/渲染/选卡全部照这个数走
-let MAP_TOTAL_STEPS=19;
+// 地图总步数（含首领行）：剧情远征固定=13（12普通+1首领）。无限地牢模式已下线，
+// 这个变量原本还服务过它的19步地图，现在只会被赋值13，保留可配置是为了以后如果要调远征层数方便改
+let MAP_TOTAL_STEPS=13;
 // 从普通行（MAP_COLS列）走到首领行（bossCols列）时的可达范围：按玩家所在列的相对位置，
 // 映射到首领行里最近的3格——renderMap()和pickMapCard()共用同一份，不再各写一份重复的对照表
 function bossRowReach(pCol,srcCols,bossCols){
@@ -5161,31 +5155,8 @@ const _EXPEDITION_NARRATIVE=[
   {title:'✦ 篇章十二 · 携灵药而归',blurb:'你带回了深渊夺走的东西。世界因此改变了——你也是。但代价，才刚刚显现。'},
 ];
 const _EXPEDITION_EPILOGUE={title:'✦ 尾声 · 无尽回响',blurb:'传说已经写完，但深渊从未真正安静。它仍在等你——一次又一次。'};
-// ── 剧情远征：模式选择 / 营地枢纽 ──
-function showModeSelect(){
-  phase=PH.OV;
-  document.getElementById('hud').style.display='none'; // 还在挑模式，角色也还没生成，继续不露HUD
-  document.getElementById('ovtag').textContent='✦  选择冒险方式';
-  document.getElementById('ovtit').textContent='深渊有两条路';
-  setSceneArt('🧭','踏入深渊之前，先决定这一次要走哪条路。');
-  const h=`<div class="ovd">这一次，你想怎么闯？</div>
-  <div class="tcards-table">
-    <div class="ccard" style="transform:rotate(-6deg) translateY(8px)" onclick="onNewGame()">
-      <div class="ccard-top" style="background:linear-gradient(90deg,transparent,rgba(139,26,26,.5),transparent)"></div>
-      <div class="ccard-icon">♾</div>
-      <div class="ccard-text" style="color:var(--gore2)">无限地牢</div>
-      <div class="ccard-sub">一路下潜，直到陨落。没有终点，只有排行榜上的名字。</div>
-    </div>
-    <div class="ccard" style="transform:rotate(6deg) translateY(8px)" onclick="onStoryMode()">
-      <div class="ccard-top" style="background:linear-gradient(90deg,transparent,rgba(200,169,110,.5),transparent)"></div>
-      <div class="ccard-icon">🏕</div>
-      <div class="ccard-text" style="color:var(--amber)">剧情远征</div>
-      <div class="ccard-sub">固定12层的远征，打完回家整备，再出发下一次。有营地，有故事。</div>
-    </div>
-  </div>`;
-  document.getElementById('ovb').innerHTML=h;
-  showView('ov');renderHud();renderTokens();
-}
+// ── 营地枢纽 ──
+// 无限地牢模式已经删掉了，现在只有"剧情远征"一条路，onStoryMode() 就是唯一的开局入口
 function onStoryMode(){window._gameMode='story';window._inCamp=false;document.getElementById('hud').style.display='';enterStoryHome();}
 function enterStoryHome(){
   stopBGM();navClear();
@@ -5231,66 +5202,39 @@ function beginExpedition(){
 }
 // ── 主菜单系统 ──
 function showHome(){
-  const hasSave=SM.exists();
+  const hasSave=StoryHome.exists();
   const btn=document.getElementById('hv-cont');
   if(btn)btn.disabled=!hasSave;
   document.getElementById('hv-main').style.display='flex';
-  document.getElementById('hv-saves').style.display='none';
   // 还没有角色、没有真实数值——标题页不该露出"生命0 行动0 金币0"这种看起来像故障的假状态栏
   document.getElementById('hud').style.display='none';
   setSceneAccent('void');
   showView('hv');
 }
+// 只剩"剧情远征"一条路了——继续冒险=接着打现有的营地存档，全新开始=另起一份新的
 function onContAdventure(){
-  window._gameMode='endless';window._inCamp=false;MAP_TOTAL_STEPS=19;
-  const saves=SM.listAll().filter(s=>!s.empty);
-  if(!saves.length)return;
-  document.getElementById('hud').style.display='';
-  if(saves.length===1){loadSlot(saves[0].slot);}
-  else{showSaveSelect();}
+  if(!StoryHome.exists())return;
+  onStoryMode();
 }
 function onNewGame(){
-  window._gameMode='endless';window._inCamp=false;MAP_TOTAL_STEPS=19;
-  document.getElementById('hud').style.display='';
-  const all=SM.listAll();
-  const empty=all.find(s=>s.empty);
-  const slot=empty?empty.slot:all.reduce((a,b)=>((!a.ts||b.ts<a.ts)?b:a)).slot;
-  SM._slot=slot;SM.clear(slot);initGame();
+  if(StoryHome.exists()){showNewGameConfirm();}
+  else{onStoryMode();}
 }
-function showSaveSelect(){
-  const saves=SM.listAll();
-  const now=Date.now();
-  const ago=(ts)=>{
-    if(!ts)return'';
-    const m=Math.floor((now-ts)/60000);
-    if(m<1)return'刚刚';if(m<60)return`${m}分前`;
-    const h=Math.floor(m/60);if(h<24)return`${h}时前`;
-    return`${Math.floor(h/24)}天前`;
-  };
-  const wrap=document.getElementById('sv-wrap');
-  wrap.innerHTML=saves.map(sv=>sv.empty
-    ?`<div class="sv-card sv-empty"><div class="sv-floor">空 档</div><div class="sv-icon">⬜</div><div class="sv-title">暂无存档</div></div>`
-    :`<div class="sv-card" onclick="loadSlot(${sv.slot})">
-        <div class="sv-floor">第 ${toR(sv.player?.floor||1)} 层</div>
-        <div class="sv-icon">${sv.titleIcon||'🗡'}</div>
-        <div class="sv-title">${sv.title||'无名旅者'}</div>
-        <div class="sv-time">${ago(sv.ts)}</div>
-        <button class="sv-del" onclick="event.stopPropagation();deleteSaveSlot(${sv.slot})" title="删除">✕</button>
-      </div>`
-  ).join('');
-  document.getElementById('hv-main').style.display='none';
-  document.getElementById('hv-saves').style.display='flex';
+// 营地存档一旦清空不可撤销（卡组/装备/篇章进度全没了），开新档前先确认一下，免得手滑
+function showNewGameConfirm(){
+  phase=PH.OV;
+  document.getElementById('hud').style.display='none';
+  let expCount=0;try{expCount=StoryHome.load().expeditionCount||0;}catch(e){}
+  document.getElementById('ovtag').textContent='⚠  全新开始';
+  document.getElementById('ovtit').textContent='放下现在的营地，重新出发？';
+  setSceneArt('⚠','营地里已经攒下的家当——卡组、装备、走过的篇章——都会随之清空，无法找回。');
+  const h=`<div class="ovd">你已经出征过 <b>${expCount}</b> 次。开始全新的远征会清空当前营地的所有积累（卡组/装备/篇章进度），这一步无法撤销。</div>
+  <button class="ovbtn gd" onclick="confirmNewGame()">✓ 清空并重新出发</button>
+  <button class="ovbtn" onclick="showHome()">✗ 我再想想</button>`;
+  document.getElementById('ovb').innerHTML=h;
+  showView('ov');renderHud();renderTokens();
 }
-function loadSlot(n){
-  const ok=SM.load(n);
-  if(ok){toast('存档已加载','g');}
-  else{toast('存档已损坏，已清除','r');SM.clear(n);showSaveSelect();}
-}
-function deleteSaveSlot(n){
-  SM.clear(n);
-  if(SM.listAll().every(s=>s.empty)){showHome();}
-  else{showSaveSelect();}
-}
+function confirmNewGame(){StoryHome.clear();onStoryMode();}
 showHome();
 </script>
 <script>
