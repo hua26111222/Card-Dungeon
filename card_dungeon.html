@@ -1717,6 +1717,115 @@ const EVTS=[
     {text:'获得罕见卡（付15金）',sub:'花15金获得1张罕见卡',fn:(p,b)=>{if(p.gold<15)return'金币不足';p.gold-=15;const em=window._mapEffectMult||1;const pool=DB.filter(c=>c.rar==='uncommon');const c=pool[0|Math.random()*pool.length];for(let k=0;k<em;k++)b.deck.push(gc(c.id));return`获得 ${c.name}${em>1?` x${em}`:''}`}},
     {text:'拒绝',sub:'继续上路',fn:()=>'pass'}]},
 ];
+// ── 事件生成器 EventGen ──
+// 和 CardGen/EnemyGen/EquipGen/StoryGen 同一套思路：不再靠上面十几条手写好的固定事件，
+// 而是"事件模式(pattern) + 选项原型(choice template) + 数值预算(budget)"现场组装。
+// 关键是所有数值都从已经建好的统一经济换算表(priceForValue/cardValue/TYPICAL_VALUE_BY_RAR，
+// 就是铁匠/商店那套定价标准)里推出来，保证生成的事件跟商店物价在同一个"经济体系"里，
+// 不会出现"事件白送的东西比商店贵一倍"这种离谱的性价比。
+// 选项本身不直接编排成事件——先定几个"模式"(pattern)，规定哪几种选项原型能凑成一个说得通的场景
+// （比如"献祭"场景只会出现"用HP换东西"这类选项，不会混进"打劫商人"），避免生成出前后不搭的怪事件。
+const EventGen={
+  TITLE_NOUN:['祭坛','遗迹','裂隙','清泉','商队','墓穴','试炼场','密室','遗骸','契约石','迷雾','古井','石阵','驿站','神龛','钟塔'],
+  ART:{sacrifice:'🗿',gamble:'🎲',free:'✨',curse:'☠',door:'🌀',threat:'🗡',service:'🧙',spring:'💧'},
+  TAG:{hard:'☠ 危险遭遇',easy:'✨ 神秘相遇',neutral:'✦ 随机事件'},
+  _pick(arr){return arr[0|Math.random()*arr.length];},
+  // 统一的"这次事件能给多大方"的经济基准：跟商店/黑市用的是同一份 calcPS()/chapter.floor，
+  // 保证事件奖励和玩家当前实力、跟同时期商店的物价是匹配的
+  budget(){return calcPS()+(chapter.floor||1)*10;},
+  goldAmt(bud,mult){return priceForValue(TYPICAL_VALUE_BY_RAR.rare*(bud/60),mult||1);},
+  // ── 选项原型：每个原型是"给定预算，吐出一个{text,sub,fn}选项"的小函数 ──
+  T_hpForRareCard(bud,greater){
+    const pct=greater?[.28,.4]:[.15,.25];
+    const costPct=Math.round((pct[0]+Math.random()*(pct[1]-pct[0]))*100);
+    return{text:`献祭 ${costPct}% HP`,sub:greater?'获得 2 张随机稀有卡牌':'立即获得稀有卡牌',
+      fn:(p)=>{const cost=Math.floor(p.maxHp*costPct/100);if(p.hp<=cost+5)return'HP不足';p.hp-=cost;return greater?'reward_rare2':'reward_rare';}};
+  },
+  T_hpForGold(bud){
+    const costPct=Math.round(8+Math.random()*10);
+    const g=this.goldAmt(bud,.9);
+    return{text:`献祭 ${costPct}% HP`,sub:`获得 ${g} 金币`,
+      fn:(p,b,ch)=>{const cost=Math.floor(p.maxHp*costPct/100);if(p.hp<=cost+5)return'HP不足';const em=window._mapEffectMult||1;p.hp-=cost;p.gold+=g*em;return`+${g*em}金币`;}};
+  },
+  T_goldGamble(bud){
+    const stake=this.goldAmt(bud,.5);
+    return{text:`押 ${stake} 金币`,sub:`50% → +${stake*2}金 / 50% → 失去${stake}金`,
+      fn:(p)=>{if(p.gold<stake)return'金币不足';const em=window._mapEffectMult||1;if(Math.random()<.5){p.gold+=stake*2*em;return`+${stake*2*em}金币 赢了！`;}p.gold-=stake;return`-${stake}金币 输了…`;}};
+  },
+  T_curseForGold(bud,n){
+    const g=this.goldAmt(bud,.85+n*.5);
+    return{text:n>1?'诅咒换重金':'诅咒换金币',sub:`牌组加${n}张诅咒，获得 ${g} 金币`,
+      fn:(p,b)=>{const em=window._mapEffectMult||1;for(let i=0;i<n;i++)b.deck.push(gc('regret'));p.gold+=g*em;return`+${g*em}金币 +${n}诅咒`;}};
+  },
+  T_curseForMaxHp(bud){
+    const add=Math.round(20+bud*.15);
+    return{text:'诅咒换体魄',sub:`牌组加1张诅咒，最大HP+${add}并回满`,
+      fn:(p,b)=>{const em=window._mapEffectMult||1;const a=add*em;b.deck.push(gc('regret'));p.maxHp+=a;p.hp=p.maxHp;return`+诅咒 最大HP+${a}`;}};
+  },
+  T_freeRareCard(){return{text:'强化之路',sub:'获得一张稀有卡牌',fn:()=>'reward_rare'};},
+  T_freeGold(bud){const g=this.goldAmt(bud,1);return{text:'财富之路',sub:`获得 ${g} 金币`,fn:(p)=>{const em=window._mapEffectMult||1;p.gold+=g*em;return`+${g*em}金币`;}};},
+  T_freeMaxHp(bud){const add=Math.round(15+bud*.1);return{text:'力量之路',sub:`+${add} 最大HP 并恢复至满`,fn:(p)=>{const em=window._mapEffectMult||1;const a=add*em;p.maxHp+=a;p.hp=p.maxHp;return`最大HP+${a} 已满血`;}};},
+  T_riskyDoor(bud){
+    const goodHp=Math.round(bud*.5),goodGold=this.goldAmt(bud,.8),badHp=Math.round(15+bud*.1);
+    return{text:'跳进去',sub:`随机：+${goodHp}HP / +${goodGold}金 / 失去${badHp}HP`,
+      fn:(p)=>{const em=window._mapEffectMult||1;const r=Math.random();
+        if(r<.35){const h=Math.min(p.maxHp-p.hp,Math.floor(goodHp*em));p.hp+=h;return`惊喜！+${h}HP`;}
+        if(r<.65){const g=goodGold*em;p.gold+=g;return`惊喜！+${g}金币`;}
+        const d=Math.floor(badHp*em);p.hp=Math.max(1,p.hp-d);return`陷阱！-${d}HP`;}};
+  },
+  T_threatFight(bud){
+    const costPct=Math.round(12+Math.random()*10),g=this.goldAmt(bud,.85);
+    return{text:'正面迎击',sub:`失去${costPct}%HP，击败后获得${g}金币`,
+      fn:(p,b,ch)=>{const em=window._mapEffectMult||1;const d=Math.floor(p.maxHp*costPct/100);p.hp=Math.max(1,p.hp-d);const g2=g*em;p.gold+=g2;return`战胜了！-${d}HP +${g2}金`;}};
+  },
+  T_threatPay(){return{text:'乖乖交钱',sub:'失去当前金币的30%',fn:(p)=>{const lost=Math.floor(p.gold*.30);p.gold=Math.max(0,p.gold-lost);return`交出 ${lost} 金币顺利通过`;}};},
+  T_threatFlee(){return{text:'拔腿就跑',sub:'50%成功 / 50%被打-15HP',fn:(p)=>{if(Math.random()<.5)return'成功逃脱！';const d=15;p.hp=Math.max(1,p.hp-d);return`逃跑失败！-${d}HP`;}};},
+  T_freeUpgrade(){return{text:'请人指点（免费）',sub:'自动强化费用最高的一张牌',fn:(p,b)=>{const up=b.deck.filter(c=>c.rar!=='curse');if(!up.length)return'没有可强化的牌';up.sort((a,z)=>z.cost-a.cost);upgradeCard(up[0]);return`强化了：${up[0].name}`;}};},
+  T_freeHeal(bud){const pct=Math.round(30+Math.random()*15);return{text:'痛饮甘泉',sub:`恢复${pct}%最大HP`,fn:(p)=>{const em=window._mapEffectMult||1;const h=Math.floor(p.maxHp*pct/100*em);p.hp=Math.min(p.maxHp,p.hp+h);return`+${h}HP！`;}};},
+  T_cleanseCurse(){return{text:'净化诅咒',sub:'移除1张诅咒牌，恢复15HP',fn:(p,b)=>{const em=window._mapEffectMult||1;const ci=b.deck.findIndex(c=>c.kind==='crs');if(ci>=0){const h=15*em;b.deck.splice(ci,1);p.hp=Math.min(p.maxHp,p.hp+h);return`移除诅咒！+${h}HP`;}const h2=30*em;p.hp=Math.min(p.maxHp,p.hp+h2);return`无诅咒可除，额外回复${h2}HP`;}};},
+  T_forcedBattle(){
+    const fn=()=>{
+      const em=window._mapEffectMult||1;
+      window._eventRareCount=em>1?4:2;
+      window._mapCard={_hasDims:true,combatPower:'强壮',cardDmg:'撕裂',trait:'暴君',enemyName:'裂变暗影'};
+      return'event_battle';
+    };
+    return{text:'迎战（强制战斗）',sub:'与暗影化身真实一战，战胜后获得2张稀有卡',fn};
+  },
+
+  T_pass(){return{text:'转身离去',sub:'什么都不发生',fn:()=>'pass'};},
+  // ── 事件模式：规定哪几种选项原型能凑成一个说得通的场景，避免前后不搭 ──
+  PATTERNS:[
+    {difficulty:'hard',art:'sacrifice',descKey:'sacrifice',build(bud){return[this.T_hpForRareCard(bud),this.T_hpForGold(bud),this.T_pass()];}},
+    {difficulty:'hard',art:'gamble',descKey:'gamble',build(bud){return[this.T_goldGamble(bud),this.T_hpForGold(bud),this.T_pass()];}},
+    {difficulty:'easy',art:'free',descKey:'free',build(bud){return[this.T_freeRareCard(),this.T_freeGold(bud),this.T_freeMaxHp(bud)];}},
+    {difficulty:'hard',art:'curse',descKey:'curse',build(bud){return Math.random()<.5?[this.T_curseForMaxHp(bud),this.T_curseForGold(bud,2),this.T_pass()]:[this.T_curseForGold(bud,1),this.T_curseForGold(bud,2),this.T_pass()];}},
+    {difficulty:'neutral',art:'door',descKey:'door',build(bud){return[this.T_riskyDoor(bud),this.T_pass()];}},
+    {difficulty:'hard',art:'threat',descKey:'threat',build(bud){return[this.T_threatFight(bud),this.T_threatPay(),this.T_threatFlee()];}},
+    {difficulty:'easy',art:'service',descKey:'service',build(bud){return Math.random()<.5?[this.T_freeUpgrade(),this.T_freeHeal(bud),this.T_pass()]:[this.T_cleanseCurse(),this.T_freeGold(bud*.6),this.T_pass()];}},
+    {difficulty:'hard',art:'threat',descKey:'darkbattle',build(bud){return[this.T_forcedBattle(),this.T_hpForGold(bud)];}},
+  ],
+  DESC:{
+    sacrifice:n=>`古老的${n}嗡嗡作响，仿佛渴望着鲜血。祭品越多，馈赠越重。`,
+    gamble:n=>`"敢不敢赌一把？"一个笑眯眯的人在${n}旁支起了赌桌。`,
+    free:()=>'"旅行者，你走在刀锋上。选择一种命运。"',
+    curse:n=>`${n}散发着不祥的气息。"出售力量，只需要一点代价……"`,
+    door:n=>`一道${n}般的裂口悬在空中。里面……是馈赠，还是诅咒？`,
+    threat:()=>'"把值钱的东西交出来！"一个身影挡住了你的去路。',
+    service:n=>`一位陌生人正守在${n}旁，似乎愿意搭把手。`,
+    darkbattle:()=>'黑暗从地缝中涌出，你感到某种邪恶的力量正在渗入你的牌组……',
+  },
+  // allowDiff: 可选的难度白名单（跟 startEvent() 里"血太少别来hard/PS太高别来easy"的过滤规则保持一致）
+  one(allowDiff){
+    const bud=this.budget();
+    const pool=allowDiff?this.PATTERNS.filter(p=>allowDiff.includes(p.difficulty)):this.PATTERNS;
+    const pat=this._pick(pool.length?pool:this.PATTERNS);
+    const choices=pat.build.call(this,bud);
+    const noun=this._pick(this.TITLE_NOUN);
+    const desc=this.DESC[pat.descKey](noun);
+    return{difficulty:pat.difficulty,art:this.ART[pat.art]||'✦',title:noun,tag:this.TAG[pat.difficulty]||'✦ 随机事件',desc,choices,__gen:true};
+  },
+};
 let phase=PH.INTRO;
 // 测试模式（连点左上角logo 5次激活）
 let _cheatMode=false,_cheatClicks=0,_cheatTimer=null;
