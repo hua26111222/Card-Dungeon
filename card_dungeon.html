@@ -3931,6 +3931,142 @@ function drawHumanoid(p,W,H){
   _drawHead(d,p,cx,HY,HR);
   return`<svg width="${W}" height="${H}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}">${d.join('')}</svg>`;
 }
+// ── 敌我形象生成模块：不是所有敌人都该套同一具人形 ──
+// 之前不管特性叫什么名字，一律画成人形小人——所以"野兽""巨蟒""毒蜂群"这类明显不是人的敌人，
+// 也顶着一个人形立绘，名字和长相对不上。这里补一套"按生物类型分发"的系统：
+// 先按特性名字/词根判断这只敌人该是"哪种生物"，再交给对应的绘制函数，人形只是其中一种
+function drawBeast(p,W,H){
+  const d=[];
+  const cx=Math.round(W*.55),cy=Math.round(H*.52);
+  const bw=Math.round(W*.3),bh=Math.round(H*.2);
+  const legW=Math.max(3,Math.round(bw*.22)),legH=Math.round(H*.26);
+  const legY=cy+bh*.55;
+  d.push(`<ellipse cx="${cx-bw*.1}" cy="${legY+legH+4}" rx="${bw*1.1}" ry="3" fill="#000" opacity=".4"/>`);
+  d.push(`<rect x="${cx-bw-legW}" y="${legY}" width="${legW}" height="${legH}" fill="${_chDk(p.ot,18)}" rx="2"/>`);
+  d.push(`<rect x="${cx-bw*.15}" y="${legY}" width="${legW}" height="${legH}" fill="${_chDk(p.ot,18)}" rx="2"/>`);
+  d.push(`<rect x="${cx-bw+legW*.6}" y="${legY}" width="${legW}" height="${legH}" fill="${p.ot}" rx="2"/>`);
+  d.push(`<rect x="${cx+bw*.45}" y="${legY}" width="${legW}" height="${legH}" fill="${p.ot}" rx="2"/>`);
+  d.push(`<path d="M${cx-bw},${cy-bh*.2} Q${+(cx-bw*1.6).toFixed(1)},${+(cy-bh*.9).toFixed(1)} ${+(cx-bw*1.25).toFixed(1)},${+(cy-bh*1.4).toFixed(1)}" stroke="${p.ot}" stroke-width="${Math.max(3,bw*.14)}" fill="none" stroke-linecap="round"/>`);
+  d.push(`<ellipse cx="${cx}" cy="${cy}" rx="${bw}" ry="${bh}" fill="${p.ot}"/>`);
+  d.push(`<ellipse cx="${cx}" cy="${+(cy-bh*.32).toFixed(1)}" rx="${bw*.88}" ry="${bh*.48}" fill="${_chLt(p.ot,20)}" opacity=".7"/>`);
+  const hx=cx+bw*.95,hy=cy-bh*.35,hr=Math.round(bh*.8);
+  d.push(`<path d="M${+(hx-hr*.35).toFixed(1)},${+(hy-hr*1.1).toFixed(1)} L${+(hx-hr*.75).toFixed(1)},${+(hy-hr*2.1).toFixed(1)} L${+(hx+hr*.1).toFixed(1)},${+(hy-hr*1.25).toFixed(1)} Z" fill="${p.ot}"/>`);
+  d.push(`<circle cx="${hx}" cy="${hy}" r="${hr}" fill="${p.ot}"/>`);
+  d.push(`<ellipse cx="${+(hx+hr*.95).toFixed(1)}" cy="${+(hy+hr*.2).toFixed(1)}" rx="${+(hr*.5).toFixed(1)}" ry="${+(hr*.35).toFixed(1)}" fill="${_chDk(p.ot,15)}"/>`);
+  d.push(`<circle cx="${+(hx+hr*.3).toFixed(1)}" cy="${+(hy-hr*.15).toFixed(1)}" r="${Math.max(1.5,hr*.2)}" fill="${p.eyeCol||'#ff3030'}"/>`);
+  return`<svg width="${W}" height="${H}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}">${d.join('')}</svg>`;
+}
+function drawSerpent(p,W,H){
+  const d=[];
+  const cx=W*.5,segCount=7,topY=H*.12,botY=H*.86;
+  const pts=[];
+  for(let i=0;i<segCount;i++){
+    const t=i/(segCount-1);
+    pts.push({x:cx+Math.sin(t*Math.PI*2.1)*W*.22,y:topY+(botY-topY)*t,r:Math.max(4,(W*.15)*(1-t*.55))});
+  }
+  d.push(`<ellipse cx="${pts[segCount-1].x.toFixed(1)}" cy="${(botY+6).toFixed(1)}" rx="${(pts[segCount-1].r*1.5).toFixed(1)}" ry="3" fill="#000" opacity=".4"/>`);
+  for(let i=segCount-1;i>=1;i--)d.push(`<circle cx="${pts[i].x.toFixed(1)}" cy="${pts[i].y.toFixed(1)}" r="${pts[i].r.toFixed(1)}" fill="${i%2===0?p.ot:_chDk(p.ot,15)}"/>`);
+  const head=pts[0];
+  d.push(`<circle cx="${head.x.toFixed(1)}" cy="${head.y.toFixed(1)}" r="${(head.r*1.15).toFixed(1)}" fill="${p.ot}"/>`);
+  d.push(`<circle cx="${(head.x-head.r*.35).toFixed(1)}" cy="${(head.y-head.r*.2).toFixed(1)}" r="${Math.max(1.5,head.r*.22)}" fill="${p.eyeCol||'#f0f050'}"/>`);
+  d.push(`<circle cx="${(head.x+head.r*.35).toFixed(1)}" cy="${(head.y-head.r*.2).toFixed(1)}" r="${Math.max(1.5,head.r*.22)}" fill="${p.eyeCol||'#f0f050'}"/>`);
+  return`<svg width="${W}" height="${H}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}">${d.join('')}</svg>`;
+}
+function drawSwarm(p,W,H){
+  const d=[];
+  const cx=W*.5,cy=H*.5;
+  const positions=[[-1,-.6],[.5,-1],[1,.2],[-.6,.7],[.3,.9],[-1.2,.1]];
+  d.push(`<ellipse cx="${cx}" cy="${(H*.86).toFixed(1)}" rx="${(W*.32).toFixed(1)}" ry="3" fill="#000" opacity=".3"/>`);
+  positions.forEach(([ox,oy],i)=>{
+    const px=cx+ox*W*.16,py=cy+oy*H*.13,r=Math.max(4,W*.095)*(i%2===0?1:.8);
+    d.push(`<ellipse cx="${(px-r*.9).toFixed(1)}" cy="${(py-r*.4).toFixed(1)}" rx="${(r*.7).toFixed(1)}" ry="${(r*.4).toFixed(1)}" fill="${p.ac}" opacity=".55"/>`);
+    d.push(`<ellipse cx="${(px+r*.9).toFixed(1)}" cy="${(py-r*.4).toFixed(1)}" rx="${(r*.7).toFixed(1)}" ry="${(r*.4).toFixed(1)}" fill="${p.ac}" opacity=".55"/>`);
+    d.push(`<circle cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" r="${r.toFixed(1)}" fill="${i%2===0?p.ot:_chDk(p.ot,20)}"/>`);
+    d.push(`<circle cx="${(px-r*.25).toFixed(1)}" cy="${(py-r*.2).toFixed(1)}" r="${Math.max(1,r*.22)}" fill="${p.eyeCol||'#18100a'}"/>`);
+  });
+  return`<svg width="${W}" height="${H}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}">${d.join('')}</svg>`;
+}
+function drawConstruct(p,W,H){
+  const d=[];
+  const cx=Math.round(W/2);
+  const HS=Math.round(W*.26),HY=Math.round(H*.18);
+  const TY=HY+HS,BW=Math.round(W*.34),BH=Math.round(H*.32),BY=TY+4;
+  const legW=Math.round(BW*.4),legH=Math.round(H*.26),legY=BY+BH;
+  d.push(`<ellipse cx="${cx}" cy="${legY+legH+3}" rx="${BW*1.3}" ry="3" fill="#000" opacity=".4"/>`);
+  d.push(`<rect x="${+(cx-BW-legW*.5).toFixed(1)}" y="${legY}" width="${legW}" height="${legH}" fill="${_chDk(p.ot,20)}"/>`);
+  d.push(`<rect x="${+(cx+BW-legW*.5).toFixed(1)}" y="${legY}" width="${legW}" height="${legH}" fill="${p.ot}"/>`);
+  const armW=Math.round(BW*.42),armLen=Math.round(H*.24);
+  d.push(`<rect x="${cx-BW-armW}" y="${BY+4}" width="${armW}" height="${armLen}" fill="${_chDk(p.ot,15)}"/>`);
+  d.push(`<rect x="${cx+BW}" y="${BY+4}" width="${armW}" height="${armLen}" fill="${p.ot}"/>`);
+  d.push(`<rect x="${cx-BW}" y="${TY}" width="${BW*2}" height="${BH}" fill="${p.ot}"/>`);
+  d.push(`<rect x="${cx-BW}" y="${TY}" width="${Math.round(BW*.5)}" height="${BH}" fill="${_chDk(p.ot,28)}"/>`);
+  d.push(`<rect x="${cx-3}" y="${TY+Math.round(BH*.3)}" width="6" height="${Math.round(BH*.4)}" fill="${p.ac}" opacity=".85"/>`);
+  d.push(`<rect x="${+(cx-HS/2).toFixed(1)}" y="${HY}" width="${HS}" height="${HS}" fill="${_chDk(p.ot,10)}"/>`);
+  d.push(`<rect x="${+(cx-HS*.35).toFixed(1)}" y="${+(HY+HS*.4).toFixed(1)}" width="${+(HS*.7).toFixed(1)}" height="${Math.max(2,Math.round(HS*.14))}" fill="${p.eyeCol||'#ff3030'}"/>`);
+  return`<svg width="${W}" height="${H}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}">${d.join('')}</svg>`;
+}
+function drawBlob(p,W,H){
+  const d=[];
+  const cx=W*.5,cy=H*.55,r=Math.min(W,H)*.22;
+  d.push(`<ellipse cx="${cx}" cy="${(H*.9).toFixed(1)}" rx="${(r*1.6).toFixed(1)}" ry="3" fill="#000" opacity=".4"/>`);
+  [[-1,-.3],[1,-.3],[-.7,.9],[.7,.9]].forEach(([dx,dy],i)=>{
+    const ex=cx+dx*r*2.6,ey=cy+dy*r*2.2,midx=cx+dx*r*1.4,midy=cy+dy*r*.6;
+    d.push(`<path d="M${cx.toFixed(1)},${cy.toFixed(1)} Q${midx.toFixed(1)},${midy.toFixed(1)} ${ex.toFixed(1)},${ey.toFixed(1)}" stroke="${i%2===0?p.ot:_chDk(p.ot,15)}" stroke-width="${Math.max(3,r*.28).toFixed(1)}" fill="none" stroke-linecap="round"/>`);
+  });
+  d.push(`<ellipse cx="${cx}" cy="${cy}" rx="${(r*1.1).toFixed(1)}" ry="${r.toFixed(1)}" fill="${p.ot}"/>`);
+  d.push(`<ellipse cx="${(cx-r*.25).toFixed(1)}" cy="${(cy-r*.3).toFixed(1)}" rx="${(r*.6).toFixed(1)}" ry="${(r*.4).toFixed(1)}" fill="${_chLt(p.ot,20)}" opacity=".6"/>`);
+  d.push(`<circle cx="${cx}" cy="${cy}" r="${(r*.32).toFixed(1)}" fill="#160a1a"/>`);
+  d.push(`<circle cx="${cx}" cy="${cy}" r="${(r*.16).toFixed(1)}" fill="${p.eyeCol||'#ff3030'}"/>`);
+  return`<svg width="${W}" height="${H}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}">${d.join('')}</svg>`;
+}
+function drawArachnid(p,W,H){
+  const d=[];
+  const cx=W*.5,cy=H*.55,r=Math.min(W,H)*.2;
+  d.push(`<ellipse cx="${cx}" cy="${(H*.88).toFixed(1)}" rx="${(r*2.2).toFixed(1)}" ry="3" fill="#000" opacity=".4"/>`);
+  for(let i=0;i<8;i++){
+    const side=i<4?-1:1,idx=i%4,ang=(-40+idx*28)*Math.PI/180,legLen=r*1.9;
+    const jx=cx+side*Math.cos(ang)*r*1.1,jy=cy+Math.sin(ang)*r*.6;
+    const ex=cx+side*Math.cos(ang)*legLen,ey=cy+Math.sin(ang)*legLen*.7+r*.6;
+    d.push(`<path d="M${cx.toFixed(1)},${cy.toFixed(1)} L${jx.toFixed(1)},${jy.toFixed(1)} L${ex.toFixed(1)},${ey.toFixed(1)}" stroke="${side<0?_chDk(p.ot,15):p.ot}" stroke-width="2" fill="none" stroke-linecap="round"/>`);
+  }
+  d.push(`<ellipse cx="${cx}" cy="${(cy+r*.3).toFixed(1)}" rx="${(r*.85).toFixed(1)}" ry="${(r*.7).toFixed(1)}" fill="${p.ot}"/>`);
+  d.push(`<ellipse cx="${cx}" cy="${(cy-r*.55).toFixed(1)}" rx="${(r*.55).toFixed(1)}" ry="${(r*.48).toFixed(1)}" fill="${_chDk(p.ot,10)}"/>`);
+  d.push(`<circle cx="${(cx-r*.2).toFixed(1)}" cy="${(cy-r*.6).toFixed(1)}" r="${Math.max(1.5,r*.16)}" fill="${p.eyeCol||'#ff3030'}"/>`);
+  d.push(`<circle cx="${(cx+r*.2).toFixed(1)}" cy="${(cy-r*.6).toFixed(1)}" r="${Math.max(1.5,r*.16)}" fill="${p.eyeCol||'#ff3030'}"/>`);
+  return`<svg width="${W}" height="${H}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}">${d.join('')}</svg>`;
+}
+// 手写特性的生物类型（直接按key精确匹配）；生成特性(EnemyGen)没有手写key，靠词根后缀去猜（见下面的NOUN表）
+const _ARCHETYPE_BY_TRAIT={
+  '蛛后':'arachnid','食人花':'blob','石像鬼':'construct','沼泽巨怪':'beast',
+  '钢铁守卫':'construct','毒蜂群':'swarm','嗜魂怪':'blob','食梦者':'blob',
+  '熔岩傀儡':'construct','锈蚀机兵':'construct','深渊触手':'blob','利爪猎手':'beast',
+  '巨蟒':'serpent','渴血狼人':'beast','雪原狼王':'beast',
+};
+// EnemyGen.NOUN词根→生物类型；没列出来的词根（法师/刺客/守卫/游魂/妖姬这类明显是人的）默认走人形，不用列
+const _ARCHETYPE_BY_NOUN={
+  魔像:'construct',蛛魔:'arachnid',妖兽:'beast',恶蟒:'serpent',食人花:'blob',
+  蜂魔:'swarm',触手兽:'blob',狼人:'beast',巨怪:'beast',傀儡:'construct',
+  蝠魔:'beast',蟹魔:'arachnid',石魔:'construct',沙虫:'serpent',冰魔:'construct',
+  雷兽:'beast',毒虫:'swarm',魔犬:'beast',荒兽:'beast',蟒蛇:'serpent',
+  树精:'blob',鸦魔:'beast',蝎魔:'arachnid',
+};
+function archetypeForTrait(traitKey){
+  if(!traitKey)return'humanoid';
+  if(_ARCHETYPE_BY_TRAIT[traitKey])return _ARCHETYPE_BY_TRAIT[traitKey];
+  for(const noun in _ARCHETYPE_BY_NOUN){if(traitKey.endsWith(noun))return _ARCHETYPE_BY_NOUN[noun];}
+  return'humanoid';
+}
+function drawCreature(archetype,p,W,H){
+  switch(archetype){
+    case'beast':return drawBeast(p,W,H);
+    case'serpent':return drawSerpent(p,W,H);
+    case'swarm':return drawSwarm(p,W,H);
+    case'construct':return drawConstruct(p,W,H);
+    case'blob':return drawBlob(p,W,H);
+    case'arachnid':return drawArachnid(p,W,H);
+    default:return drawHumanoid(p,W,H);
+  }
+}
 function genPlayerAppearance(){
   const s=(window._playerSeed||(window._playerSeed=((Date.now()^(Math.random()*99999|0))&0xffff)||1));
   return genCharParams(s,null);
@@ -3946,7 +4082,7 @@ function getEnemySprite(tier,trait){
   const p=genCharParams(seed,trait);
   const W=tier==='boss'?102:tier==='elite'?88:76;
   const H=tier==='boss'?150:tier==='elite'?132:117;
-  return drawHumanoid(p,W,H);
+  return drawCreature(archetypeForTrait(trait),p,W,H);
 }
 function triggerPAnim(cls){
   const el=document.getElementById('pav');if(!el)return;
