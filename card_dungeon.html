@@ -315,6 +315,18 @@ body::after{content:'';position:fixed;inset:0;z-index:9998;pointer-events:none;
 .ovbtn:disabled{opacity:.25;pointer-events:none}
 .ovbtn .sub{font-size:9px;color:var(--text3)}
 .ovbtn.gd{border-color:var(--bone2);color:var(--bone)}
+/* ═══ 营地"小镇广场"场景瓦片：每个去处一个方块，颜色沿用地图同类型节点的配色 ═══ */
+.camp-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:4px 0 10px}
+.camp-tile{background:var(--s2);border:2px solid var(--crack2);padding:16px 8px;text-align:center;
+  cursor:pointer;box-shadow:3px 3px 0 var(--void);transition:transform .1s}
+.camp-tile:active{transform:translate(3px,3px);box-shadow:none}
+.camp-tile-icon{font-size:28px;margin-bottom:6px;filter:var(--icon-outline-sm)}
+.camp-tile-label{font-family:var(--fs);font-size:12px;color:var(--bone);letter-spacing:2px}
+.camp-cta{background:var(--amber2);border:2px solid var(--bone2);padding:14px;text-align:center;
+  cursor:pointer;box-shadow:4px 4px 0 var(--void);display:flex;align-items:center;justify-content:center;gap:10px;transition:transform .1s}
+.camp-cta:active{transform:translate(4px,4px);box-shadow:none}
+.camp-cta-icon{font-size:22px;filter:var(--icon-outline-sm)}
+.camp-cta-label{font-family:var(--fs);font-size:14px;color:var(--bone);letter-spacing:3px;font-weight:700}
 .si{background:var(--s3);border:2px solid var(--crack2);
   box-shadow:3px 3px 0 var(--void);padding:10px 12px;display:flex;align-items:center;gap:10px;margin-bottom:10px}
 .sia{width:36px;height:36px;flex-shrink:0;background:var(--s4);border:2px solid var(--crack);
@@ -5186,13 +5198,17 @@ function showCamp(){
   document.getElementById('ovtag').textContent='🏕  营地';
   document.getElementById('ovtit').textContent=narr.title;
   setSceneArt('🏕',narr.blurb);
+  // 营地是回到的最频繁的一个场景，之前是5个按钮从上往下排成一条菜单，改成"小镇广场"式的
+  // 场景瓦片——每个去处一个方块图标，颜色沿用地图上同类型节点本来就有的配色，去营地不再像翻菜单
   const h=`<div class="ovd">${narr.blurb}</div>
   <div style="font-size:10px;color:var(--text3);letter-spacing:2px;margin:2px 0 14px;text-align:center">已出征 ${s.expeditionCount} 次 · 金币 ${player.gold} · 家中卡组 ${battle.deck.length} 张</div>
-  <button class="ovbtn" onclick="startTavern()">🛒 商店</button>
-  <button class="ovbtn" onclick="startBlacksmith()">⚒ 铁匠</button>
-  <button class="ovbtn" onclick="startBlackMarket()">🌑 黑市</button>
-  <button class="ovbtn" onclick="showEquipment()">🛡 装备</button>
-  <button class="ovbtn gd" style="margin-top:10px" onclick="beginExpedition()">⚔ 出发远征</button>`;
+  <div class="camp-grid">
+    <div class="camp-tile" style="border-color:#228833" onclick="startTavern()"><div class="camp-tile-icon">🛒</div><div class="camp-tile-label">商店</div></div>
+    <div class="camp-tile" style="border-color:#607080" onclick="startBlacksmith()"><div class="camp-tile-icon">⚒</div><div class="camp-tile-label">铁匠</div></div>
+    <div class="camp-tile" style="border-color:#4a2266" onclick="startBlackMarket()"><div class="camp-tile-icon">🌑</div><div class="camp-tile-label">黑市</div></div>
+    <div class="camp-tile" style="border-color:var(--ice)" onclick="showEquipment()"><div class="camp-tile-icon">🛡</div><div class="camp-tile-label">装备</div></div>
+  </div>
+  <div class="camp-cta" onclick="beginExpedition()"><div class="camp-cta-icon">⚔</div><div class="camp-cta-label">出发远征</div></div>`;
   document.getElementById('ovb').innerHTML=h;
   showView('ov');renderHud();renderTokens();
 }
