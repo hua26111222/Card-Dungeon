@@ -1287,24 +1287,34 @@ function equipRarityLabel(val){
 // 有概率掉到3件，且首领的第一件装备是"两次预算取更高的那次"，保证首领掉落里至少有一次真正的惊喜；
 // 掉落的"预算"依然跟着敌方战斗力(calcPS)和层数走，越往后掉的装备越强，70%现场生成/30%精选，
 // 装备种类理论上无限——这些都延续了原本的设计，这次只是把"掉不掉、掉几件"的手感调得更慷慨、更有起伏
-function maybeGrantEquipment(tier){
-  const isBoss=tier==='boss',isElite=tier==='elite',isFight=!isBoss&&!isElite;
-  if(isFight&&Math.random()>=.15)return; // 普通怪：15%概率带件装备回来，不再是"打了也白打"
-  if(isElite&&Math.random()>=.7)return;  // 精英：40%→70%，明显更容易掉
+// 装备掉落的预算/概率计算，从原来的 maybeGrantEquipment() 拆出来，供"主掉落"和"追加掉落"共用同一份公式
+function _equipRollBudget(tier,takeHigher){
+  const isBoss=tier==='boss',isElite=tier==='elite';
   const ps=calcPS();
   const baseBudget=(isBoss?32:isElite?18:9)+ps*(isBoss?.4:isElite?.32:.2);
-  const rollBudget=(takeHigher)=>{
-    const b=baseBudget+Math.random()*(isBoss?30:isElite?18:10);
-    if(!takeHigher)return b;
-    const b2=baseBudget+Math.random()*(isBoss?30:18);
-    return Math.max(b,b2); // 首领的头一件：掷两次预算取更高的那次，保证不会一直是平庸的货
-  };
-  const rollItem=(budget)=>Math.random()<.3?EQUIP_DB[0|Math.random()*EQUIP_DB.length]:EquipGen.one(budget);
-  const drops=[rollItem(rollBudget(isBoss))];
-  if(isBoss)drops.push(rollItem(rollBudget(false))); // 首领至少2件
-  if(isBoss&&Math.random()<.35)drops.push(rollItem(rollBudget(false))); // 35%概率再来第3件
-  if(isElite&&Math.random()<.15)drops.push(rollItem(rollBudget(false))); // 精英15%概率双件
-  drops.forEach(item=>{
+  const b=baseBudget+Math.random()*(isBoss?30:isElite?18:10);
+  if(!takeHigher)return b;
+  const b2=baseBudget+Math.random()*(isBoss?30:18);
+  return Math.max(b,b2); // 首领的头一件：掷两次预算取更高的那次，保证不会一直是平庸的货
+}
+function _equipRollItem(budget){return Math.random()<.3?EQUIP_DB[0|Math.random()*EQUIP_DB.length]:EquipGen.one(budget);}
+// 主掉落：这次遭遇"值不值得掉件装备"的判定，返回具体这一件，但先不发到背包里——
+// 交给结算界面当"选卡牌还是选装备"里的一个选项，玩家自己选，不再是打完就白送+弹提示
+function rollPrimaryEquipDrop(tier){
+  const isBoss=tier==='boss',isElite=tier==='elite',isFight=!isBoss&&!isElite;
+  if(isFight&&Math.random()>=.15)return null; // 普通怪：15%概率带件装备回来，不再是"打了也白打"
+  if(isElite&&Math.random()>=.7)return null;  // 精英：40%→70%，明显更容易掉
+  return _equipRollItem(_equipRollBudget(tier,isBoss));
+}
+// 追加掉落：首领必带的第2件、35%概率的第3件、精英15%概率的第2件——这些是"意外之喜"，
+// 不占选择名额，依然直接进背包+弹提示，保留"首领是一次性开箱惊喜"的分量
+function grantBonusEquipDrops(tier){
+  const isBoss=tier==='boss',isElite=tier==='elite';
+  const bonus=[];
+  if(isBoss)bonus.push(_equipRollItem(_equipRollBudget(tier,false)));
+  if(isBoss&&Math.random()<.35)bonus.push(_equipRollItem(_equipRollBudget(tier,false)));
+  if(isElite&&Math.random()<.15)bonus.push(_equipRollItem(_equipRollBudget(tier,false)));
+  bonus.forEach(item=>{
     equipBackpack.push(item);
     const r=equipRarityLabel(item.val);
     toast(`🎁 ${r.label}掉落：${item.icon} ${item.name}（✦${item.val}）！`,r.toastType);
@@ -3037,7 +3047,9 @@ function endBattle(won){
     const g=Math.round((battle.enemy.goldMin+Math.random()*(battle.enemy.goldMax-battle.enemy.goldMin))*gm);
     player.gold+=g;
     applyRelicHooks('onKill',battle,player,g);
-    maybeGrantEquipment(battle.enemy.tier);
+    // 主掉落不再直接进背包——留到结算界面给玩家"选卡牌还是选装备"；追加掉落（首领第2/3件等）依然直接给
+    window._pendingEquipOffer=rollPrimaryEquipDrop(battle.enemy.tier);
+    grantBonusEquipDrops(battle.enemy.tier);
     if(battle.enemy.tier==='boss'){
       rs.chaptersCleared++;
       // "财富守护"暗牌变体：之前只在地图上承诺"高额金币奖励"，却从没真正给过金币，这里补上双倍金币
@@ -3244,6 +3256,8 @@ function showReward(gold){
   }
   picked=picked.slice(0,3);// 兜底：奖励一次最多只给3张
   window._rw=shuf(picked);window._rwSel=null;window._rwGold=gold;window._rwLabel=isBoss?`☠ 击败 ${enemy.name}`:isElite?`✦ 掠夺 ${enemy.name}`:forceRare?'✦ 事件奖励':'⚔ 战斗奖励';window._rwBoss=isBoss;window._rwElite=isElite;window._rwForce=forceRare;window._rwEnemy=enemy.name;
+  // 这次战斗如果掷出了装备主掉落，直接并进同一个选择界面里，跟卡牌二选一，不再另外弹提示
+  window._rwEquip=window._pendingEquipOffer||null;window._pendingEquipOffer=null;
   document.getElementById('ovtag').textContent=isBoss?'☠  战利品':isElite?'✦  精英战利品':'⚔  战斗奖励';
   document.getElementById('ovtit').textContent='选择奖励';
   const rwArt=isBoss?'🏆':isElite?'💎':'🎴';
@@ -3252,16 +3266,30 @@ function showReward(gold){
   showView('ov');renderHud();renderTokens();
   renderRewardUI();
 }
+// 装备掉落并进选卡界面时用的瓦片，视觉上跟卡牌(.tcard)是同一家族，选中态/未选中态也一致
+function renderEquipRewardTile(item,selected,onclickFn){
+  const col=equipColor(item.val);
+  return`<div class="tcard${selected?' tc-sel':''}" onclick="${onclickFn}()">
+    <div class="tc-stripe" style="background:${col}"></div>
+    <div class="tc-cost" style="background:rgba(20,20,30,.92);color:${col}">✦</div>
+    <div class="tc-rar" style="color:${col};border-color:${col}">✦${item.val}</div>
+    <div class="tc-art">${item.icon}</div>
+    <div class="tc-info"><div class="tc-name">${item.name}</div><div class="tc-desc">${item.desc}</div></div>
+  </div>`;
+}
 function renderRewardUI(){
   const picked=window._rw||[];const sel=window._rwSel;const gold=window._rwGold;
-  const isBoss=window._rwBoss;const isElite=window._rwElite;
-  const tableHtml=picked.map((c,i)=>renderPokerCard(c,`selectRwCard(${i})`,{idx:i,total:picked.length,sel:sel===i})).join('');
+  const isBoss=window._rwBoss;const isElite=window._rwElite;const equip=window._rwEquip;
+  const tableHtml=picked.map((c,i)=>renderPokerCard(c,`selectRwCard(${i})`,{idx:i,total:picked.length,sel:sel===i})).join('')
+    +(equip?renderEquipRewardTile(equip,sel==='equip','selectRwEquip'):'');
   let confirmHtml='';
-  if(sel!==null&&sel<picked.length){
+  if(sel==='equip'&&equip){
+    confirmHtml=`<button class="ovbtn gd" style="margin:8px 0 4px" onclick="pickRewardEquip()">✓ 获取 ${equip.icon} ${equip.name}</button>`;
+  }else if(sel!==null&&sel<picked.length){
     const c=picked[sel];
     confirmHtml=`<button class="ovbtn gd" style="margin:8px 0 4px" onclick="pickRewardCard(${sel})">✓ 获取 ${c.name}</button>`;
   }
-  let h=`<div class="ovd">${gold>0?`掠夺 <b>${gold}</b> 金币。`:''}选择一张卡牌：</div>
+  let h=`<div class="ovd">${gold>0?`掠夺 <b>${gold}</b> 金币。`:''}选择一张卡牌${equip?'，或者带走一件装备':''}：</div>
   <div class="tcards-table">${tableHtml}</div>
   ${confirmHtml}`;
   if(isBoss){
@@ -3278,11 +3306,19 @@ function renderRewardUI(){
   document.getElementById('ovb').innerHTML=h;
 }
 function selectRwCard(i){window._rwSel=i;renderRewardUI();}
+function selectRwEquip(){window._rwSel='equip';renderRewardUI();}
 function doAbsorb(type){
   if(type==='hp'){player.maxHp+=20;player.hp=Math.min(player.maxHp,player.hp+20);toast('+20 最大HP','g');backToMap();}
   else if(type==='remove'){showCardPicker('remove',battle.deck.filter(c=>c.rar!=='curse'));}
 }
 function pickRewardCard(i){const c=window._rw[i];if(!c)return;battle.deck.push({...c});toast(`获得：${c.name}`,'g');backToMap();}
+function pickRewardEquip(){
+  const item=window._rwEquip;if(!item)return;
+  equipBackpack.push(item);
+  const r=equipRarityLabel(item.val);
+  toast(`获得：${item.icon} ${item.name}`,r.toastType||'g');
+  backToMap();
+}
 function skipReward(){backToMap();}
 function startEvent(){
   phase=PH.OV;
@@ -4859,11 +4895,13 @@ function showBossReward(){
     {art:'🌟',name:'深渊馈赠',desc:'获得1张稀有卡 + HP回满',apply:()=>{const r=shuf(DB.filter(c=>c.rar==='rare'))[0];if(r){battle.deck.push({...gc(r.id)});}player.hp=player.maxHp;toast('HP回满！获得 '+(r?r.name:'稀有卡'),'g');}},
   ];
   const abilities=shuf(ALL_ABILITIES).slice(0,2);
-  window._bossReward={cardPicks,abilities,sel:null,selType:null};
+  // 首领的装备主掉落也并进这个"三选一大礼包"界面，跟卡牌/能力平级，不再另外弹提示
+  const equipOffer=window._pendingEquipOffer||null;window._pendingEquipOffer=null;
+  window._bossReward={cardPicks,abilities,equipOffer,sel:null,selType:null};
   renderBossRewardUI();
 }
 function renderBossRewardUI(){
-  const{cardPicks,abilities,sel,selType}=window._bossReward;
+  const{cardPicks,abilities,equipOffer,sel,selType}=window._bossReward;
   document.getElementById('ovtag').textContent='☠  首领已倒';
   document.getElementById('ovtit').textContent='选择你的奖励';
   const cardHtml=cardPicks.map((c,i)=>renderPokerCard(c,`selectBossCard(${i})`,{idx:i,total:cardPicks.length,sel:selType==='card'&&sel===i})).join('');
@@ -4872,9 +4910,11 @@ function renderBossRewardUI(){
     <div style="flex:1"><div style="font-size:13px;color:var(--bone);font-family:var(--fs);font-weight:700;margin-bottom:3px">${ab.name}</div><div style="font-size:11px;color:var(--text2);font-style:italic">${ab.desc}</div></div>
     ${selType==='ability'&&sel===i?'<div style="color:var(--amber);font-size:14px">✓</div>':''}
   </div>`).join('');
+  const equipHtml=equipOffer?`<div style="font-size:10px;color:var(--text3);letter-spacing:3px;margin:10px 0 8px;text-align:center">── 或带走一件装备 ──</div>
+  <div class="tcards-table" style="margin-bottom:6px">${renderEquipRewardTile(equipOffer,selType==='equip','selectBossEquip')}</div>`:'';
   let confirmHtml='';
   if(sel!==null){
-    const name=selType==='card'?cardPicks[sel]?.name:abilities[sel]?.name;
+    const name=selType==='card'?cardPicks[sel]?.name:selType==='ability'?abilities[sel]?.name:equipOffer?.name;
     confirmHtml=`<div style="display:flex;gap:8px;margin-top:8px">
       <button class="ovbtn gd" style="flex:1;margin:0" onclick="confirmBossReward()">✓ 选择 ${name||''}</button>
       <button class="ovbtn" style="flex:1;margin:0" onclick="window._bossReward.sel=null;window._bossReward.selType=null;renderBossRewardUI()">✗ 重选</button>
@@ -4883,17 +4923,19 @@ function renderBossRewardUI(){
   const h=`<div style="font-size:10px;color:var(--text3);letter-spacing:3px;margin-bottom:8px;text-align:center">── 选择一张卡牌 ──</div>
   <div class="tcards-table" style="margin-bottom:14px">${cardHtml}</div>
   <div style="font-size:10px;color:var(--text3);letter-spacing:3px;margin-bottom:8px;text-align:center">── 或选择一项能力 ──</div>
-  ${abilHtml}${confirmHtml}`;
+  ${abilHtml}${equipHtml}${confirmHtml}`;
   document.getElementById('ovb').innerHTML=h;
   showView('ov');renderHud();renderTokens();
 }
 function selectBossCard(i){window._bossReward.sel=i;window._bossReward.selType='card';renderBossRewardUI();}
 function selectBossAbility(i){window._bossReward.sel=i;window._bossReward.selType='ability';renderBossRewardUI();}
+function selectBossEquip(){window._bossReward.sel='equip';window._bossReward.selType='equip';renderBossRewardUI();}
 function confirmBossReward(){
-  const{cardPicks,abilities,sel,selType}=window._bossReward;
+  const{cardPicks,abilities,equipOffer,sel,selType}=window._bossReward;
   if(sel===null)return;
   if(selType==='card'){const c=cardPicks[sel];if(c)battle.deck.push({...c});toast('获得：'+(c?.name||''),'g');}
   else if(selType==='ability'){abilities[sel]?.apply();}
+  else if(selType==='equip'){if(equipOffer){equipBackpack.push(equipOffer);toast('获得：'+equipOffer.icon+' '+equipOffer.name,'g');}}
   window._bossReward=null;
   if(window._gameMode==='story'){setTimeout(finishExpedition,600);return;}
   chapter.floor++;setTimeout(()=>showCutscene('floor'+chapter.floor,showChapterIntro),600);
