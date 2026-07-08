@@ -4125,14 +4125,14 @@ function renderEquipment(){
   const slotsHtml=EQUIP_SLOTS.map(slot=>{
     const item=equipment[slot];const label=EQUIP_SLOT_NAME[slot];
     if(!item){
-      return`<div style="display:flex;align-items:center;gap:10px;padding:10px;border:1px dashed var(--crack2);margin-bottom:6px;opacity:.55">
-        <div style="font-size:22px;width:32px;text-align:center">${EQUIP_SLOT_ICON[slot]}</div>
+      return`<div style="display:flex;align-items:center;gap:10px;padding:10px;border:2px dashed var(--crack2);margin-bottom:6px;opacity:.55">
+        <div style="font-size:22px;width:32px;text-align:center;filter:var(--icon-outline-sm)">${EQUIP_SLOT_ICON[slot]}</div>
         <div style="flex:1;font-size:11px;color:var(--text3)">${label} · 空</div>
       </div>`;
     }
     const col=equipColor(item.val);
-    return`<div style="display:flex;align-items:center;gap:10px;padding:10px;border:1px solid ${col};margin-bottom:6px;cursor:pointer;background:rgba(255,255,255,.02);box-shadow:0 0 8px ${col}55" onclick="unequipItem('${slot}')">
-      <div style="font-size:22px;width:32px;text-align:center">${item.icon}</div>
+    return`<div style="display:flex;align-items:center;gap:10px;padding:10px;border:2px solid ${col};margin-bottom:6px;cursor:pointer;background:rgba(255,255,255,.02);box-shadow:3px 3px 0 var(--void)" onclick="unequipItem('${slot}')">
+      <div style="font-size:22px;width:32px;text-align:center;filter:var(--icon-outline-sm)">${item.icon}</div>
       <div style="flex:1">
         <div style="font-size:11px;color:${col};font-weight:700">${item.name} <span style="color:var(--text3);font-size:9px">（${label}）</span> <span style="color:${col}">✦${item.val}</span></div>
         <div style="font-size:9px;color:var(--text2);margin-top:2px">${item.desc}</div>
@@ -4142,8 +4142,8 @@ function renderEquipment(){
   }).join('');
   const bpHtml=equipBackpack.length?equipBackpack.map((item,i)=>{
     const col=equipColor(item.val);
-    return`<div style="display:flex;align-items:center;gap:10px;padding:10px;border:1px solid ${col};margin-bottom:6px;box-shadow:0 0 8px ${col}55">
-      <div style="font-size:20px;width:30px;text-align:center;cursor:pointer" onclick="equipItem(${i})">${item.icon}</div>
+    return`<div style="display:flex;align-items:center;gap:10px;padding:10px;border:2px solid ${col};margin-bottom:6px;box-shadow:3px 3px 0 var(--void)">
+      <div style="font-size:20px;width:30px;text-align:center;cursor:pointer;filter:var(--icon-outline-sm)" onclick="equipItem(${i})">${item.icon}</div>
       <div style="flex:1;cursor:pointer" onclick="equipItem(${i})">
         <div style="font-size:11px;color:${col}">${item.name} <span style="color:var(--text3);font-size:9px">（${EQUIP_SLOT_NAME[item.slot]}）</span> <span style="color:${col}">✦${item.val}</span></div>
         <div style="font-size:9px;color:var(--text2);margin-top:2px">${item.desc}</div>
