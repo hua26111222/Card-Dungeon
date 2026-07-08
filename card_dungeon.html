@@ -162,11 +162,17 @@ body::after{content:'';position:fixed;inset:0;z-index:9998;pointer-events:none;
 .bv-top{flex:0 0 50%;display:flex;flex-direction:column;min-height:0;overflow:hidden}
 .bv-bottom{flex:0 0 50%;display:flex;flex-direction:column;min-height:0;overflow:hidden}
 .bscene{flex:1;min-height:0;position:relative;overflow:hidden;display:flex;align-items:stretch;
-  background:#07050e}
-.bscene::before{content:'';position:absolute;left:6%;right:6%;bottom:82px;height:2px;z-index:1;pointer-events:none;
-  background:var(--crack2)}
-.bscene::after{content:'';position:absolute;bottom:82px;left:6%;right:6%;height:12px;z-index:0;pointer-events:none;
-  background:radial-gradient(ellipse at 50% 100%,rgba(0,0,0,.75) 0%,transparent 70%)}
+  background:var(--void)}
+/* 战场不再是一整块纯黑——叠一层跟当前地牢主题同色的星点/远景剪影(复用.scenebg那套)，
+   底下再铺一块带方格纹理的"地板"，角色才有个真正站着的地方，而不是浮在虚空里 */
+.bscene::before{content:'';position:absolute;left:0;right:0;bottom:0;height:74px;z-index:1;pointer-events:none;
+  background:
+    repeating-linear-gradient(90deg,rgba(255,255,255,.05) 0,rgba(255,255,255,.05) 1px,transparent 1px,transparent 22px),
+    repeating-linear-gradient(0deg,rgba(255,255,255,.045) 0,rgba(255,255,255,.045) 1px,transparent 1px,transparent 14px),
+    linear-gradient(0deg,var(--s2),var(--s1) 90%);
+  border-top:2px solid var(--crack2)}
+.bscene::after{content:'';position:absolute;bottom:74px;left:0;right:0;height:16px;z-index:1;pointer-events:none;
+  background:linear-gradient(0deg,rgba(0,0,0,.45),transparent)}
 .etag{position:absolute;top:5px;left:50%;transform:translateX(-50%);z-index:5;
   font-size:9px;color:rgba(200,169,110,.55);letter-spacing:2px;font-style:italic;
   background:rgba(0,0,0,.45);padding:2px 10px;white-space:nowrap;pointer-events:none}
@@ -792,7 +798,7 @@ body::after{content:'';position:fixed;inset:0;z-index:9998;pointer-events:none;
 
         <span style="margin-left:auto;color:var(--text3)">回合 <b id="dtn" style="color:var(--text2)">1</b></span>
       </div>
-      <div class="bscene">
+      <div class="bscene scenebg">
         <div class="etag" id="etag">战斗遭遇</div>
         <div id="btxt"></div>
         <div id="enemy-speech"></div>
@@ -3783,6 +3789,7 @@ function previewUpgrade(c){
 }
 // ── SVG人形立绘系统 ──
 function _chDk(h,a){const p=(n)=>{const v=Math.max(0,parseInt(n,16)-a);return(v<16?'0':'')+v.toString(16);};return'#'+p(h.slice(1,3))+p(h.slice(3,5))+p(h.slice(5,7));}
+function _chLt(h,a){const p=(n)=>{const v=Math.min(255,parseInt(n,16)+a);return(v<16?'0':'')+v.toString(16);};return'#'+p(h.slice(1,3))+p(h.slice(3,5))+p(h.slice(5,7));}
 function _chrng(seed){let s=((seed^0x12345)>>>0)||1;return()=>{s=((s*1664525+1013904223)>>>0);return s%100;};}
 const _CHR_SK=['#f5d0a9','#e8b585','#d4956a','#c07850','#8b6040','#f0e8d0','#fff0d0','#d0e8d0'];
 const _CHR_HR=['#2a1a0a','#5a3010','#8b5020','#c07030','#d4a060','#f0d080','#e0e0e0','#4a4080','#c04040','#208040'];
@@ -3883,31 +3890,39 @@ function drawHumanoid(p,W,H){
   const d=[];
   const isBulky=p.build==='bulky',isSlim=p.build==='slim';
   const cx=Math.round(W/2);
-  const HR=isSlim?7:isBulky?10:8.5;
+  // 头稍微调大、身体大幅收窄——原来身体宽度接近半个画布，看起来像一块方形色块顶着个小圆头；
+  // 现在头身比例更接近"小人"该有的样子，身体也分了暗/亮两条竖带，不再是纯色色块
+  const HR=isSlim?7.5:isBulky?11.5:9.5;
   const HY=Math.round(H*.22);
   const NY=HY+Math.round(HR*1.15);
   const TY=NY+3;
   const BH=Math.round(isBulky?H*.31:isSlim?H*.27:H*.29);
   const BY=TY+BH;
-  const BW=isBulky?22:isSlim?13:17;
+  const BW=isBulky?15:isSlim?8.5:11.5;
+  // 脚下的接地投影——最容易被忽略但最能让角色"站在地上"而不是"浮在半空"的一笔
+  d.push(`<ellipse cx="${cx}" cy="${BY+Math.round(H*.28)+3}" rx="${Math.round(BW*1.6)}" ry="3" fill="#000" opacity=".4"/>`);
   if(p.cape){d.push(`<path d="M${cx-BW*.5},${TY+6} Q${cx-BW*1.8},${BY+H*.08} ${cx-BW*.3},${BY+H*.22} L${cx+BW*.3},${BY+H*.22} Q${cx+BW*1.8},${BY+H*.08} ${cx+BW*.5},${TY+6}" fill="${p.ot}" opacity=".68"/>`);}
-  const AY=TY+2,AW=isBulky?5.5:isSlim?3:4,ALen=Math.round(isBulky?H*.18:H*.15);
-  d.push(`<rect x="${cx-BW-AW*2}" y="${AY}" width="${AW*2}" height="${ALen}" fill="${p.ot}" rx="2"/>`);
+  const AY=TY+2,AW=isBulky?4.5:isSlim?2.6:3.4,ALen=Math.round(isBulky?H*.17:H*.14);
+  d.push(`<rect x="${cx-BW-AW*2}" y="${AY}" width="${AW*2}" height="${ALen}" fill="${_chDk(p.ot,18)}" rx="2"/>`);
   d.push(`<rect x="${cx+BW}" y="${AY}" width="${AW*2}" height="${ALen}" fill="${p.ot}" rx="2"/>`);
   const handY=AY+ALen;
-  _drawWpn(d,p.weapon,cx+BW+AW*2-2,handY,Math.round(H*.22),p.ac);
-  const FALen=Math.round(ALen*.6);
+  _drawWpn(d,p.weapon,cx+BW+AW*2-2,handY,Math.round(H*.24),p.ac);
+  const FALen=Math.round(ALen*.65);
   d.push(`<rect x="${cx-BW-AW*2+1}" y="${handY}" width="${AW*2-1}" height="${FALen}" fill="${p.sk}" rx="2"/>`);
   d.push(`<rect x="${cx+BW+1}" y="${handY}" width="${AW*2-1}" height="${FALen}" fill="${p.sk}" rx="2"/>`);
-  d.push(`<rect x="${cx-BW}" y="${TY}" width="${BW*2}" height="${BH}" fill="${p.ot}" rx="${isBulky?5:3}"/>`);
-  d.push(`<rect x="${cx-BW+2}" y="${TY+Math.round(BH*.65)}" width="${BW*2-4}" height="4" fill="${p.ac}" rx="2" opacity=".85"/>`);
+  // 躯干改成"暗侧+主色+亮侧"三条竖带，制造一点体积感，不再是一块纯色矩形
+  const torsoR=isBulky?5:3;
+  d.push(`<rect x="${cx-BW}" y="${TY}" width="${BW*2}" height="${BH}" fill="${p.ot}" rx="${torsoR}"/>`);
+  d.push(`<rect x="${cx-BW}" y="${TY}" width="${Math.round(BW*.55)}" height="${BH}" fill="${_chDk(p.ot,32)}" rx="${torsoR}"/>`);
+  d.push(`<rect x="${+(cx+BW*.35).toFixed(1)}" y="${TY}" width="${Math.round(BW*.5)}" height="${BH}" fill="${_chLt(p.ot,24)}" rx="${torsoR}" opacity=".82"/>`);
+  d.push(`<rect x="${cx-BW+2}" y="${TY+Math.round(BH*.65)}" width="${BW*2-4}" height="4" fill="${p.ac}" rx="2" opacity=".9"/>`);
   if(isBulky)d.push(`<rect x="${cx-6}" y="${TY+4}" width="12" height="6" fill="${p.ac}" rx="2" opacity=".5"/>`);
-  const LW=isBulky?8:isSlim?5:6,LLeg=Math.round(H*.28),LY=BY;
-  d.push(`<rect x="${cx-BW*.5-LW}" y="${LY}" width="${LW*2}" height="${LLeg}" fill="${p.lg}" rx="3"/>`);
-  d.push(`<rect x="${cx+BW*.5-LW}" y="${LY}" width="${LW*2}" height="${LLeg}" fill="${p.lg}" rx="3"/>`);
+  const LW=isBulky?7:isSlim?4.5:5.5,LLeg=Math.round(H*.28),LY=BY;
+  d.push(`<rect x="${+(cx-BW*.75-LW).toFixed(1)}" y="${LY}" width="${LW*2}" height="${LLeg}" fill="${_chDk(p.lg,12)}" rx="3"/>`);
+  d.push(`<rect x="${+(cx+BW*.75-LW).toFixed(1)}" y="${LY}" width="${LW*2}" height="${LLeg}" fill="${p.lg}" rx="3"/>`);
   const bootY=LY+LLeg;
-  d.push(`<rect x="${cx-BW*.5-LW-2}" y="${bootY}" width="${LW*2+4}" height="5" fill="${_chDk(p.ac,30)}" rx="2"/>`);
-  d.push(`<rect x="${cx+BW*.5-LW-2}" y="${bootY}" width="${LW*2+4}" height="5" fill="${_chDk(p.ac,30)}" rx="2"/>`);
+  d.push(`<rect x="${+(cx-BW*.75-LW-2).toFixed(1)}" y="${bootY}" width="${LW*2+4}" height="5" fill="${_chDk(p.ac,30)}" rx="2"/>`);
+  d.push(`<rect x="${+(cx+BW*.75-LW-2).toFixed(1)}" y="${bootY}" width="${LW*2+4}" height="5" fill="${_chDk(p.ac,30)}" rx="2"/>`);
   d.push(`<rect x="${cx-4}" y="${NY}" width="8" height="5" fill="${p.undead?'#b0d8b0':p.sk}" rx="1"/>`);
   _drawHead(d,p,cx,HY,HR);
   return`<svg width="${W}" height="${H}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}">${d.join('')}</svg>`;
@@ -3918,15 +3933,15 @@ function genPlayerAppearance(){
 }
 function getPlayerSprite(){
   if(!window._playerAppear)window._playerAppear=genPlayerAppearance();
-  return drawHumanoid(window._playerAppear,72,110);
+  return drawHumanoid(window._playerAppear,82,125);
 }
 function getEnemySprite(tier,trait){
   let seed=0;
   if(trait){for(let i=0;i<trait.length;i++)seed+=trait.charCodeAt(i)*(i+7);}
   seed+=tier.length*11;
   const p=genCharParams(seed,trait);
-  const W=tier==='boss'?88:tier==='elite'?76:66;
-  const H=tier==='boss'?128:tier==='elite'?114:102;
+  const W=tier==='boss'?102:tier==='elite'?88:76;
+  const H=tier==='boss'?150:tier==='elite'?132:117;
   return drawHumanoid(p,W,H);
 }
 function triggerPAnim(cls){
