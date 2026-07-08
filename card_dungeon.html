@@ -34,6 +34,10 @@
   --fp:'Press Start 2P',var(--fm); /* 像素点阵字体：只用在数字/短英文标签上，中文正文绝不用它（笔画太多会糊成一坨） */
   /* 场景氛围色：由 setSceneAccent() 按当前主题现场改写，供下面 .scenebg 的星点/剪影底纹取色 */
   --scene-dot:rgba(120,90,200,.55);--scene-ridge1:rgba(120,90,200,.16);--scene-ridge2:rgba(120,90,200,.10);
+  /* 系统自带的彩色emoji（图标/立绘）没法真的重画成像素图，但可以给它们统一描一圈硬边黑边，
+     视觉上更像"带黑色描边的复古精灵图"，跟整体硬边框架不那么打架——大小两档，按图标尺寸选用 */
+  --icon-outline-sm:drop-shadow(1px 0 0 rgba(0,0,0,.75)) drop-shadow(-1px 0 0 rgba(0,0,0,.75)) drop-shadow(0 1px 0 rgba(0,0,0,.75)) drop-shadow(0 -1px 0 rgba(0,0,0,.75)) saturate(1.1);
+  --icon-outline-lg:drop-shadow(2px 0 0 rgba(0,0,0,.8)) drop-shadow(-2px 0 0 rgba(0,0,0,.8)) drop-shadow(0 2px 0 rgba(0,0,0,.8)) drop-shadow(0 -2px 0 rgba(0,0,0,.8)) saturate(1.15);
 }
 /* ══ 场景氛围底纹：给内容量小、下面容易大片空黑的界面加一层装饰——星点+两道山脊剪影，
    借鉴老式主机游戏"分层剪影背景"的做法：不是真的画风景插画，纯CSS图层，颜色跟主题走 ══ */
@@ -130,7 +134,7 @@ body::after{content:'';position:fixed;inset:0;z-index:9998;pointer-events:none;
 .mcard-blind{border-style:dashed!important;background:rgba(10,7,18,.97)!important}
 .mcsuit{position:absolute;top:3px;left:5px;font-size:11px;font-weight:900;line-height:1}
 .mclabel{position:absolute;top:3px;right:5px;font-size:8px;font-weight:700}
-.mcicon{font-size:20px;margin-bottom:2px}
+.mcicon{font-size:20px;margin-bottom:2px;filter:var(--icon-outline-sm)}
 .mctype{font-size:7px;letter-spacing:1px;font-weight:700;text-align:center;padding:0 2px}
 .mchint{font-size:6px;opacity:.7;margin-top:1px;letter-spacing:.5px;font-style:italic}
 /* 篝火·铁匠铺 blessing card */
@@ -175,15 +179,17 @@ body::after{content:'';position:fixed;inset:0;z-index:9998;pointer-events:none;
 .bchar-e::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;z-index:3;
   background:linear-gradient(90deg,var(--blood2),var(--gore),var(--blood2))}
 .pav{flex:1;width:100%;min-height:50px;display:flex;align-items:flex-end;justify-content:center;font-size:58px;
-  padding-bottom:4px;position:relative;overflow:hidden;filter:drop-shadow(0 4px 10px rgba(0,0,0,.8));
+  padding-bottom:4px;position:relative;overflow:hidden;filter:var(--icon-outline-lg);
   animation:idle-bob 2.1s ease-in-out infinite}
 .ep{flex:1;width:100%;min-height:60px;display:flex;align-items:flex-end;justify-content:center;font-size:78px;
-  padding-bottom:2px;position:relative;overflow:hidden;filter:drop-shadow(0 4px 12px rgba(0,0,0,.9))}
+  padding-bottom:2px;position:relative;overflow:hidden;filter:var(--icon-outline-lg)}
 .ep::after{content:'';position:absolute;inset:0;
   background:repeating-linear-gradient(180deg,transparent 0,transparent 2px,rgba(0,0,0,.18) 2px,rgba(0,0,0,.18) 3px);pointer-events:none}
-.ep.fe{filter:drop-shadow(0 4px 12px rgba(0,0,0,.9)) drop-shadow(0 0 18px rgba(200,136,26,.5))}
-.ep.fb{animation:bpulse 3s ease-in-out infinite;filter:drop-shadow(0 4px 12px rgba(0,0,0,.9)) drop-shadow(0 0 22px rgba(154,90,191,.6))}
-@keyframes bpulse{0%,100%{filter:drop-shadow(0 4px 12px rgba(0,0,0,.9)) drop-shadow(0 0 14px rgba(106,58,154,.4))}50%{filter:drop-shadow(0 4px 12px rgba(0,0,0,.9)) drop-shadow(0 0 28px rgba(154,90,191,.8))}}
+/* 精英/首领不再靠"柔光光晕"区分，改成硬边描边直接换色——琥珀色=精英，紫色=首领，
+   跟整体红白机硬边风格一致，色彩本身依然能让人一眼看出"这只不一般" */
+.ep.fe{filter:drop-shadow(2px 0 0 rgba(212,136,26,.9)) drop-shadow(-2px 0 0 rgba(212,136,26,.9)) drop-shadow(0 2px 0 rgba(212,136,26,.9)) drop-shadow(0 -2px 0 rgba(212,136,26,.9)) saturate(1.15)}
+.ep.fb{animation:bpulse 1.2s steps(2) infinite}
+@keyframes bpulse{0%,100%{filter:drop-shadow(2px 0 0 rgba(154,90,191,.9)) drop-shadow(-2px 0 0 rgba(154,90,191,.9)) drop-shadow(0 2px 0 rgba(154,90,191,.9)) drop-shadow(0 -2px 0 rgba(154,90,191,.9)) saturate(1.15)}50%{filter:drop-shadow(2px 0 0 rgba(184,88,255,1)) drop-shadow(-2px 0 0 rgba(184,88,255,1)) drop-shadow(0 2px 0 rgba(184,88,255,1)) drop-shadow(0 -2px 0 rgba(184,88,255,1)) saturate(1.3)}}
 .binfo-p{width:100%;text-align:center;background:rgba(0,0,0,.84);border-top:1px solid rgba(122,170,191,.18);padding:6px 7px 7px;flex-shrink:0;z-index:3}
 .binfo-e{width:100%;text-align:center;background:rgba(0,0,0,.84);border-top:1px solid rgba(139,26,26,.28);padding:6px 7px 7px;flex-shrink:0;z-index:3}
 .en{font-family:var(--fs);font-size:14px;font-weight:900;letter-spacing:1px;margin-bottom:2px;color:var(--text);text-shadow:2px 2px 0 #000}
@@ -250,6 +256,7 @@ body::after{content:'';position:fixed;inset:0;z-index:9998;pointer-events:none;
 .hca{height:38px;background:var(--s3);
   display:flex;align-items:center;justify-content:center;font-size:19px;
   border-bottom:2px solid var(--crack);position:relative;overflow:hidden;z-index:2}
+.hca-ic{filter:var(--icon-outline-sm)}
 .hcb{padding:3px 4px 3px;position:relative;z-index:2}
 .hcn{font-family:var(--fs);font-size:9.5px;font-weight:700;color:var(--bone);margin-bottom:1px;line-height:1.2;text-shadow:1px 1px 0 #000}
 .hct{font-size:7px;color:var(--text3);letter-spacing:1px;margin-bottom:1px;font-style:italic}
@@ -291,7 +298,7 @@ body::after{content:'';position:fixed;inset:0;z-index:9998;pointer-events:none;
 .ovtit{font-family:var(--fs);font-size:18px;font-weight:900;color:var(--bone);letter-spacing:3px;
   text-shadow:2px 2px 0 #000;flex:1;min-width:0}
 #ov-art{font-size:42px;line-height:1;flex-shrink:0;
-  animation:ov-art-in .2s steps(3);text-align:center}
+  animation:ov-art-in .2s steps(3);text-align:center;filter:var(--icon-outline-lg)}
 @keyframes ov-art-in{from{opacity:0;transform:scale(.7) translateX(10px)}to{opacity:1;transform:none}}
 .ov-story{font-size:11px;color:var(--text3);line-height:1.7;margin-top:8px;padding-top:8px;
   border-top:2px solid var(--crack);font-style:italic;letter-spacing:.3px}
@@ -332,7 +339,7 @@ body::after{content:'';position:fixed;inset:0;z-index:9998;pointer-events:none;
 .rslot{border:1px dashed var(--crack2);border-radius:4px;padding:8px 6px;text-align:center;min-height:70px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;transition:border-color .15s,background .15s}
 .rslot.filled{border-color:var(--amber2);background:rgba(100,75,15,.12);cursor:default}
 .rslot.filled:active{opacity:.7}
-.rslot-art{font-size:20px;line-height:1}
+.rslot-art{font-size:20px;line-height:1;filter:var(--icon-outline-sm)}
 .rslot-name{font-size:8px;color:var(--bone);letter-spacing:1px;text-align:center;line-height:1.3}
 .rslot-type{font-size:7px;color:var(--text3);letter-spacing:1px}
 .rbag-item{background:linear-gradient(135deg,var(--s3),var(--s4));border:1px solid var(--crack2);padding:9px 11px;display:flex;align-items:center;gap:9px;margin-bottom:7px;border-radius:2px}
@@ -384,7 +391,7 @@ body::after{content:'';position:fixed;inset:0;z-index:9998;pointer-events:none;
 #gov{display:none;flex-direction:column;align-items:center;justify-content:flex-start;
   min-height:calc(100vh - 88px);text-align:center;padding:28px 20px;
   background-color:var(--void)}
-.goico{font-size:64px;margin-bottom:14px}
+.goico{font-size:64px;margin-bottom:14px;filter:var(--icon-outline-lg)}
 .gotit{font-family:var(--fs);font-size:26px;font-weight:900;letter-spacing:5px;text-shadow:3px 3px 0 #000;margin-bottom:8px}
 .gosub{font-size:10px;color:var(--text3);letter-spacing:2px;margin-bottom:20px;line-height:2;font-style:italic}
 .gost{background:var(--s2);border:2px solid var(--crack2);box-shadow:3px 3px 0 var(--void);
@@ -453,7 +460,7 @@ body::after{content:'';position:fixed;inset:0;z-index:9998;pointer-events:none;
 .ccard.cc-sel{border-color:var(--amber);box-shadow:3px 5px 0 var(--amber2)}
 .ccard-top{height:3px;background:var(--amber2);
   margin:-10px -8px 8px;flex-shrink:0}
-.ccard-icon{font-size:26px;text-align:center;padding:6px 0 4px;flex-shrink:0}
+.ccard-icon{font-size:26px;text-align:center;padding:6px 0 4px;flex-shrink:0;filter:var(--icon-outline-sm)}
 .ccard-text{font-family:var(--fs);font-size:9.5px;font-weight:700;color:var(--bone);
   line-height:1.5;margin-bottom:6px;text-align:center}
 .ccard-sub{font-size:7.5px;color:var(--text2);line-height:1.5;font-style:italic;
@@ -471,7 +478,7 @@ body::after{content:'';position:fixed;inset:0;z-index:9998;pointer-events:none;
   letter-spacing:.5px;background:rgba(0,0,0,.65)}
 .tc-art{
   flex:1;display:flex;align-items:center;justify-content:center;
-  font-size:32px;padding:14px 0 6px;position:relative}
+  font-size:32px;padding:14px 0 6px;position:relative;filter:var(--icon-outline-sm)}
 .tc-info{
   padding:5px 6px 8px;
   background:rgba(0,0,0,.7);
@@ -3570,7 +3577,7 @@ function renderHand(){
     const rarBadge=c.rar==='rare'?`<div class="hcrb rr">◆</div>`:c.rar==='uncommon'?`<div class="hcrb ru">◇</div>`:c.rar==='curse'?`<div class="hcrb rcu">☠</div>`:`<div class="hcrb rc">○</div>`;
     const val=cardValue(c);const valBadge=val>0?`<div class="hcv">${val}g</div>`:'';
     const upgBadge=c.upgradeCount?`<div class="hcup">+${c.upgradeCount}</div>`:'';
-    return`<div class="hc ${kc}${sel?' sel':''}${unplay?' unp':''}" onclick="selectCard(${i})"><div class="hcc ${cc}">${c.cost}</div><div class="hca">${c.art}</div><div class="hcb"><div class="hcn">${c.name}${upgBadge}</div><div class="hct">${kn}${c.dur?'·全场':''}</div><div class="hcd">${d}</div><div class="hcr ${rc2}"></div></div>${rarBadge}${valBadge}</div>`;
+    return`<div class="hc ${kc}${sel?' sel':''}${unplay?' unp':''}" onclick="selectCard(${i})"><div class="hcc ${cc}">${c.cost}</div><div class="hca"><span class="hca-ic">${c.art}</span></div><div class="hcb"><div class="hcn">${c.name}${upgBadge}</div><div class="hct">${kn}${c.dur?'·全场':''}</div><div class="hcd">${d}</div><div class="hcr ${rc2}"></div></div>${rarBadge}${valBadge}</div>`;
   }).join('');
   updatePlayButton();
 }
@@ -4524,7 +4531,7 @@ function renderFusionUI(){
     const d=(c.desc||'').replace('{atk}',c.atk||0).replace('{blk}',c.blk||0).replace('{heal}',c.heal||0).replace('{str}',c.str||0);
     const val=cardValue(c);
     h+=`<div class="rw${isSel?' rw-sel':''}" onclick="toggleFusion(${ri})" style="${isSel?'border-color:var(--violet);background:rgba(106,58,154,.15)':''}">
-      <div class="rwa">${c.art}</div><div class="rwi"><div class="rwn">${c.name} ${c.upgradeCount?`<span style="color:var(--slime);font-size:9px;font-weight:700">+${c.upgradeCount}</span>`:''} <span style="color:var(--amber);font-size:8px">≈${val}g</span></div>
+      <div class="rwa"><span class="hca-ic">${c.art}</span></div><div class="rwi"><div class="rwn">${c.name} ${c.upgradeCount?`<span style="color:var(--slime);font-size:9px;font-weight:700">+${c.upgradeCount}</span>`:''} <span style="color:var(--amber);font-size:8px">≈${val}g</span></div>
       <div class="rwd"><span style="color:var(--text3)">${kn(c.kind)} ◆${c.cost}</span> · ${d}</div></div>
       ${isSel?'<span style="color:var(--violet);font-size:13px;flex-shrink:0">✓</span>':''}
     </div>`;
