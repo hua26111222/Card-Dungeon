@@ -3190,6 +3190,9 @@ function enemyValIdx(en){
 }
 function showReward(gold){
   phase=PH.OV;
+  // 不管接下来走哪条分支，都先把这次挂起的装备主掉落取出来清空——避免"事件强制奖励"这类
+  // 有提前return的分支忘记消费它，导致它污染到下一场毫不相干的战斗结算
+  const _equipOfferForThisReward=window._pendingEquipOffer||null;window._pendingEquipOffer=null;
   const ps=calcPS();
   const enemy=battle.enemy||{tier:'fight',art:'✦',name:'奖励'};
   const tier=enemy.tier;
@@ -3222,6 +3225,11 @@ function showReward(gold){
     shuf(rarePool).forEach(c=>{if(granted.length<forceRare&&!usedR.has(c.id)){granted.push(c);usedR.add(c.id);}});
     while(granted.length<forceRare){const c=randCard(usedR);if(!c)break;granted.push(c);usedR.add(c.id);}
     granted.forEach(c=>battle.deck.push({...c}));
+    if(_equipOfferForThisReward){
+      equipBackpack.push(_equipOfferForThisReward);
+      const r=equipRarityLabel(_equipOfferForThisReward.val);
+      toast(`🎁 ${r.label}掉落：${_equipOfferForThisReward.icon} ${_equipOfferForThisReward.name}（✦${_equipOfferForThisReward.val}）！`,r.toastType);
+    }
     document.getElementById('ovtag').textContent='✦  事件奖励';
     document.getElementById('ovtit').textContent='满载而归';
     setSceneArt('🎁',`命运眷顾，你直接获得了 ${granted.length} 张稀有卡牌！`);
@@ -3257,7 +3265,7 @@ function showReward(gold){
   picked=picked.slice(0,3);// 兜底：奖励一次最多只给3张
   window._rw=shuf(picked);window._rwSel=null;window._rwGold=gold;window._rwLabel=isBoss?`☠ 击败 ${enemy.name}`:isElite?`✦ 掠夺 ${enemy.name}`:forceRare?'✦ 事件奖励':'⚔ 战斗奖励';window._rwBoss=isBoss;window._rwElite=isElite;window._rwForce=forceRare;window._rwEnemy=enemy.name;
   // 这次战斗如果掷出了装备主掉落，直接并进同一个选择界面里，跟卡牌二选一，不再另外弹提示
-  window._rwEquip=window._pendingEquipOffer||null;window._pendingEquipOffer=null;
+  window._rwEquip=_equipOfferForThisReward;
   document.getElementById('ovtag').textContent=isBoss?'☠  战利品':isElite?'✦  精英战利品':'⚔  战斗奖励';
   document.getElementById('ovtit').textContent='选择奖励';
   const rwArt=isBoss?'🏆':isElite?'💎':'🎴';
