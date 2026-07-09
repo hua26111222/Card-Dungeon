@@ -31,7 +31,8 @@
       "Bash(powershell -File auto_sync.ps1)",
       "Bash(PYTHONIOENCODING=utf-8 /c/WBG/Python313/python 'C:\\\\Users\\\\wb659999\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-wb659999-OneDrive---WBG-Desktop-CD0-1\\\\4bd43a34-aba5-40e1-b274-85b58a11bc15\\\\scratchpad/shot_ticker_clean.py' ws://localhost:9340/devtools/page/C9FB65446AC7F0E5BC63D4E8344DCCA6 'C:\\\\Users\\\\wb659999\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-wb659999-OneDrive---WBG-Desktop-CD0-1\\\\4bd43a34-aba5-40e1-b274-85b58a11bc15\\\\scratchpad/ticker_clean_final.png')",
       "Bash(sed -i 's/time.sleep\\(2\\)/time.sleep\\(3.5\\)/' 'C:\\\\Users\\\\wb659999\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-wb659999-OneDrive---WBG-Desktop-CD0-1\\\\4bd43a34-aba5-40e1-b274-85b58a11bc15\\\\scratchpad/shot_ticker_clean.py')",
-      "Bash(/c/WBG/Python313/python 'C:\\\\Users\\\\wb659999\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-wb659999-OneDrive---WBG-Desktop-CD0-1\\\\4bd43a34-aba5-40e1-b274-85b58a11bc15\\\\scratchpad/crop_ticker.py')"
+      "Bash(/c/WBG/Python313/python 'C:\\\\Users\\\\wb659999\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-wb659999-OneDrive---WBG-Desktop-CD0-1\\\\4bd43a34-aba5-40e1-b274-85b58a11bc15\\\\scratchpad/crop_ticker.py')",
+      "Bash(grep -n \"https://\\\\|http://\\\\|<link\\\\|<script src\" card_dungeon.html)"
     ]
   }
 }
