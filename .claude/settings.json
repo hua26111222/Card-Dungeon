@@ -26,7 +26,9 @@
       "Bash(/c/WBG/Python313/python 'C:\\\\Users\\\\wb659999\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-wb659999-OneDrive---WBG-Desktop-CD0-1\\\\4bd43a34-aba5-40e1-b274-85b58a11bc15\\\\scratchpad/crop_check.py')",
       "Bash(/c/WBG/Python313/python 'C:\\\\Users\\\\wb659999\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-wb659999-OneDrive---WBG-Desktop-CD0-1\\\\4bd43a34-aba5-40e1-b274-85b58a11bc15\\\\scratchpad/crop_check2.py')",
       "Bash(curl -s -m 3 http://localhost:8840/card_dungeon.html -o /dev/null -w \"server:%{http_code}\\\\n\")",
-      "Bash(/c/WBG/Python313/python 'C:\\\\Users\\\\wb659999\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-wb659999-OneDrive---WBG-Desktop-CD0-1\\\\4bd43a34-aba5-40e1-b274-85b58a11bc15\\\\scratchpad/crop3.py')"
+      "Bash(/c/WBG/Python313/python 'C:\\\\Users\\\\wb659999\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-wb659999-OneDrive---WBG-Desktop-CD0-1\\\\4bd43a34-aba5-40e1-b274-85b58a11bc15\\\\scratchpad/crop3.py')",
+      "Bash(/c/WBG/Python313/python 'C:\\\\Users\\\\wb659999\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-wb659999-OneDrive---WBG-Desktop-CD0-1\\\\4bd43a34-aba5-40e1-b274-85b58a11bc15\\\\scratchpad/crop5.py')",
+      "Bash(powershell -File auto_sync.ps1)"
     ]
   }
 }

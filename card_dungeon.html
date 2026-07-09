@@ -3810,7 +3810,13 @@ function backToMap(){
   if(window._inCamp){showCamp();return;} // 在营地里点开的商店/铁匠/黑市/装备，退出时要回营地而不是地图
   phase=PH.MAP;showView('mv');renderMap();renderHud();renderTokens();saveGame();startBGM('map');
 }
-function toast(msg,type=''){const el=document.getElementById('toast');el.textContent=msg;el.className='toast on'+(type?' '+type:'');clearTimeout(window._tt);window._tt=setTimeout(()=>el.className='toast',2200);if(phase===PH.BATTLE)logBattle(msg,type==='r'?'en':'sys');}
+function toast(msg,type=''){
+  // 战斗中：消息走战斗日志的滚动提示条（不挡视线），不再额外弹这个悬浮大框——
+  // 悬浮框的固定位置是给"没有滚动提示条"的其它界面（地图/商店/营地）设计的，
+  // 硬套到战斗画面里会正好压在牌库/出牌桌/AP这些密集堆叠的信息上
+  if(phase===PH.BATTLE){logBattle(msg,type==='r'?'en':'sys');return;}
+  const el=document.getElementById('toast');el.textContent=msg;el.className='toast on'+(type?' '+type:'');clearTimeout(window._tt);window._tt=setTimeout(()=>el.className='toast',2200);
+}
 function logBattle(msg,who='sys'){
   if(!battle.log)battle.log=[];
   battle.log.push({msg,who,t:battle.turn||1});
