@@ -112,6 +112,9 @@ body::after{content:'';position:fixed;inset:0;z-index:9998;pointer-events:none;
 .fr{display:flex;align-items:center;gap:8px}
 .psb{font-family:var(--fp);font-size:8px;padding:4px 8px;border:2px solid;letter-spacing:1px;font-style:normal;background:rgba(0,0,0,.5)}
 .fp{font-size:11px;color:var(--text3);letter-spacing:1px}
+/* 地图探索点数：跟战斗行动力一个意思，视觉上也故意用同一套蓝色圆点语言 */
+.mapap{font-family:var(--fp);font-size:9px;padding:4px 7px;border:2px solid var(--ice);color:var(--frost);
+  letter-spacing:2px;background:rgba(58,90,138,.18);display:flex;align-items:center;gap:1px}
 #mwrap{background-color:var(--s1);border-bottom:2px solid var(--crack);padding:6px 0}
 .mprompt{padding:6px 14px 2px;font-size:11px;color:var(--text3);letter-spacing:3px;font-style:italic;text-align:center}
 #mchooser{display:flex;flex-direction:column;gap:4px;padding:6px 8px 4px}
@@ -130,6 +133,11 @@ body::after{content:'';position:fixed;inset:0;z-index:9998;pointer-events:none;
 .mcard.reach:hover{transform:translateY(-4px);box-shadow:3px 5px 0 rgba(0,0,0,.7)}
 .mcard.reach:active{transform:translateY(0)}
 .mcard.path-dim{opacity:.30!important;filter:saturate(.2)!important}
+/* 探索点数不够时，非战斗/暗牌节点还留在"可达范围"里，但点不动——
+   故意不完全变暗（跟真正out-of-reach的格子区分开），只是发蓝、盖一个⚡角标，
+   让玩家一眼看出"不是走不到，是点数不够" */
+.mcard.ap-locked{pointer-events:none!important;filter:saturate(.4) brightness(.72) hue-rotate(20deg)}
+.mcard.ap-locked::after{content:'⚡';position:absolute;bottom:3px;right:4px;font-size:10px;color:var(--frost);text-shadow:0 0 4px var(--ice)}
 .mcard-boss{animation:bpulse 2s ease-in-out infinite}
 .mcard-blind{border-style:dashed!important;background:rgba(10,7,18,.97)!important}
 .mcsuit{position:absolute;top:3px;left:5px;font-size:11px;font-weight:900;line-height:1}
@@ -200,8 +208,10 @@ body::after{content:'';position:fixed;inset:0;z-index:9998;pointer-events:none;
 .ep.fe .ep-inner{filter:drop-shadow(2px 0 0 rgba(212,136,26,.9)) drop-shadow(-2px 0 0 rgba(212,136,26,.9)) drop-shadow(0 2px 0 rgba(212,136,26,.9)) drop-shadow(0 -2px 0 rgba(212,136,26,.9)) saturate(1.15)}
 .ep.fb .ep-inner{animation:idle-flip 1.85s ease-in-out infinite,bpulse 1.2s steps(2) infinite}
 @keyframes bpulse{0%,100%{filter:drop-shadow(2px 0 0 rgba(154,90,191,.9)) drop-shadow(-2px 0 0 rgba(154,90,191,.9)) drop-shadow(0 2px 0 rgba(154,90,191,.9)) drop-shadow(0 -2px 0 rgba(154,90,191,.9)) saturate(1.15)}50%{filter:drop-shadow(2px 0 0 rgba(184,88,255,1)) drop-shadow(-2px 0 0 rgba(184,88,255,1)) drop-shadow(0 2px 0 rgba(184,88,255,1)) drop-shadow(0 -2px 0 rgba(184,88,255,1)) saturate(1.3)}}
-.binfo-p{width:100%;text-align:center;background:rgba(0,0,0,.84);border-top:1px solid rgba(122,170,191,.18);padding:6px 7px 7px;flex-shrink:0;z-index:3}
-.binfo-e{width:100%;text-align:center;background:rgba(0,0,0,.84);border-top:1px solid rgba(139,26,26,.28);padding:6px 7px 7px;flex-shrink:0;z-index:3}
+/* KOF格斗游戏式布局：血条/能量这些"仪表信息"钉在角色上方，角色本体站在下方的场地里——
+   跟原来"角色在上、信息卡片在下"的RPG状态栏观感反过来，更像正统格斗游戏的HUD */
+.binfo-p{width:100%;text-align:center;background:rgba(0,0,0,.84);border-bottom:1px solid rgba(122,170,191,.18);padding:6px 7px 7px;flex-shrink:0;z-index:3}
+.binfo-e{width:100%;text-align:center;background:rgba(0,0,0,.84);border-bottom:1px solid rgba(139,26,26,.28);padding:6px 7px 7px;flex-shrink:0;z-index:3}
 .en{font-family:var(--fs);font-size:14px;font-weight:900;letter-spacing:1px;margin-bottom:2px;color:var(--text);text-shadow:2px 2px 0 #000}
 .en.eli{color:var(--amber);text-shadow:2px 2px 0 #000}
 .en.bos{color:var(--violet);text-shadow:2px 2px 0 #000;animation:nflicker 5s steps(1) infinite}
@@ -807,6 +817,7 @@ body::after{content:'';position:fixed;inset:0;z-index:9998;pointer-events:none;
     <div class="fbar">
       <div class="fl" id="flab">第 I 章</div>
       <div class="fr">
+        <div class="mapap" id="mapap" title="探索点数：非战斗节点(含暗牌)要消耗1点，只能靠打赢明牌上的战斗补充">⚡</div>
         <div class="psb" id="psb">PS 0</div>
         <div class="fp" id="fpg">0/54</div>
       </div>
@@ -839,7 +850,6 @@ body::after{content:'';position:fixed;inset:0;z-index:9998;pointer-events:none;
           <div class="btable-slot"><div class="btable-lbl">对方</div><div class="btable-card empty" id="btable-ecard"></div></div>
         </div>
         <div class="bchar-p">
-          <div class="pav" id="pav">🗡</div>
           <div class="binfo-p">
             <div class="pn" id="pn">无名旅者</div>
             <div class="hbg" style="max-width:88px"><div class="hf pf" id="phb" style="width:100%"></div></div>
@@ -851,10 +861,10 @@ body::after{content:'';position:fixed;inset:0;z-index:9998;pointer-events:none;
             <div class="pap"><span id="app2"></span><span class="papt">AP</span><span id="apt" style="font-size:11px;color:var(--frost);font-weight:700">3/3</span></div>
             <div class="sr" id="ps2"></div>
           </div>
+          <div class="pav" id="pav">🗡</div>
           <div class="rz" id="rz" style="display:none"></div>
         </div>
         <div class="bchar-e">
-          <div class="ep" id="ep">?</div>
           <div class="binfo-e">
             <div class="en" id="en">—</div>
             <div class="hlt" id="eht">0/0</div>
@@ -863,6 +873,7 @@ body::after{content:'';position:fixed;inset:0;z-index:9998;pointer-events:none;
             <div class="ibox" id="ib"><div class="ibox-card atk" id="ib-card"><span id="ib-ic">⚔</span></div><span id="ibt">意图未知</span></div>
             <div class="sr" id="es"></div>
           </div>
+          <div class="ep" id="ep">?</div>
         </div>
       </div>
     </div>
@@ -2433,6 +2444,7 @@ function renderMap(){
   const apStarved=mapAp<1&&anyFreeReachable;
   const mapapEl=document.getElementById('mapap');
   if(mapapEl)mapapEl.innerHTML=`⚡ ${Array.from({length:MAP_AP_CAP},(_,i)=>`<span style="opacity:${i<mapAp?1:.25}">●</span>`).join('')}`;
+  if(apStarved&&!isBossStep)document.getElementById('mprompt').textContent='⚡ 探索点数不足，请先前往可战斗的路：';
 
   // 5级稀有度系统（颜色决定卡牌边框，标签直接显示遇到概率，而非文字等级；定义见全局 VAL_TIERS/CP_VAL_IDX/TYPE_VAL_IDX）
   const VAL_T=VAL_TIERS;
@@ -2470,7 +2482,7 @@ function renderMap(){
     // Boss cards with epithet
     if(card.type==='boss'&&card.epithet){
       const bIcon=card.art||ti.ic;const bvt=VAL_T[4];
-      return`<div class="mcard${reachCls}${bossCls}${dimCls}${selCls}" ${click} style="border-color:${bvt.border};background:${card.bg};box-shadow:0 0 8px ${bvt.border}">
+      return`<div class="mcard${reachCls}${bossCls}${dimCls}${selCls}${lockCls}" ${click} style="border-color:${bvt.border};background:${card.bg};box-shadow:0 0 8px ${bvt.border}">
         ${valBadge(4)}
         <div class="mcicon" style="font-size:22px;text-shadow:0 0 14px ${card.col};margin-top:4px">${bIcon}</div>
         <div style="font-size:6.5px;color:${card.col};font-weight:700;letter-spacing:.5px;text-align:center;padding:0 2px;line-height:1.3">${card.epithet}</div>
@@ -2483,7 +2495,7 @@ function renderMap(){
       const trCol=(TRAIT_DEFS[card.trait]||{}).col||'#6a6a6a';
       const vidx=card.type==='elite'?Math.min(4,(cpToValIdx[card.combatPower]||1)+1):cpToValIdx[card.combatPower]||1;
       const vt=VAL_T[vidx]||VAL_T[1];
-      return`<div class="mcard${reachCls}${dimCls}${selCls}" ${click} style="border-color:${vt.border};background:${card.bg};box-shadow:0 0 6px ${vt.border}">
+      return`<div class="mcard${reachCls}${dimCls}${selCls}${lockCls}" ${click} style="border-color:${vt.border};background:${card.bg};box-shadow:0 0 6px ${vt.border}">
         ${valBadge(vidx)}
         <div class="mcicon" style="font-size:20px;text-shadow:0 0 10px ${cpCol};margin-top:10px">${card.enemyArt}</div>
         <div class="mctype" style="color:${cpCol};font-size:6px;letter-spacing:.3px">${card.enemyName}</div>
@@ -2525,7 +2537,7 @@ function renderMap(){
     const cancel=`<button onclick="window._mapPending=null;renderMap()" style="padding:5px 12px;border:1px solid var(--crack2);background:transparent;color:var(--text2);font-family:var(--fm);font-size:11px;cursor:pointer">✕</button>`;
     let info='';
     if(isBlindCard){
-      info=`<div style="flex:1;font-size:11px;color:var(--text3);letter-spacing:1px">🎴 <b>猜猜看</b> · 暗牌内容未知，效果 ×2</div>`;
+      info=`<div style="flex:1;font-size:11px;color:var(--text3);letter-spacing:1px">🎴 <b>猜猜看</b> · 暗牌内容未知，效果 ×2 <span style="color:var(--frost)">· ⚡消耗1点</span></div>`;
     }else if(isFight&&pcard._hasDims){
       const cpCol=CP_COL[pcard.combatPower]||'#cc7020';
       const cdCol=CD_COL[pcard.cardDmg]||'#8a5a2a';
@@ -2556,7 +2568,7 @@ function renderMap(){
       const story=genCardStory(pcard);
       const tcol=pcard?.type==='blackmarket'?'var(--violet)':pcard?.type==='event'?'#8888cc':'var(--bone)';
       info=`<div style="flex:1;min-width:0">
-        <div style="font-size:10px;font-weight:700;color:${tcol};letter-spacing:.5px">${pti.ic} ${pti.nm}</div>
+        <div style="font-size:10px;font-weight:700;color:${tcol};letter-spacing:.5px">${pti.ic} ${pti.nm} <span style="color:var(--frost);font-size:9px;font-weight:400">· ⚡消耗1点</span></div>
         <div style="font-size:9px;color:var(--text3);margin-top:2px;font-style:italic;line-height:1.5">${story}</div>
       </div>`;
     }
@@ -2580,6 +2592,10 @@ function pickMapCard(col){
   else{reach=new Set([playerCol-1,playerCol,playerCol+1].filter(c=>c>=0&&c<MAP_COLS));}
   if(!reach.has(col))return;
   const card=rows[step][col];if(!card)return;
+
+  // 探索点数要在"revealed=true"之前算，因为暗牌的收费判定就看这一刻它是不是还没揭开
+  const apCost=nodeApCost(card);
+  if(apCost>0)mapData.ap=Math.max(0,(mapData.ap||0)-apCost);
 
   const wasBlind=card.isHidden&&!card.revealed;
   card.revealed=true;
@@ -3097,6 +3113,8 @@ function endBattle(won){
     }
     // 战斗结束，归还封印牌
     if(battle.exiledCards?.length){battle.exiledCards.forEach(c=>battle.discardPile.push(c));}
+    // 打赢一场明牌上的战斗，补充1点地图探索点数——这是点数唯一的来源
+    if(mapData)mapData.ap=Math.min(MAP_AP_CAP,(mapData.ap||0)+1);
     player.kills++;
     const kt=battle.enemy?.trait;
     if(kt){if(!rs.killsByTrait)rs.killsByTrait={};rs.killsByTrait[kt]=(rs.killsByTrait[kt]||0)+1;}

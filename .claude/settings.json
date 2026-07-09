@@ -10,7 +10,10 @@
       "Bash(\"/c/Program Files \\(x86\\)/Microsoft/Edge/Application/msedge.exe\" --headless=new --disable-gpu --no-sandbox --remote-debugging-port=9330 --remote-allow-origins=* --user-data-dir=\"C:\\\\Users\\\\wb659999\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-wb659999-OneDrive---WBG-Desktop-CD0-1\\\\51bb8680-b8e5-4872-af9f-531f4342ee78\\\\scratchpad\\\\edge_fusion\" http://localhost:8830/card_dungeon.html)",
       "Bash(curl -s http://localhost:9330/json)",
       "Bash(PYTHONIOENCODING=utf-8 /c/WBG/Python313/python cdp_fusion_test.py \"ws://localhost:9330/devtools/page/0CB7AF9D0B083EE10D2660570BD262D7\")",
-      "Bash(PYTHONIOENCODING=utf-8 /c/WBG/Python313/python cdp_fusion_exec_test.py \"ws://localhost:9330/devtools/page/0CB7AF9D0B083EE10D2660570BD262D7\")"
+      "Bash(PYTHONIOENCODING=utf-8 /c/WBG/Python313/python cdp_fusion_exec_test.py \"ws://localhost:9330/devtools/page/0CB7AF9D0B083EE10D2660570BD262D7\")",
+      "Bash(\"/c/Program Files \\(x86\\)/Microsoft/Edge/Application/msedge.exe\" --headless=new --disable-gpu --no-sandbox --remote-debugging-port=9340 --remote-allow-origins=* --user-data-dir=\"C:\\\\Users\\\\wb659999\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-wb659999-OneDrive---WBG-Desktop-CD0-1\\\\51bb8680-b8e5-4872-af9f-531f4342ee78\\\\scratchpad\\\\edge_mapap\" http://localhost:8840/card_dungeon.html)",
+      "Bash(curl -s http://localhost:9340/json)",
+      "Bash(PYTHONIOENCODING=utf-8 /c/WBG/Python313/python cdp_mapap_battle_test.py \"ws://localhost:9340/devtools/page/C9FB65446AC7F0E5BC63D4E8344DCCA6\")"
     ]
   }
 }
