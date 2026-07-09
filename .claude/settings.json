@@ -22,7 +22,9 @@
       "Bash(curl -s -m 3 http://localhost:9340/json)",
       "Bash(PYTHONIOENCODING=utf-8 /c/WBG/Python313/python \"C:\\\\Users\\\\wb659999\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-wb659999-OneDrive---WBG-Desktop-CD0-1\\\\4bd43a34-aba5-40e1-b274-85b58a11bc15\\\\scratchpad\\\\mapap_final_verify.py\" \"ws://localhost:9340/devtools/page/C9FB65446AC7F0E5BC63D4E8344DCCA6\")",
       "Bash(PYTHONIOENCODING=utf-8 /c/WBG/Python313/python 'C:\\\\Users\\\\wb659999\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-wb659999-OneDrive---WBG-Desktop-CD0-1\\\\51bb8680-b8e5-4872-af9f-531f4342ee78\\\\scratchpad/cdp_regress_smoke.py' ws://localhost:9340/devtools/page/C9FB65446AC7F0E5BC63D4E8344DCCA6)",
-      "Bash(PYTHONIOENCODING=utf-8 /c/WBG/Python313/python 'C:\\\\Users\\\\wb659999\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-wb659999-OneDrive---WBG-Desktop-CD0-1\\\\51bb8680-b8e5-4872-af9f-531f4342ee78\\\\scratchpad/cdp_battletable_regress.py' ws://localhost:9340/devtools/page/C9FB65446AC7F0E5BC63D4E8344DCCA6)"
+      "Bash(PYTHONIOENCODING=utf-8 /c/WBG/Python313/python 'C:\\\\Users\\\\wb659999\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-wb659999-OneDrive---WBG-Desktop-CD0-1\\\\51bb8680-b8e5-4872-af9f-531f4342ee78\\\\scratchpad/cdp_battletable_regress.py' ws://localhost:9340/devtools/page/C9FB65446AC7F0E5BC63D4E8344DCCA6)",
+      "Bash(/c/WBG/Python313/python 'C:\\\\Users\\\\wb659999\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-wb659999-OneDrive---WBG-Desktop-CD0-1\\\\4bd43a34-aba5-40e1-b274-85b58a11bc15\\\\scratchpad/crop_check.py')",
+      "Bash(/c/WBG/Python313/python 'C:\\\\Users\\\\wb659999\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-wb659999-OneDrive---WBG-Desktop-CD0-1\\\\4bd43a34-aba5-40e1-b274-85b58a11bc15\\\\scratchpad/crop_check2.py')"
     ]
   }
 }
