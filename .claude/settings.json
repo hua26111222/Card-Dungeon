@@ -2,7 +2,10 @@
   "permissions": {
     "allow": [
       "Bash(\"/c/Program Files \\(x86\\)/Microsoft/Edge/Application/msedge.exe\" --headless=new --disable-gpu --no-sandbox --remote-debugging-port=9320 --remote-allow-origins=* --user-data-dir=\"C:\\\\Users\\\\wb659999\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-wb659999-OneDrive---WBG-Desktop-CD0-1\\\\51bb8680-b8e5-4872-af9f-531f4342ee78\\\\scratchpad\\\\edge_battleui\" http://localhost:8820/card_dungeon.html)",
-      "Bash(curl -s http://localhost:9320/json)"
+      "Bash(curl -s http://localhost:9320/json)",
+      "Bash(\"/c/Program Files \\(x86\\)/Microsoft/Edge/Application/msedge.exe\" --headless=new --disable-gpu --no-sandbox --remote-debugging-port=9321 --remote-allow-origins=* --user-data-dir=\"C:\\\\Users\\\\wb659999\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-wb659999-OneDrive---WBG-Desktop-CD0-1\\\\51bb8680-b8e5-4872-af9f-531f4342ee78\\\\scratchpad\\\\edge_battleui2\" http://localhost:8820/card_dungeon.html)",
+      "Bash(curl -s http://localhost:9321/json)",
+      "Bash(PYTHONIOENCODING=utf-8 /c/WBG/Python313/python cdp_battletable_test.py \"ws://localhost:9321/devtools/page/CD7CD8CE52902667A899227D02FB123F\")"
     ]
   }
 }
