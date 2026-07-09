@@ -4886,7 +4886,7 @@ function renderFusionUI(){
   const sel=window._fusionSel||[];
   const kn=k=>k==='atk'?'攻击':k==='def'?'防御':k==='skl'?'技能':'诅咒';
   const validCards=battle.deck.filter(c=>c.rar!=='curse');
-  let h=`<div class="ovd">选择 2-5 张牌熔合。同名牌稳定，差异大则充满变数（可能产生废牌）。</div>`;
+  let h=`<div class="ovd">选择 2-5 张牌熔合。同名同类稳如磐石，东拼西凑则赌上一切——瞎凑的牌越杂，血本无归的概率越高。</div>`;
   h+=`<div style="font-size:10px;color:var(--text2);margin-bottom:8px">已选 ${sel.length}/5：`;
   if(sel.length)h+=sel.map(i=>`<span style="color:var(--amber);margin:0 3px">${battle.deck[i]?.name||'?'}</span>`).join('+');
   else h+='（无）';
@@ -4943,19 +4943,24 @@ function executeFusion(){
   const nameDivers=new Set(sc.map(c=>c.name)).size/sc.length;
   const kindDivers=new Set(sc.map(c=>c.kind)).size/sc.length;
   const stab=Math.max(0,1-nameDivers*.7-kindDivers*.3);
-  const roll=Math.random();
-  const{min:_mn2,max:_mx2}=fusionModRange(stab);
-  const mod=_mn2+roll*(_mx2-_mn2);
-  const targetV=Math.round(totalV*.7*mod);
+  // 先单独掷一次"会不会彻底失败"，跟"成功了值多少"是两次独立的骰子——
+  // 概率就是预览里玩家已经看过的那个数字，不会出现"预览说安全、结算却翻车"的错位
+  const wasteRoll=Math.random();
+  const wasteChance=fusionWasteChance(stab);
   // Remove selected cards
   [...sel].sort((a,b)=>b-a).forEach(i=>battle.deck.splice(i,1));
   window._fusionSel=[];
-  if(targetV<=0){
-    const waste={id:'fusewaste_'+Date.now(),name:'熔合废品',art:'💔',kind:'crs',rar:'curse',cost:0,desc:'占用手牌，回合结束损失1HP',curseTick:1,unplayable:true};
-    battle.deck.push(waste);toast('熔合失败！产生了废牌','r');
+  if(wasteRoll<wasteChance){
+    const wasteCards=buildFusionWaste(totalV);
+    wasteCards.forEach(w=>battle.deck.push(w));
+    toast(`💀 熔合失败！${sc.length}张牌（合计${totalV}g）付诸东流，换来${wasteCards.length>1?wasteCards.length+'张':'一张'}「${wasteCards[0].name}」！`,'r');
   }else{
+    const roll=Math.random();
+    const{min:_mn2,max:_mx2}=fusionModRange(stab);
+    const mod=_mn2+roll*(_mx2-_mn2);
+    const targetV=Math.max(1,Math.round(totalV*.7*mod));
     const result=buildFusionCard(sc,targetV);battle.deck.push(result);
-    const grade=mod>=2?'⚡ 神铸':mod>=1.3?'✓ 精良':mod<0.5?'⚠ 粗糙':'普通';
+    const grade=mod>=2?'⚡ 神铸':mod>=1.3?'✓ 精良':mod<0.7?'⚠ 粗糙':'普通';
     toast(`熔合${grade}：${result.name} ≈${targetV}g（花费${fusionCost}金币）`,mod>=1?'g':'');
   }
   renderHud();
