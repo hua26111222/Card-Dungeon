@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(\"/c/Program Files \\(x86\\)/Microsoft/Edge/Application/msedge.exe\" --headless=new --disable-gpu --no-sandbox --remote-debugging-port=9320 --remote-allow-origins=* --user-data-dir=\"C:\\\\Users\\\\wb659999\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-wb659999-OneDrive---WBG-Desktop-CD0-1\\\\51bb8680-b8e5-4872-af9f-531f4342ee78\\\\scratchpad\\\\edge_battleui\" http://localhost:8820/card_dungeon.html)",
+      "Bash(curl -s http://localhost:9320/json)"
+    ]
+  }
+}
