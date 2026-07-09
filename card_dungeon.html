@@ -4854,10 +4854,33 @@ function doPickForBlacksmith(act){showCardPicker(act,battle.deck.filter(c=>c.rar
 // ── 熔合系统 ──
 function startFusion(){window._fusionSel=[];renderFusionUI();}
 // 稳定性→熔合倍率区间：预览文字和实际结算必须用同一份阈值/区间，不然玩家看到的"预估"和真正掷出来的对不上
+// "会不会失败"和"成功后到底值多少"拆成两件独立的事——
+// 前者由 fusionWasteChance 单独掷一次，后者才是这个区间要管的事，下限统一收紧到正数，
+// 不再让"废品"藏在一个负数区间里悄悄发生、玩家事先根本看不出概率
 function fusionModRange(stab){
-  if(stab>.8)return{min:.75,max:1.4};
-  if(stab>.5)return{min:.5,max:1.8};
-  return{min:-.3,max:3.0};
+  if(stab>.8)return{min:.85,max:1.4};
+  if(stab>.5)return{min:.65,max:1.9};
+  return{min:.45,max:2.6};
+}
+// 废品概率：同名/同类的稳定组合几乎不会失手（鼓励用心配对），瞎凑一堆毫不相关的牌
+// 风险会指数级飙升——三次方曲线让"有点乱"和"完全乱来"的差距被明显拉开，
+// 不稳定到头（stab=0）时接近半数概率打水漂，这才谈得上"敬畏"
+function fusionWasteChance(stab){
+  const instab=Math.max(0,1-stab);
+  return Math.max(0,Math.min(.45,instab*instab*instab*.45));
+}
+// 废品的烈度跟着这次赌进去的身家走：赌小的输了不伤筋动骨，赌大的输了要真的肉疼，
+// 敬畏感来自"这一把可能真的会痛"，而不是不管赌注大小都是同一张不痛不痒的诅咒牌
+function buildFusionWaste(totalV){
+  const ts=Date.now();
+  if(totalV>=70){
+    return[
+      {id:'fusewaste_'+ts+'a',name:'熔炉余烬',art:'💀',kind:'crs',rar:'curse',cost:0,desc:'占用手牌，回合结束损失2HP',curseTick:2,unplayable:true},
+      {id:'fusewaste_'+ts+'b',name:'熔炉余烬',art:'💀',kind:'crs',rar:'curse',cost:0,desc:'占用手牌，回合结束损失2HP',curseTick:2,unplayable:true}
+    ];
+  }
+  if(totalV>=35)return[{id:'fusewaste_'+ts,name:'熔合废渣',art:'☣',kind:'crs',rar:'curse',cost:0,desc:'占用手牌，回合结束损失2HP',curseTick:2,unplayable:true}];
+  return[{id:'fusewaste_'+ts,name:'熔合废品',art:'💔',kind:'crs',rar:'curse',cost:0,desc:'占用手牌，回合结束损失1HP',curseTick:1,unplayable:true}];
 }
 function renderFusionUI(){
   const sel=window._fusionSel||[];
@@ -4868,7 +4891,7 @@ function renderFusionUI(){
   if(sel.length)h+=sel.map(i=>`<span style="color:var(--amber);margin:0 3px">${battle.deck[i]?.name||'?'}</span>`).join('+');
   else h+='（无）';
   h+='</div>';
-  let fusionCost=0,notEnough=false;
+  let fusionCost=0,notEnough=false,wasteChance=0;
   if(sel.length>=2){
     const sc=sel.map(i=>battle.deck[i]);const vals=sc.map(c=>cardValue(c));
     const totalV=vals.reduce((s,v)=>s+v,0),avgV=totalV/sc.length;
@@ -4877,8 +4900,14 @@ function renderFusionUI(){
     const stab=Math.max(0,1-nameDivers*.7-kindDivers*.3);
     const{min:_mn,max:_mx}=fusionModRange(stab);
     const minR=Math.round(totalV*.7*_mn),maxR=Math.round(totalV*.7*_mx);
+    wasteChance=fusionWasteChance(stab);
     fusionCost=priceForValue(totalV,PRICE_MULT.fusion);notEnough=player.gold<fusionCost;
-    h+=`<div style="margin:0 0 8px;padding:5px 10px;border:1px solid var(--crack2);font-size:9px;color:var(--text2)">稳定性 ${Math.round(stab*100)}% · 总价值 ${totalV}g · 预估 ${minR}~${maxR}g<br><span style="color:${notEnough?'var(--gore2)':'var(--amber)'}">工本费 ${fusionCost} 金币${notEnough?'（金币不足）':''}</span></div>`;
+    // 废品概率不再藏在数值区间里——单独摆一行，概率越高颜色越刺眼，
+    // 逼玩家在按下"熔合"之前先正视这个数字，而不是失手了才后悔
+    const wastePct=Math.round(wasteChance*100);
+    const wasteColor=wastePct>=20?'var(--gore2)':wastePct>=8?'var(--amber)':'var(--text3)';
+    const wasteLine=wastePct>=1?`<br><span style="color:${wasteColor};font-weight:${wastePct>=8?'700':'400'}">⚠ ${wastePct}% 概率完全失败，${sc.reduce((s,c)=>s+cardValue(c),0)>=70?'两张':'一张'}废品诅咒牌代替成果（工本费照收不退）</span>`:'';
+    h+=`<div style="margin:0 0 8px;padding:5px 10px;border:1px solid ${wastePct>=20?'var(--blood2)':'var(--crack2)'};font-size:9px;color:var(--text2)">稳定性 ${Math.round(stab*100)}% · 总价值 ${totalV}g · 预估 ${minR}~${maxR}g<br><span style="color:${notEnough?'var(--gore2)':'var(--amber)'}">工本费 ${fusionCost} 金币${notEnough?'（金币不足）':''}</span>${wasteLine}</div>`;
   }
   validCards.forEach((c,ci)=>{
     const ri=battle.deck.indexOf(c);const isSel=sel.includes(ri);
@@ -4890,8 +4919,9 @@ function renderFusionUI(){
       ${isSel?'<span style="color:var(--violet);font-size:13px;flex-shrink:0">✓</span>':''}
     </div>`;
   });
+  const highRisk=wasteChance>=.2;
   h+=`<div style="display:flex;gap:8px;margin-top:10px">
-    <button class="ovbtn" style="flex:1;margin:0" onclick="executeFusion()" ${sel.length<2||notEnough?'disabled':''}>🔮 熔合 (${sel.length}张)${fusionCost?` · ${fusionCost}●`:''}</button>
+    <button class="ovbtn" style="flex:1;margin:0${highRisk?';border-color:var(--blood2);color:var(--gore2)':''}" onclick="executeFusion()" ${sel.length<2||notEnough?'disabled':''}>${highRisk?'⚠ 高风险':'🔮'} 熔合 (${sel.length}张)${fusionCost?` · ${fusionCost}●`:''}</button>
     <button class="ovbtn" style="flex:1;margin:0" onclick="renderBlacksmithMain()">取消</button>
   </div>`;
   document.getElementById('ovb').innerHTML=h;
