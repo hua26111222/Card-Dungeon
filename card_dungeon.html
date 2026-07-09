@@ -2291,6 +2291,17 @@ const MAP_COLS=9; // 普通行的列数（首领行固定4列，单独处理）
 // 地图总步数（含首领行）：剧情远征固定=13（12普通+1首领）。无限地牢模式已下线，
 // 这个变量原本还服务过它的19步地图，现在只会被赋值13，保留可配置是为了以后如果要调远征层数方便改
 let MAP_TOTAL_STEPS=13;
+// 地图"探索点数"：跟战斗行动力是同一个思路——非战斗节点（商店/事件/宝箱/篝火……含暗牌，
+// 因为暗牌内容未知，可能就是变相的非战斗节点）要消耗点数才能进，点数只能靠打赢明牌上的
+// 战斗/精英/首领来补充。逼着玩家不能一路商店逛过去，必须维持一定的战斗密度，否则地图
+// 会退化成纯粹的"抽卡机"，缺一点扑克牌桌上"你得先出牌才有资格摸牌"的紧张感
+const MAP_AP_START=2,MAP_AP_CAP=4;
+function nodeApCost(card){
+  if(!card)return 0;
+  if(card.isHidden&&!card.revealed)return 1;// 暗牌内容未知，一律按非战斗收费
+  const isCombat=card.type==='fight'||card.type==='elite'||card.type==='boss';
+  return isCombat?0:1;
+}
 // 从普通行（MAP_COLS列）走到首领行（bossCols列）时的可达范围：按玩家所在列的相对位置，
 // 映射到首领行里最近的3格——renderMap()和pickMapCard()共用同一份，不再各写一份重复的对照表
 function bossRowReach(pCol,srcCols,bossCols){
@@ -2301,7 +2312,7 @@ function buildMap(){
   const rows=[];
   for(let s=0;s<MAP_TOTAL_STEPS;s++)rows.push(genMapRow(s));
   const persona=_FLOOR_PERSONA[0|Math.random()*_FLOOR_PERSONA.length];
-  mapData={rows,step:0,playerCol:Math.floor(MAP_COLS/2),history:[],persona};
+  mapData={rows,step:0,playerCol:Math.floor(MAP_COLS/2),history:[],persona,ap:MAP_AP_START};
   window._mapPending=null;
 }
 function genMapRow(step){
@@ -2414,6 +2425,14 @@ function renderMap(){
   const potD2=new Set();potD1.forEach(c=>[c-1,c,c+1].forEach(n=>{if(n>=0&&n<MAP_COLS)potD2.add(n);}));
 
   document.getElementById('mprompt').textContent=isBossStep?'☠ 首领降临，无路可退！':step>=MAP_TOTAL_STEPS-3?`⚠ 首领将至，还有 ${MAP_TOTAL_STEPS-1-step} 步`:'选择前进的路：';
+  // 探索点数不足时，本行触及范围内只要还有一个"免费"的战斗类节点，非战斗/暗牌节点就会被锁住——
+  // 但如果这一整圈压根没有战斗节点可选（纯粹运气不好），绝不能真的把玩家卡死，照常放行
+  const actrow0=rows[step]||[];
+  const anyFreeReachable=[...reach].some(ci=>nodeApCost(actrow0[ci])===0);
+  const mapAp=mapData.ap||0;
+  const apStarved=mapAp<1&&anyFreeReachable;
+  const mapapEl=document.getElementById('mapap');
+  if(mapapEl)mapapEl.innerHTML=`⚡ ${Array.from({length:MAP_AP_CAP},(_,i)=>`<span style="opacity:${i<mapAp?1:.25}">●</span>`).join('')}`;
 
   // 5级稀有度系统（颜色决定卡牌边框，标签直接显示遇到概率，而非文字等级；定义见全局 VAL_TIERS/CP_VAL_IDX/TYPE_VAL_IDX）
   const VAL_T=VAL_TIERS;
@@ -2428,19 +2447,23 @@ function renderMap(){
     const isReach=isActive&&reach.has(ci);
     const isBlind=card.isHidden&&!card.revealed;
     const dimCls=(!isActive&&!potReach.has(ci))?' path-dim':'';
+    const apCost=isReach?nodeApCost(card):0;
+    const apLocked=isReach&&apCost>0&&apStarved;
     const reachCls=isReach?' reach':'';
+    const lockCls=apLocked?' ap-locked':'';
     const blindCls=isBlind?' mcard-blind':'';
     const bossCls=card.type==='boss'&&isReach?' mcard-boss':'';
     const selCls=isReach&&window._mapPending===ci?' mc-sel':'';
-    const click=isReach?`onclick="selectMapCard(${ci})"`:'';
+    const click=isReach&&!apLocked?`onclick="selectMapCard(${ci})"`:'';
+    const lockHint=apLocked?`<div class="mchint" style="color:var(--frost);font-weight:700">⚡点数不足</div>`:'';
     if(isBlind){
       // 暗牌统一使用固定的中性紫色样式，绝不能用 card.col/bg（那是真实类型的颜色，会泄露内容）
       const bTitle=card.type==='boss'?(card.blindTitle||'未知路途'):'未知路途';
-      return`<div class="mcard${reachCls}${blindCls}${dimCls}${selCls}" ${click} style="border-color:#5a3a7a;background:rgba(40,20,70,.38)">
+      return`<div class="mcard${reachCls}${blindCls}${dimCls}${selCls}${lockCls}" ${click} style="border-color:#5a3a7a;background:rgba(40,20,70,.38)">
         <div class="mcsuit" style="color:#8a6aaa">?</div>
         <div class="mcicon" style="color:#5a3a8a;font-size:22px">🂠</div>
         <div class="mctype" style="color:#9a7abf;font-size:7px;letter-spacing:.5px">${bTitle}</div>
-        ${isReach?`<div class="mchint" style="color:var(--violet);font-size:6px">路途未知</div>`:''}
+        ${apLocked?lockHint:isReach?`<div class="mchint" style="color:var(--violet);font-size:6px">路途未知 · ⚡1</div>`:''}
       </div>`;
     }
     const rankHint=card.rank<=4?'初级':card.rank<=8?'中级':card.rank<=12?'高级':'精锐';
@@ -2468,11 +2491,11 @@ function renderMap(){
       </div>`;
     }
     const vidx=typeValIdx[card.type]??1;const vt2=VAL_T[vidx]||VAL_T[1];
-    return`<div class="mcard${reachCls}${bossCls}${dimCls}${selCls}" ${click} style="border-color:${vt2.border};background:${card.bg};box-shadow:0 0 5px ${vt2.border}">
+    return`<div class="mcard${reachCls}${bossCls}${dimCls}${selCls}${lockCls}" ${click} style="border-color:${vt2.border};background:${card.bg};box-shadow:0 0 5px ${vt2.border}">
       ${valBadge(vidx)}
       <div class="mcicon" style="text-shadow:0 0 14px ${card.col};margin-top:6px">${ti.ic}</div>
       <div class="mctype" style="color:${card.col}">${ti.nm}</div>
-      ${isActive&&isReach?`<div class="mchint" style="color:${card.col}">${rankHint}</div>`:''}
+      ${apLocked?lockHint:isActive&&isReach?`<div class="mchint" style="color:${card.col}">${rankHint}</div>`:''}
     </div>`;
   }
 
