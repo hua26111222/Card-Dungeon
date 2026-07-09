@@ -112,9 +112,22 @@ body::after{content:'';position:fixed;inset:0;z-index:9998;pointer-events:none;
 .fr{display:flex;align-items:center;gap:8px}
 .psb{font-family:var(--fp);font-size:8px;padding:4px 8px;border:2px solid;letter-spacing:1px;font-style:normal;background:rgba(0,0,0,.5)}
 .fp{font-size:11px;color:var(--text3);letter-spacing:1px}
-/* 地图探索点数：跟战斗行动力一个意思，视觉上也故意用同一套蓝色圆点语言 */
-.mapap{font-family:var(--fp);font-size:9px;padding:4px 7px;border:2px solid var(--ice);color:var(--frost);
-  letter-spacing:2px;background:rgba(58,90,138,.18);display:flex;align-items:center;gap:1px}
+/* 地图探索点数：做成"股票报价机"的观感——像素字体的代码标签+竖条K线柱，
+   而不是普通血条那种圆点，配色随点数状态在"绿盘/黄盘/跌停闪红"之间切换 */
+.mapap{font-family:var(--fp);font-size:8px;padding:4px 7px;border:2px solid var(--ice);color:var(--frost);
+  letter-spacing:1px;background:rgba(58,90,138,.18);display:flex;align-items:center;gap:5px;position:relative;overflow:visible}
+.mapap-lbl{opacity:.65;font-size:7px}
+.mapap-bars{display:flex;align-items:flex-end;gap:1.5px;height:11px}
+.mapap-bars span{display:inline-block;width:3px;background:currentColor;box-shadow:0 0 4px currentColor;transition:opacity .2s}
+.mapap-bars span:nth-child(1){height:35%}.mapap-bars span:nth-child(2){height:55%}
+.mapap-bars span:nth-child(3){height:75%}.mapap-bars span:nth-child(4){height:100%}
+.mapap.low{border-color:var(--amber);color:var(--amber)}
+.mapap.crit{border-color:var(--gore2);color:var(--gore2);animation:mapap-blink 1s steps(2) infinite}
+@keyframes mapap-blink{0%,100%{opacity:1}50%{opacity:.5}}
+.mapap-tick{position:absolute;top:-13px;left:50%;transform:translateX(-50%);font-size:7px;opacity:0;white-space:nowrap;pointer-events:none;text-shadow:0 0 4px currentColor}
+.mapap-tick.up{color:var(--slime)}.mapap-tick.down{color:var(--gore2)}
+.mapap-tick.show{animation:mapap-tick-fly .9s ease-out forwards}
+@keyframes mapap-tick-fly{0%{opacity:0;transform:translateX(-50%) translateY(3px)}20%{opacity:1;transform:translateX(-50%) translateY(-2px)}100%{opacity:0;transform:translateX(-50%) translateY(-12px)}}
 #mwrap{background-color:var(--s1);border-bottom:2px solid var(--crack);padding:6px 0}
 .mprompt{padding:6px 14px 2px;font-size:11px;color:var(--text3);letter-spacing:3px;font-style:italic;text-align:center}
 #mchooser{display:flex;flex-direction:column;gap:4px;padding:6px 8px 4px}
@@ -2306,7 +2319,7 @@ let MAP_TOTAL_STEPS=13;
 // 因为暗牌内容未知，可能就是变相的非战斗节点）要消耗点数才能进，点数只能靠打赢明牌上的
 // 战斗/精英/首领来补充。逼着玩家不能一路商店逛过去，必须维持一定的战斗密度，否则地图
 // 会退化成纯粹的"抽卡机"，缺一点扑克牌桌上"你得先出牌才有资格摸牌"的紧张感
-const MAP_AP_START=2,MAP_AP_CAP=4;
+const MAP_AP_START=1,MAP_AP_CAP=4;
 function nodeApCost(card){
   if(!card)return 0;
   if(card.isHidden&&!card.revealed)return 1;// 暗牌内容未知，一律按非战斗收费
@@ -2325,6 +2338,7 @@ function buildMap(){
   const persona=_FLOOR_PERSONA[0|Math.random()*_FLOOR_PERSONA.length];
   mapData={rows,step:0,playerCol:Math.floor(MAP_COLS/2),history:[],persona,ap:MAP_AP_START};
   window._mapPending=null;
+  window._prevMapAp=undefined;// 新的一层重新起算，不跟上一层的点数比对出假的涨跌提示
 }
 function genMapRow(step){
   const normalSteps=MAP_TOTAL_STEPS-1;
@@ -2443,7 +2457,19 @@ function renderMap(){
   const mapAp=mapData.ap||0;
   const apStarved=mapAp<1&&anyFreeReachable;
   const mapapEl=document.getElementById('mapap');
-  if(mapapEl)mapapEl.innerHTML=`⚡ ${Array.from({length:MAP_AP_CAP},(_,i)=>`<span style="opacity:${i<mapAp?1:.25}">●</span>`).join('')}`;
+  if(mapapEl){
+    const stateCls=mapAp<=0?'crit':mapAp===1?'low':'';
+    const prev=window._prevMapAp;
+    let tickHtml='';
+    if(prev!==undefined&&prev!==mapAp){
+      const diff=mapAp-prev;
+      tickHtml=`<span class="mapap-tick show ${diff>0?'up':'down'}">${diff>0?'▲+'+diff:'▼'+diff}</span>`;
+    }
+    window._prevMapAp=mapAp;
+    const bars=Array.from({length:MAP_AP_CAP},(_,i)=>`<span style="opacity:${i<mapAp?1:.2}"></span>`).join('');
+    mapapEl.className='mapap'+(stateCls?' '+stateCls:'');
+    mapapEl.innerHTML=`<span class="mapap-lbl">EXPL</span><span class="mapap-bars">${bars}</span>${tickHtml}`;
+  }
   if(apStarved&&!isBossStep)document.getElementById('mprompt').textContent='⚡ 探索点数不足，请先前往可战斗的路：';
 
   // 5级稀有度系统（颜色决定卡牌边框，标签直接显示遇到概率，而非文字等级；定义见全局 VAL_TIERS/CP_VAL_IDX/TYPE_VAL_IDX）
