@@ -2750,7 +2750,7 @@ function startBattle(isElite,isBoss){
   }
   if(!en){window._mapCard=null;mapData.step=Math.max(0,mapData.step-1);phase=PH.MAP;toast('⚠ 敌人生成失败，请重试','r');renderMap();return;}
   window._mapCard=null;
-  phase=PH.BATTLE;saveGame();startBGM('battle');
+  phase=PH.BATTLE;battle.ended=false;saveGame();startBGM('battle');
   // Apply boss power multiplier
   if(isBoss&&pm!==1){en.hp=Math.round(en.hp*pm);en.actions=en.actions.map(a=>a.t==='a'?{...a,v:Math.max(3,Math.round(a.v*pm))}:a);}
   // Boss curse variant: add curse card after battle
@@ -3127,6 +3127,12 @@ function finisherFX(tier){
   if(epic)setTimeout(()=>{screenShake(true);sfx(45,.4,'sawtooth',.16,-20);},200);
 }
 function endBattle(won){
+  // 防重入：普通胜利的奖励结算是 setTimeout 延后弹出的，这段延迟里 phase 还没离开
+  // PH.BATTLE，如果这时候又有出牌/结束回合/中毒跳字之类的逻辑摸到"敌人已经死了"，
+  // 会重复触发这个函数——之前发生过"同一场胜利连续结算好几次金币/点数，
+  // 最后又被算成一次失败"的连锁bug，靠这个标记把同一场战斗的结算钉死为只生效一次
+  if(battle.ended)return;
+  battle.ended=true;
   stopBGM();
   if(won){
     finisherFX(battle.enemy?.tier);
