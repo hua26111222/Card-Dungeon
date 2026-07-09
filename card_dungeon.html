@@ -4906,6 +4906,7 @@ function showBossReward(){
   // 首领的装备主掉落也并进这个"三选一大礼包"界面，跟卡牌/能力平级，不再另外弹提示
   const equipOffer=window._pendingEquipOffer||null;window._pendingEquipOffer=null;
   window._bossReward={cardPicks,abilities,equipOffer,sel:null,selType:null};
+  setSceneArt('🏆',`首领倒下，深渊为之一静。从战利品中挑选你最需要的力量。`);
   renderBossRewardUI();
 }
 function renderBossRewardUI(){
