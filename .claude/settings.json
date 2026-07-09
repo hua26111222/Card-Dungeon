@@ -14,7 +14,10 @@
       "Bash(\"/c/Program Files \\(x86\\)/Microsoft/Edge/Application/msedge.exe\" --headless=new --disable-gpu --no-sandbox --remote-debugging-port=9340 --remote-allow-origins=* --user-data-dir=\"C:\\\\Users\\\\wb659999\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-wb659999-OneDrive---WBG-Desktop-CD0-1\\\\51bb8680-b8e5-4872-af9f-531f4342ee78\\\\scratchpad\\\\edge_mapap\" http://localhost:8840/card_dungeon.html)",
       "Bash(curl -s http://localhost:9340/json)",
       "Bash(PYTHONIOENCODING=utf-8 /c/WBG/Python313/python cdp_mapap_battle_test.py \"ws://localhost:9340/devtools/page/C9FB65446AC7F0E5BC63D4E8344DCCA6\")",
-      "Bash(PYTHONIOENCODING=utf-8 /c/WBG/Python313/python cdp_mapap_test2.py \"ws://localhost:9340/devtools/page/C9FB65446AC7F0E5BC63D4E8344DCCA6\")"
+      "Bash(PYTHONIOENCODING=utf-8 /c/WBG/Python313/python cdp_mapap_test2.py \"ws://localhost:9340/devtools/page/C9FB65446AC7F0E5BC63D4E8344DCCA6\")",
+      "Bash(cd \"c:\\\\Users\\\\wb659999\\\\OneDrive - WBG\\\\Desktop\\\\CD0.1\" && find . -iname \"*mapap*\" 2>/dev/null; echo \"---scratchpad---\"; find \"C:\\\\Users\\\\wb659999\\\\AppData\\\\Local\\\\Temp\\\\claude\" -iname \"*mapap*\" 2>/dev/null | head -50)",
+      "Read(//c/Users/wb659999/AppData/Local/Temp/claude/**)",
+      "Bash(sort -k9)"
     ]
   }
 }
